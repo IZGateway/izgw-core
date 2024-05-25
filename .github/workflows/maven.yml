@@ -203,7 +203,7 @@ jobs:
         path: ./target/dependency-check-report.*
 
   release:
-    needs: verify
+    needs: build
     runs-on: ubuntu-latest
     # This step should only be done on PUSH to main
     if: github.ref == 'refs/heads/testmain' || github.ref == 'refs/heads/main'

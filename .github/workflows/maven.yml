@@ -49,8 +49,6 @@ jobs:
       run: |
           echo BASE_TAG=`mvn help:evaluate -Dexpression=project.version -q -DforceStdout` >> $GITHUB_ENV
           echo COMPUTERNAME=`hostname` >> $GITHUB_ENV
-          npm install -g newman-reporter-junitfull
-          npm install -g xunit-viewer
           mkdir -p ~/.m2 \
           && cat << EOF > ~/.m2/toolchains.xml
           <?xml version="1.0" encoding="UTF8"?>

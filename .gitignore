@@ -3,3 +3,4 @@
 **/logs
 **/temp
 **/pom.xml.versionsBackup
+/target/

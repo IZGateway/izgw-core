@@ -229,7 +229,7 @@ public class SoapMessage implements Serializable {
         String msh5 = fields.length > 4 ? fields[4] : "";
         String msh6 = fields.length > 5 ? fields[5] : "";
 
-        if ("TEST".equalsIgnoreCase(msh5) && msh6 != null && msh6.matches("^TC_[0-9A-Z_]+$|^PERF.*$")) {
+        if ("TEST".equalsIgnoreCase(msh5) && msh6 != null && msh6.matches("^TC_[0-9A-Z_]+$|^MOCK.*|^PERF.*$")) {
             return msh6;
         }
         

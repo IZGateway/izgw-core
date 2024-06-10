@@ -1,0 +1,531 @@
+package gov.cdc.izgateway.soap;
+
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.function.UnaryOperator;
+
+import org.apache.commons.io.IOUtils;
+import org.apache.commons.lang3.ObjectUtils;
+import org.apache.commons.lang3.StringUtils;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.ExceptionHandler;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestHeader;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestMethod;
+import org.springframework.web.bind.annotation.RequestParam;
+
+import gov.cdc.izgateway.common.HasDestinationUri;
+import gov.cdc.izgateway.configuration.AppProperties;
+import gov.cdc.izgateway.logging.RequestContext;
+import gov.cdc.izgateway.logging.event.TransactionData;
+import gov.cdc.izgateway.logging.event.TransactionData.MessageType;
+import gov.cdc.izgateway.logging.info.MessageInfo;
+import gov.cdc.izgateway.logging.info.MessageInfo.Direction;
+import gov.cdc.izgateway.logging.info.MessageInfo.EndpointType;
+import gov.cdc.izgateway.logging.markers.Markers2;
+import gov.cdc.izgateway.model.IDestination;
+import gov.cdc.izgateway.model.IMessageHeader;
+import gov.cdc.izgateway.model.RetryStrategy;
+import gov.cdc.izgateway.security.Roles;
+import gov.cdc.izgateway.service.IDestinationService;
+import gov.cdc.izgateway.service.IMessageHeaderService;
+import gov.cdc.izgateway.soap.fault.DestinationConnectionFault;
+import gov.cdc.izgateway.soap.fault.Fault;
+import gov.cdc.izgateway.soap.fault.HubClientFault;
+import gov.cdc.izgateway.soap.fault.MessageTooLargeFault;
+import gov.cdc.izgateway.soap.fault.SecurityFault;
+import gov.cdc.izgateway.soap.fault.UnexpectedExceptionFault;
+import gov.cdc.izgateway.soap.fault.UnknownDestinationFault;
+import gov.cdc.izgateway.soap.fault.UnsupportedOperationFault;
+import gov.cdc.izgateway.soap.message.ConnectivityTestRequest;
+import gov.cdc.izgateway.soap.message.ConnectivityTestResponse;
+import gov.cdc.izgateway.soap.message.FaultMessage;
+import gov.cdc.izgateway.soap.message.HasCredentials;
+import gov.cdc.izgateway.soap.message.HasEchoBack;
+import gov.cdc.izgateway.soap.message.HasFacilityID;
+import gov.cdc.izgateway.soap.message.HasHL7Message;
+import gov.cdc.izgateway.soap.message.SoapMessage;
+import gov.cdc.izgateway.soap.message.SoapMessage.Request;
+import gov.cdc.izgateway.soap.message.SubmitSingleMessageRequest;
+import gov.cdc.izgateway.soap.message.SubmitSingleMessageResponse;
+import gov.cdc.izgateway.soap.net.SoapMessageConverter.SoapConversionException;
+import gov.cdc.izgateway.soap.net.SoapMessageReader.SoapParseException;
+import gov.cdc.izgateway.utils.HL7Utils.HL7Message;
+import gov.cdc.izgateway.utils.JsonUtils;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.Schema;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import jakarta.annotation.security.RolesAllowed;
+import jakarta.servlet.http.HttpServletRequest;
+import lombok.Getter;
+import lombok.Setter;
+import lombok.extern.slf4j.Slf4j;
+
+/**
+ * This is the base class for the IZ Gateway Hub and the Mock Controllers.  These controllers perform the same functions save that the Hub routes requests, and the Mock executes on them as if
+ * it were an actual IIS.
+ */
+@Slf4j
+public abstract class SoapControllerBase {
+
+	private static Map<String, String> resourceCache = new HashMap<>();
+	private static final List<String> XSD_FILES = Arrays.asList("cdc-iis.xsd", "cdc-iis-2011.xsd", "cdc-iis-hub.xsd");
+
+	protected final IMessageHeaderService mshService;
+	@Getter
+	private final String messageNamespace;
+	@Getter
+	private final List<String> faultNamespaces;
+	@Getter
+	private final String wsdl;
+	@Getter
+	private final boolean usingHubHeaders;
+	@Getter
+	private final String serviceType;
+	@Getter
+	@Value("${server.hostname}")
+	private String serverName;
+	@Getter
+	@Value("${server.mode:prod}")
+	private String mode;
+	@Getter
+	@Setter
+	private int maxMessageSize = 65536;
+
+	protected IDestinationService getDestinationService() {
+		return null;
+	}
+
+	protected final boolean isHub() {
+		return getDestinationService() != null;
+	}
+	protected abstract void checkCredentials(HasCredentials s) throws SecurityFault;
+	public interface Work<V> {
+		/**
+		 * Computes a result, or throws an exception if unable to do so.
+		 *
+		 * @return computed result
+		 * @throws Exception if unable to compute a result
+		 */
+		V call() throws Fault;
+	}
+	protected SoapControllerBase(IMessageHeaderService mshService, String messageNamespace, String wsdl, List<String> faultNamespaces) {
+		this.mshService = mshService;
+		this.messageNamespace = messageNamespace;
+		this.wsdl = wsdl;
+		this.faultNamespaces = faultNamespaces == null ? Collections.singletonList(messageNamespace) : Collections.unmodifiableList(faultNamespaces);
+		this.usingHubHeaders = faultNamespaces != null;
+		this.serviceType = usingHubHeaders ? "Gateway" : "Mock";
+	}
+
+	public static void logStart(SoapMessage soapMessage, boolean isHub, String mode, String serviceType, UnaryOperator<String> getSourceType) {
+		TransactionData tData = RequestContext.getTransactionData();
+		String message;
+		if (soapMessage != null) {
+			soapMessage.updateAction(isHub);
+			if (soapMessage instanceof SubmitSingleMessageRequest s) {
+				tData.setMessageType(MessageType.SUBMIT_SINGLE_MESSAGE);
+				message = s.getHl7Message();
+				tData.getSource().setType(getSourceType.apply(message));
+				tData.setRequestHL7Message(message);
+
+			} else if (soapMessage instanceof ConnectivityTestRequest c) {
+				tData.setMessageType(MessageType.CONNECTIVITY_TEST);
+				message = c.getEchoBack();
+				tData.setRequestEchoBack(message);
+			} else {
+				tData.setMessageType(MessageType.OTHER);
+			}
+
+			if (soapMessage instanceof Request) {
+				MessageInfo messageInfo = new MessageInfo(soapMessage, EndpointType.SERVER, Direction.INBOUND, AppProperties.isProduction());
+				tData.setMessageId(soapMessage.getWsaHeaders().getMessageID());
+				tData.setReplyTo(soapMessage.getWsaHeaders().getRelatesTo());
+				tData.setResponseReceived(false);
+				tData.getServerRequest().setWs_request_message(messageInfo);
+				messageInfo.setHttpHeaders(RequestContext.getHttpHeaders());
+			}
+			if (soapMessage instanceof HasFacilityID hfid) {
+				tData.getSource().setFacilityId(hfid.getFacilityID());
+			}
+		}
+		tData.setServerMode(mode);
+		tData.setServiceType(serviceType);
+	}
+	protected void logStartOfRequest(SoapMessage soapMessage) {
+		logStart(soapMessage, isHub(), mode, serviceType, this::getSourceType);
+	}
+
+	private String getSourceType(String message) {
+		HL7Message m = new HL7Message(message);
+		String[] mshVals = {
+				m.getField(HL7Message.SENDING_APPLICATION),
+				m.getField(HL7Message.SENDING_FACILITY)
+		};
+		if (mshService == null) {
+			return "unknown";
+		}
+		return mshService.getSourceType(mshVals);
+	}
+
+	protected static  <T> ResponseEntity<T> logEndOfRequest(Work<ResponseEntity<T>> doWork) throws Fault {
+		Fault error = null;
+		try {
+			ResponseEntity<T> result = doWork.call();
+			
+			if (result != null && result.getBody() instanceof SoapMessage body) {
+				logResponseMessage(body);
+				}
+			return result;
+		} catch (Fault f) {
+			error = f;
+			logFault(error);
+			throw f;
+		} catch (Throwable e) { // NOSONAR Catch any Throwable is intentional
+			error = wrapExceptionAsFault(e);
+			logFault(error);
+			throw e;
+		}
+	}
+
+	public static void logResponseMessage(SoapMessage body) {
+		TransactionData tData = RequestContext.getTransactionData();
+		String value = "";
+		if (body instanceof HasEchoBack e) {
+			value = e.getEchoBack();
+			tData.setResponseEchoBack(value);
+		} else if (body instanceof HasHL7Message h) {
+			value = h.getHl7Message();
+			tData.setResponseHL7Message(value);
+		}
+		tData.setResponsePayloadSize(value.length());
+		tData.getServerResponse().setWs_response_message(new MessageInfo(body, EndpointType.SERVER, Direction.OUTBOUND, AppProperties.isProduction()));
+	}
+
+	public static Fault logFault(Fault fault) {
+		if (fault instanceof HasDestinationUri dcf) {
+			log.error(Markers2.append(fault, "destinationUrl", dcf.getDestinationUri()), "{} occured during processing: {}", fault.getClass().getSimpleName(), getCauseMessage(fault));
+		} else {
+			log.error(Markers2.append(fault), "{} occured during processing: {}", fault.getClass().getSimpleName(), getCauseMessage(fault));
+		}
+		TransactionData tData = RequestContext.getTransactionData();
+		if (tData == null) {
+			// This should never happen, protect against it and log an error.
+			tData = RequestContext.init();
+			log.error("LogFault called without TransactionData present");
+		}
+		tData.setProcessError(fault);
+		return fault;
+	}
+
+	protected static String getCauseMessage(Fault fault) {
+		if (fault.getCause() == null) {
+			return fault.getMessage();
+		}
+		return fault.getCause().getMessage();
+	}
+
+	public static Fault wrapExceptionAsFault(Throwable fault) {
+		if (fault instanceof Fault f) {
+			return f;
+		}
+		log.error(Markers2.append(fault), "Unexpected Exception: {}", fault.getMessage());
+		return new UnexpectedExceptionFault(fault, "An unexpected exception occured");
+	}
+
+	@Operation(summary = "Controls reporting on invalid methods", hidden=true, description = "Returns a SOAP Fault for invalid methods")
+	@ApiResponse(responseCode = "405", description = "An invalid method was used", content = @Content)
+	@RequestMapping(produces =
+			{	MediaType.TEXT_PLAIN_VALUE,
+					MediaType.TEXT_XML_VALUE,
+					MediaType.TEXT_HTML_VALUE, // Postel's law
+					MediaType.APPLICATION_XML_VALUE,
+					"application/soap",
+					"application/soap+xml",
+					"application/wsdl+xml"
+			},
+			method = { RequestMethod.DELETE, RequestMethod.PATCH, RequestMethod.PUT, RequestMethod.TRACE }
+	)
+	public ResponseEntity<FaultMessage> invalidRequest(HttpServletRequest req) {
+		logStartOfRequest(null);
+		return handleFault(new UnsupportedOperationFault("Request Method Invalid: " + req.getMethod(), null));
+	}
+
+	@Operation(summary = "Get the description of this Interface", description = "Returns the Web Service Description Language (WSDL) or XML Schema Description (XSD) for this interface")
+	@ApiResponse(responseCode = "200", description = "The WSDL or requested schema", content = @Content(mediaType = MediaType.APPLICATION_XML_VALUE, schema = @Schema(implementation = IMessageHeader.Map.class)))
+	@ApiResponse(responseCode = "404", description = "The requested schema was not found", content = @Content)
+	@ApiResponse(responseCode = "500", description = "A Fault occurred while processing", content = @Content)
+	@GetMapping(produces =
+			{	MediaType.TEXT_PLAIN_VALUE,
+					MediaType.TEXT_XML_VALUE,
+					MediaType.APPLICATION_XML_VALUE,
+					"application/soap",
+					"application/soap+xml",
+					"application/wsdl+xml"
+			}
+	)
+	public ResponseEntity<?> getWsdlOrXsd(  // NOSONAR Intentional use of ?
+											@Schema(description="Get the WSDL")
+											@RequestParam(name="WSDL", required=false)
+											String wsdl,
+											@Schema(description="Alternate request to get the WSDL")
+											@RequestParam(name="wsdl", required=false)
+											String wsdl2,
+											@Schema(description="The Schema to get")
+											@RequestParam(name="xsd", required=false)
+											String xsd,
+											@Schema(description="Throws the fault specified in the header parameter")
+											@RequestHeader(value="X-IIS-Hub-Dev-Action", required=false)
+											String devAction
+	) {
+		Fault fault = null;
+		logStartOfRequest(null);
+		try {
+			if (!StringUtils.isEmpty(devAction)) {
+				throwSimulatedFault(devAction, null);
+			}
+			wsdl = ObjectUtils.defaultIfNull(wsdl, wsdl2);
+			if (wsdl == null && StringUtils.isEmpty(xsd)) {
+				throw new UnsupportedOperationFault("At least one of the WSDL or xsd parameters must be present", null);
+			} else if (xsd != null && XSD_FILES.contains(xsd)) {
+				throw new UnsupportedOperationFault("Schema " + xsd + " unknown", null);
+			}
+			String resourceName = wsdl != null ? "/soap/wsdl/" + getWsdl() : ("/soap/schema" + xsd);
+			return logEndOfRequest(() -> getResource(resourceName));
+		} catch (Fault ex) {
+			fault = ex;
+		} catch (Throwable ex) {
+			fault = wrapExceptionAsFault(ex);
+		}
+		return handleFault(fault);
+	}
+
+	@Operation(summary = "Post a message to the SOAP Interface", description = "Send a request to the SOAP Interface for IZ Gateway")
+	@ApiResponse(responseCode = "200", description = "The request completed normally", content = @Content(mediaType = MediaType.APPLICATION_XML_VALUE))
+	@ApiResponse(responseCode = "500", description = "A fault occured while processing the request", content = @Content)
+	@PostMapping(produces = {
+		"application/soap+xml",
+		"application/soap",
+		MediaType.APPLICATION_XML_VALUE,
+		MediaType.TEXT_XML_VALUE,
+		MediaType.TEXT_PLAIN_VALUE,
+		MediaType.TEXT_HTML_VALUE	// Postel's law
+	})
+
+	public ResponseEntity<?> submitSoapRequest( // NOSONAR ? is intentional here
+												@RequestBody SoapMessage soapMessage,
+												@Schema(description="Throws the fault specified in the header parameter")
+												@RequestHeader(value="X-IIS-Hub-Dev-Action", required=false)
+												String devAction
+	) {
+		logStartOfRequest(soapMessage);
+		Fault fault;
+		try {
+			String destinationId = getDestinationId(soapMessage);
+			if (!StringUtils.isEmpty(devAction)) {
+				throwSimulatedFault(devAction, destinationId);
+			}
+			
+			if (soapMessage instanceof SubmitSingleMessageRequest s) {
+				return logEndOfRequest(() -> submitSingleMessage(s, destinationId));
+			} else if (soapMessage instanceof ConnectivityTestRequest c) {
+				return logEndOfRequest(() -> connectivityTest(c, destinationId));
+			} else {
+				throw new UnexpectedExceptionFault("Schema Error", "The content did not reflect the expected type. " + JsonUtils.toString(soapMessage), null, RetryStrategy.CORRECT_MESSAGE, null);
+			}
+		} catch (Fault ex) {
+			fault = ex;
+		} catch (Throwable ex) {
+			fault = wrapExceptionAsFault(ex);
+		}
+		return handleFault(fault);
+	}
+
+	private void checkMessageSize(SoapMessage soapMessage, MessageTooLargeFault.Direction direction) throws MessageTooLargeFault {
+		if (soapMessage.length() > getMaxMessageSize()) {
+			throw new MessageTooLargeFault(direction, soapMessage.length(), getMaxMessageSize());
+		}
+	}
+
+	protected boolean isValidMessage(SoapMessage soapMessage) {
+		return getMessageNamespace().equals(soapMessage.getSchema());
+	}
+
+	private void throwSimulatedFault(String devAction, String destinationId) throws Fault {
+
+		IDestination destination = null;
+		try {
+			if (destinationId == null) {
+				destination = getDestinationService().getExample(destinationId);
+			} else {
+				destination = getDestination(destinationId);
+			}
+		} catch (UnknownDestinationFault f) {
+			if (UnknownDestinationFault.FAULT_NAME.equals(devAction)) {
+				throw f;  // Good enough!
+			}
+			destination = getDestinationService().getExample(destinationId);
+		}
+
+		switch (devAction) {
+			case DestinationConnectionFault.FAULT_NAME:
+				throw DestinationConnectionFault.devAction(destination);
+			case HubClientFault.FAULT_NAME:
+				throw HubClientFault.devAction(destination);
+			case MessageTooLargeFault.FAULT_NAME:
+				throw MessageTooLargeFault.devAction();
+			case UnexpectedExceptionFault.FAULT_NAME:
+				throw UnexpectedExceptionFault.devAction();
+			case UnknownDestinationFault.FAULT_NAME:
+				throw UnknownDestinationFault.devAction(destinationId);
+			case UnsupportedOperationFault.FAULT_NAME:
+			default:
+				throw UnsupportedOperationFault.devAction();
+		}
+	}
+
+	protected IDestination getDestination(String destinationId) throws UnknownDestinationFault { // NOSONAR Subclass throws this fault
+		return getDestinationService().getExample(destinationId);
+	}
+
+	private String getDestinationId(SoapMessage soapMessage) {
+		String destinationId = null;
+		if (!isUsingHubHeaders()) {
+			soapMessage.getHubHeader().clear();  // Ignore any hub header values.
+		} else {
+			destinationId = soapMessage.getHubHeader().getDestinationId();
+			if (!StringUtils.isEmpty(destinationId)) {
+				return destinationId;
+			}
+		}
+		// If there is not hub request header, consider the wsa:To parameter
+		String toDest = soapMessage.getWsaHeaders().getTo();
+		// Ensure wsa:To meets the destination id pattern and return what we were given
+		if (StringUtils.isEmpty(toDest) || !toDest.matches(IDestination.ID_PATTERN)
+		) {
+			return destinationId;
+		}
+		return toDest;
+	}
+
+	@Operation(summary = "Post a SubmitSingleMessage request to the SOAP Interface of the destination",
+			description = "Send an HL7 Message to the destination specified in SubmitSingleMessage.hubRequestHeader.destinationId")
+	@ApiResponse(responseCode = "200", description = "The request completed normally", content = @Content(mediaType = MediaType.APPLICATION_XML_VALUE))
+	@ApiResponse(responseCode = "500", description = "A fault occured while processing the request", content = @Content)
+	@PostMapping(value = "/submitSingleMessage/{destinationId}", produces = MediaType.APPLICATION_XML_VALUE)
+	@RolesAllowed({ Roles.ADMIN, Roles.INTERNAL })
+	/**
+	 * Default behavior of the mock except for specially crafted messages is to echo back the original message
+	 *
+	 * @param req	The original request.
+	 * @param destinationId
+	 * @return	The response.
+	 */
+	protected ResponseEntity<?> submitSingleMessage(  // NOSONAR ? is intentional
+													  @Schema(description="The message to send")
+													  @RequestBody SubmitSingleMessageRequest submitSingleMessage,
+													  @Parameter(description="The destination to send it to. The destinationId parameter is ignored in mock environments")
+													  @PathVariable String destinationId
+	) throws Fault {
+		checkMessage(submitSingleMessage);
+		String ident = submitSingleMessage.findTestCaseIdentifier();
+		MockMessage mock = MockMessage.getMock(ident);
+		log.debug("Mock Requested: {}\t{}", ident, mock);
+		if (mock != null) {
+			return mock.getMessage(submitSingleMessage);
+		} 
+		return new ResponseEntity<>(new SubmitSingleMessageResponse(submitSingleMessage, getMessageNamespace(), true), HttpStatus.OK);
+	}
+
+	protected void checkMessage(SoapMessage soapMessage) throws MessageTooLargeFault, UnexpectedExceptionFault, SecurityFault {
+		checkMessageSize(soapMessage, MessageTooLargeFault.Direction.REQUEST);
+
+		// A "feature" of the new marshalling structure is that systems don't care WHICH version of the schema you
+		// use, 2011, 2014, or Hub.  So, we check for a mismatch from the expected values.
+		if (!isValidMessage(soapMessage)) {
+			throw new UnexpectedExceptionFault("Schema Error", "The input does not match the requirements of the " + getMessageNamespace() + " schema.", null, RetryStrategy.CORRECT_MESSAGE, null);
+		}
+		if (soapMessage instanceof HasCredentials cred) {
+			checkCredentials(cred);
+		}
+	}
+
+	protected ResponseEntity<SoapMessage> checkResponseEntitySize(ResponseEntity<SoapMessage> message) throws MessageTooLargeFault {
+		Object body = message.getBody();
+		if (body instanceof SoapMessage sm) {
+			checkMessageSize(sm, MessageTooLargeFault.Direction.RESPONSE);
+		}
+		return message;
+	}
+
+	@Operation(summary = "Post a ConnectivityTest request to the SOAP Interface of the destination", description = "Send message to be echoed back to the destination specified in ConnectivityTest.hubRequestHeader.destinationId. If destinationId is empty,"
+			+ "IZ Gateway itself responds to the echoBack request.")
+	@ApiResponse(responseCode = "200", description = "The request completed normally", content = @Content(mediaType = MediaType.APPLICATION_XML_VALUE))
+	@ApiResponse(responseCode = "500", description = "A fault occured while processing the request", content = @Content)
+	@PostMapping(value = "/connectivityTest/{destinationId}", produces = MediaType.APPLICATION_XML_VALUE)
+	@RolesAllowed({ Roles.ADMIN, Roles.INTERNAL })
+	protected ResponseEntity<?> connectivityTest( 	// NOSONAR ? is intentional
+													 @Schema(description="The message to send.")
+													 @RequestBody ConnectivityTestRequest connectivityTest,
+													 @Schema(description="The destination to send it to. The destinationId parameter is ignored in mock environments")
+													 @PathVariable String destinationId
+	) throws Fault {
+		checkMessage(connectivityTest);
+		return checkResponseEntitySize(
+			new ResponseEntity<>(
+				new ConnectivityTestResponse(connectivityTest, getMessageNamespace(), false),
+				HttpStatus.OK
+			)
+		);
+	}
+
+	private ResponseEntity<String> getResource(String path) throws UnsupportedOperationFault {
+		String result = resourceCache.get(path);
+		if (result == null) {
+			try {
+				result = IOUtils.resourceToString(path, StandardCharsets.UTF_8);
+			} catch (IOException ex) {
+				RequestContext.getTransactionData().setMessageType(MessageType.INVALID_REQUEST);
+				throw new UnsupportedOperationFault("Resource " + path + " unknown", ex);
+			}
+			resourceCache.put(path, result);
+		}
+		return new ResponseEntity<>(result, HttpStatus.OK);
+	}
+
+	protected ResponseEntity<FaultMessage> handleFault(Fault fault) {
+		logFault(fault);
+		FaultMessage faultMessage = new FaultMessage(fault, messageNamespace);
+		faultMessage.updateAction(isHub());
+		return new ResponseEntity<>(faultMessage, HttpStatus.INTERNAL_SERVER_ERROR);
+	}
+	
+	@ExceptionHandler(SoapConversionException.class)
+	protected ResponseEntity<FaultMessage> handleBadXML(SoapConversionException ex) {
+		Fault f = null;
+		
+		logStartOfRequest(null);
+		if (ex.getCause() instanceof SoapParseException) {
+			f = new UnexpectedExceptionFault("Syntax Error", null, ex, RetryStrategy.CORRECT_MESSAGE, "An exception occurred parsing the SOAP Message");
+		} else if (ex.getCause() instanceof SecurityFault sf) {
+			f = sf;
+		} else {
+			f = new UnexpectedExceptionFault("Syntax Error", null, ex, RetryStrategy.CORRECT_MESSAGE, "An exception occurred processing the SOAP Message");
+		}
+		return handleFault(f);
+	}
+}

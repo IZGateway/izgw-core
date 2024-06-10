@@ -1,0 +1,136 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<definitions
+    name="IISService2011"
+    targetNamespace="urn:cdc:iisb:2011"
+    xmlns:tns="urn:cdc:iisb:2011"
+    xmlns:soap12="http://schemas.xmlsoap.org/wsdl/soap12/"
+    xmlns:wsam="http://www.w3.org/2007/05/addressing/metadata"
+    xmlns:wsaw="http://www.w3.org/2006/05/addressing/wsdl"
+    xmlns="http://schemas.xmlsoap.org/wsdl/"
+    xmlns:wsp="http://www.w3.org/ns/ws-policy"
+    xmlns:xsd="http://www.w3.org/2001/XMLSchema">
+    
+    <documentation>CDC Immunization Information Systems (IIS) 2011 SOAP web service.</documentation>
+    
+    <!--====================================================================================================
+    = TYPES
+    =====================================================================================================-->
+    <types>
+        <xsd:schema>
+            <xsd:import namespace="urn:cdc:iisb:2011" schemaLocation="/dev/IISService?xsd=cdc-iis-2011.xsd"/>
+        </xsd:schema>
+    </types>
+    
+    <!--====================================================================================================
+    = OPERATION MESSAGES: CONNECTIVITY TEST
+    =====================================================================================================-->
+    <message name="connectivityTest_Message">
+        <documentation>connectivity test request</documentation>
+        <part name="parameters" element="tns:connectivityTest"/>
+    </message>
+    <message name="connectivityTestResponse_Message">
+        <documentation>connectivity test response</documentation>
+        <part name="parameters" element="tns:connectivityTestResponse"/>
+    </message>
+
+    <!--====================================================================================================
+    = OPERATION MESSAGES: SUBMIT SINGLE MESSAGE
+    =====================================================================================================-->
+    <message name="submitSingleMessage_Message">
+        <documentation>submit single message request.</documentation>
+        <part name="parameters" element="tns:submitSingleMessage"/>
+    </message>
+    <message name="submitSingleMessageResponse_Message">
+        <documentation>submit single message response</documentation>
+        <part name="parameters" element="tns:submitSingleMessageResponse"/>
+    </message>
+    
+    <!--====================================================================================================
+    = FAULT MESSAGES
+    =====================================================================================================-->
+    <message name="UnknownFault_Message">
+        <part name="fault" element="tns:fault"/>
+    </message>
+    <message name="UnsupportedOperationFault_Message">
+        <part name="fault" element="tns:UnsupportedOperationFault"/>
+    </message>
+    <message name="SecurityFault_Message">
+        <part name="fault" element="tns:SecurityFault"/>
+    </message>
+    <message name="MessageTooLargeFault_Message">
+        <part name="fault" element="tns:MessageTooLargeFault"/>
+    </message>
+    
+    <!--====================================================================================================
+    = PORT TYPES
+    =====================================================================================================-->
+    <portType name="IIS_PortType">
+        <operation name="connectivityTest">
+            <documentation>the connectivity test</documentation>
+            <input message="tns:connectivityTest_Message" wsaw:Action="urn:cdc:iisb:2011:connectivityTest"/>
+            <output message="tns:connectivityTestResponse_Message" wsaw:Action="urn:cdc:iisb:2011:connectivityTestResponse"/>
+            <fault name="UnknownFault" message="tns:UnknownFault_Message"/>
+            <!--  a general soap fault  -->
+            <fault name="UnsupportedOperationFault" message="tns:UnsupportedOperationFault_Message"/>
+            <!--  The UnsupportedOperation soap fault  -->
+        </operation>
+        <operation name="submitSingleMessage">
+            <documentation>submit single message</documentation>
+            <input message="tns:submitSingleMessage_Message" wsaw:Action="urn:cdc:iisb:2011:submitSingleMessage"/>
+            <output message="tns:submitSingleMessageResponse_Message" wsaw:Action="urn:cdc:iisb:2011:submitSingleMessageResponse"/>
+            <fault name="UnknownFault" message="tns:UnknownFault_Message"/>
+            <!--  a general soap fault  -->
+            <fault name="SecurityFault" message="tns:SecurityFault_Message"/>
+            <fault name="MessageTooLargeFault" message="tns:MessageTooLargeFault_Message"/>
+        </operation>
+    </portType>
+    
+    <!--====================================================================================================
+    = BINDINGS
+    =====================================================================================================-->
+    <binding name="client_Binding_Soap12" type="tns:IIS_PortType">
+        <soap12:binding style="document" transport="http://schemas.xmlsoap.org/soap/http"/>
+        <operation name="connectivityTest">
+            <soap12:operation soapAction="urn:cdc:iisb:2011:connectivityTest"/>
+            <input>
+                <soap12:body use="literal"/>
+            </input>
+            <output>
+                <soap12:body use="literal"/>
+            </output>
+            <fault name="UnknownFault">
+                <soap12:fault use="literal" name="UnknownFault"/>
+            </fault>
+            <fault name="UnsupportedOperationFault">
+                <soap12:fault use="literal" name="UnsupportedOperationFault"/>
+            </fault>
+        </operation>
+        <operation name="submitSingleMessage">
+            <soap12:operation soapAction="urn:cdc:iisb:2011:submitSingleMessage"/>
+            <input>
+                <soap12:body use="literal"/>
+            </input>
+            <output>
+                <soap12:body use="literal"/>
+            </output>
+            <fault name="UnknownFault">
+                <soap12:fault use="literal" name="UnknownFault"/>
+            </fault>
+            <fault name="SecurityFault">
+                <soap12:fault use="literal" name="SecurityFault"/>
+            </fault>
+            <fault name="MessageTooLargeFault">
+                <soap12:fault use="literal" name="MessageTooLargeFault"/>
+            </fault>
+        </operation>
+    </binding>
+    
+    <!--====================================================================================================
+    = SERVICES
+    =====================================================================================================-->
+    <service name="client_Service">
+        <port binding="tns:client_Binding_Soap12" name="client_Port_Soap12">
+            <soap12:address location="https://localhost/IISService2011"/>
+        </port>
+    </service>
+</definitions>

@@ -112,7 +112,9 @@ public class MessageSender {
 		SubmitSingleMessageRequest toBeSent = 
 			new SubmitSingleMessageRequest(submitSingleMessage, getSchemaToUse(dest), true);
 		// Clear the hub header, we don't forward that.
-		toBeSent.getHubHeader().clear();
+		if (!dest.isHub()) {
+			toBeSent.getHubHeader().clear();
+		}
 		copyCredentials(toBeSent, dest);
 		int retryCount = 0;
 		while (true) {

@@ -212,9 +212,11 @@ public class SoapMessageWriter {
 				w.writeEndElement();
 			}
 			w.writeEndElement();
-			writeOptionalTextElement("Code", f.getCode());
-			writeOptionalTextElement("Reason", f.getReason());
-			writeOptionalTextElement("Detail", f.getDetail());
+			if (SoapMessage.IIS2011_NS.equals(m.getSchema())) {
+				writeOptionalTextElement("Code", f.getCode());
+				writeOptionalTextElement("Reason", f.getReason());
+				writeOptionalTextElement("Detail", f.getDetail());
+			}
 			writeNoNamespaceElement("EventID", MDC.get(EventId.EVENTID_KEY));
 			writeNoNamespaceElement("Summary", StringUtils.join(f.getSummary().split("\\s+")));
 			writeNoNamespaceElement("Detail", f.getDetail());

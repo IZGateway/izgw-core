@@ -94,6 +94,10 @@ public class MessageSender {
 			public void updateStatus(IEndpointStatus s,
 					boolean wasCircuitBreakerThrown, Throwable reason) {
 			}
+			@Override
+			public boolean isExempt(String destId) {
+				return false;
+			}
 		};
 	}
 	public void setStatusChecker(IStatusCheckerService statusChecker) {
@@ -200,7 +204,8 @@ public class MessageSender {
 		
 		// Check the circuit breaker
 		IEndpointStatus status = statusService.getEndpointStatus(dest);
-		if (status.isCircuitBreakerThrown() && userIsNotAdmin()) {
+		// Skip endpoints exempt from status checking (b/c they cannot reset) 
+		if (status.isCircuitBreakerThrown() && userIsNotAdmin() && !statusChecker.isExempt(dest.getDestId())) {
 			throw DestinationConnectionFault.circuitBreakerThrown(dest, status.getDetail());
 		}
 		return status;

@@ -177,7 +177,7 @@ public class SoapMessageWriter {
 	public void writeFaultContent() throws XMLStreamException {
 		FaultMessage f = (FaultMessage) m;
 		w.writeStartElement(SoapMessage.SOAP_PREFIX, "Code", SoapMessage.SOAP_NS);
-			writeSoapValueElement("Soap:Receiver");
+			writeSoapValueElement("soap:Receiver");
 		w.writeEndElement();
 		w.writeStartElement(SoapMessage.SOAP_PREFIX, "Reason", SoapMessage.SOAP_NS);
 			writeSoapTextElement(f.getReason());

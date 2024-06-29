@@ -42,6 +42,7 @@ import gov.cdc.izgateway.security.ClientTlsSupport;
 import gov.cdc.izgateway.security.Roles;
 import gov.cdc.izgateway.service.IStatusCheckerService;
 import gov.cdc.izgateway.service.impl.EndpointStatusService;
+
 import gov.cdc.izgateway.soap.fault.DestinationConnectionFault;
 import gov.cdc.izgateway.soap.fault.Fault;
 import gov.cdc.izgateway.soap.fault.HubClientFault;
@@ -85,14 +86,17 @@ public class MessageSender {
 		this.clientConfig = clientConfig;
 		this.statusService = statusService;
 		this.converter = new SoapMessageConverter(SoapMessageConverter.OUTBOUND);
+		// Create a base status Checker
 		this.statusChecker = new IStatusCheckerService() {
 			@Override
 			public void lookForReset(IDestination dest) {
+				// Do nothing in testing version
 			}
 
 			@Override
 			public void updateStatus(IEndpointStatus s,
 					boolean wasCircuitBreakerThrown, Throwable reason) {
+				// Do nothing in testing version
 			}
 			@Override
 			public boolean isExempt(String destId) {
@@ -205,7 +209,8 @@ public class MessageSender {
 		// Check the circuit breaker
 		IEndpointStatus status = statusService.getEndpointStatus(dest);
 		// Skip endpoints exempt from status checking (b/c they cannot reset) 
-		if (status.isCircuitBreakerThrown() && userIsNotAdmin() && !statusChecker.isExempt(dest.getDestId())) {
+		String destId = dest.getDestId();
+		if (status.isCircuitBreakerThrown() && userIsNotAdmin() && !statusChecker.isExempt(destId)) {
 			throw DestinationConnectionFault.circuitBreakerThrown(dest, status.getDetail());
 		}
 		return status;

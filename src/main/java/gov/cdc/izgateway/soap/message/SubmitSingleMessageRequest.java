@@ -1,5 +1,7 @@
 package gov.cdc.izgateway.soap.message;
 
+import org.apache.commons.lang3.StringUtils;
+
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
@@ -36,6 +38,10 @@ public class SubmitSingleMessageRequest extends SoapMessage implements HasHL7Mes
 	
 	public SubmitSingleMessageRequest(String hl7Message) {
 		this();
-		this.hl7Message = hl7Message;
+		setHl7Message(hl7Message);
+	}
+	
+	public void setHl7Message(String message) {
+		hl7Message = StringUtils.trim(message);
 	}
 }

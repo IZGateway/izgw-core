@@ -4,3 +4,4 @@
 **/temp
 **/pom.xml.versionsBackup
 /target/
+**/.idea

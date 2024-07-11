@@ -95,6 +95,7 @@ public class LoggingValve extends LoggingValveBase implements EventCreator {
         }
     }
 
+    @Override
     protected SourceInfo setSourceInfoValues(Request req, TransactionData t) {
         SourceInfo source = super.setSourceInfoValues(req, t);
 

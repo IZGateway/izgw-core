@@ -11,6 +11,7 @@ import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.servlet.http.HttpSession;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.catalina.Globals;
 import org.apache.catalina.connector.Request;
 import org.apache.catalina.connector.Response;
 import org.apache.catalina.valves.ValveBase;
@@ -21,6 +22,7 @@ import org.springframework.http.HttpHeaders;
 import javax.net.ssl.SSLSession;
 import java.io.IOException;
 import java.nio.charset.Charset;
+import java.security.cert.X509Certificate;
 import java.util.*;
 import java.util.Map.Entry;
 import java.util.function.Predicate;
@@ -63,7 +65,7 @@ public abstract class LoggingValveBase extends ValveBase implements EventCreator
         }
     }
 
-    private String convertSize(long sizeBytes) {
+    protected static String convertSize(long sizeBytes) {
     	if (sizeBytes <= 0) {
     		return "0b";
     	}
@@ -149,7 +151,7 @@ public abstract class LoggingValveBase extends ValveBase implements EventCreator
 
 	protected abstract boolean isLogged(String requestURI);
 
-	protected Map<String, List<String>> getHeaders(Response resp) {
+    protected static Map<String, List<String>> getHeaders(Response resp) {
     	Map<String, List<String>> headers = new TreeMap<>();
     	for (String name: resp.getHeaderNames()) {
 			List<String> l = new ArrayList<>();
@@ -161,7 +163,7 @@ public abstract class LoggingValveBase extends ValveBase implements EventCreator
     	return headers;
 	}
 
-	protected Map<String, List<String>> getHeaders(Request req) {
+	protected static Map<String, List<String>> getHeaders(Request req) {
     	Map<String, List<String>> headers = new TreeMap<>();
     	for (Enumeration<String> h = req.getHeaderNames(); h.hasMoreElements(); ) {
     		String name = h.nextElement();
@@ -240,7 +242,20 @@ public abstract class LoggingValveBase extends ValveBase implements EventCreator
         MDC.remove(COMMON_NAME);
     }
 
-	protected abstract SourceInfo setSourceInfoValues(Request req, TransactionData t);
+    protected SourceInfo setSourceInfoValues(Request req, TransactionData t) {
+        SourceInfo source = t.getSource();
+        source.setCipherSuite((String) req.getAttribute(Globals.CIPHER_SUITE_ATTR));
+        source.setHost(req.getRemoteHost());
+        source.setIpAddress(req.getRemoteAddr());
+        source.setType("Unknown");
+        source.setFacilityId("Unknown");
+
+        X509Certificate[] certs = (X509Certificate[])req.getAttribute(Globals.CERTIFICATES_ATTR);
+        if (certs != null) {
+            source.setCertificate(certs[0]);
+        }
+        return source;
+    }
 
 	public Event getEvent(HttpSession sess) {
         String sessionId = sess.getId();
@@ -281,4 +296,5 @@ public abstract class LoggingValveBase extends ValveBase implements EventCreator
 
         return event.getId();
     }
+
 }

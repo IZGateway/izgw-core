@@ -96,17 +96,8 @@ public class LoggingValve extends LoggingValveBase implements EventCreator {
     }
 
     protected SourceInfo setSourceInfoValues(Request req, TransactionData t) {
-        SourceInfo source = t.getSource();
-        source.setCipherSuite((String) req.getAttribute(Globals.CIPHER_SUITE_ATTR));
-        source.setHost(req.getRemoteHost());
-        source.setIpAddress(req.getRemoteAddr());
-        source.setType("Unknown");
-        source.setFacilityId("Unknown");
+        SourceInfo source = super.setSourceInfoValues(req, t);
 
-        X509Certificate[] certs = (X509Certificate[])req.getAttribute(Globals.CERTIFICATES_ATTR);
-        if (certs != null) {
-            source.setCertificate(certs[0]);
-        }
         if (req.getRequestURI().startsWith(REST_ADS)) {
             source.setType(SourceInfo.SOURCE_TYPE_ADS);
         }
@@ -118,17 +109,7 @@ public class LoggingValve extends LoggingValveBase implements EventCreator {
     		reportADSProgress(req);
     	}
     }
-    
-    private String convertSize(long sizeBytes) {
-    	if (sizeBytes <= 0) {
-    		return "0b";
-    	}
-    	String[] sizeName = {"b", "Kb", "Mb", "Gb"};
-    	int i = (int)Math.floor(Math.log(sizeBytes)/Math.log(1024));
-		double p = Math.pow(1024, i);
-		return String.format("%0.2f %s", sizeBytes / p, sizeName[i]);
-    }
-    
+
 	private void reportADSProgress(Request req) {
 		org.apache.coyote.Request coyoteRequest = req.getCoyoteRequest();
 		if (coyoteRequest == null) {
@@ -151,31 +132,6 @@ public class LoggingValve extends LoggingValveBase implements EventCreator {
 
 	protected boolean isLogged(String requestURI) {
     	return requestURI.startsWith(REST_ADS) || requestURI.startsWith("/IISHubService") || requestURI.startsWith("/dev/");
-	}
-
-	protected Map<String, List<String>> getHeaders(Response resp) {
-    	Map<String, List<String>> headers = new TreeMap<>();
-    	for (String name: resp.getHeaderNames()) {
-			List<String> l = new ArrayList<>();
-			for (String v: resp.getHeaders(name)) {
-    			l.add(v);
-    		}
-    		headers.put(name, l);
-    	}
-    	return headers;
-	}
-
-	protected Map<String, List<String>> getHeaders(Request req) {
-    	Map<String, List<String>> headers = new TreeMap<>();
-    	for (Enumeration<String> h = req.getHeaderNames(); h.hasMoreElements(); ) {
-    		String name = h.nextElement();
-			List<String> l = new ArrayList<>();
-    		for (Enumeration<String> v = req.getHeaders(name); v.hasMoreElements(); ) {
-    			l.add(v.nextElement());
-    		}
-    		headers.put(name, l);
-    	}
-    	return headers;
 	}
 
 }

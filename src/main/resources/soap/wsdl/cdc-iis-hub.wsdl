@@ -146,7 +146,7 @@
                     <wsp:Policy/>
                 </wsam:Addressing>
             </wsp:Policy>
-            <soap12:address location="https://dev.phiz-project.org/IISHubService"/>
+            <soap12:address location="https://{{SERVER.NAME}}/IISHubService"/>
         </port>
     </service>
 </definitions>

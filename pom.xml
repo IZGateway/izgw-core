@@ -32,6 +32,7 @@
     <project.java.package>${project.groupId}</project.java.package>
     <!-- 17 needs a certified encryption module -->
     <timestamp>${maven.build.timestamp}</timestamp>
+    <skipDependencyCheck>false</skipDependencyCheck>
   </properties>
   <dependencies>
     <dependency>
@@ -39,7 +40,6 @@
       <artifactId>hapi-base</artifactId>
       <version>2.3</version>
     </dependency>
-    <!-- HAPI FHIR API -->
     <dependency>
       <groupId>ca.uhn.hapi</groupId>
       <artifactId>hapi-structures-v251</artifactId>

@@ -498,6 +498,8 @@ public abstract class SoapControllerBase {
 		if (result == null) {
 			try {
 				result = IOUtils.resourceToString(path, StandardCharsets.UTF_8);
+				// Need to substitute dev.phiz-project.org in WSDL with correct hostname
+				// Need to add a test on get on WSDL to verify hostname is correct
 			} catch (IOException ex) {
 				RequestContext.getTransactionData().setMessageType(MessageType.INVALID_REQUEST);
 				throw new UnsupportedOperationFault("Resource " + path + " unknown", ex);

@@ -71,7 +71,7 @@ public class SystemUtils {
 		return ENVIRONMENT_TAGS[DESTTYPE];
 	}
 	
-	public static String getDestTag(int destType) {
+	private static String getDestTag(int destType) {
 		return ENVIRONMENT_TAGS[destType];
 	}
 	

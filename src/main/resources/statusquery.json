@@ -177,7 +177,30 @@
                       }
                     }
                   }
-                }
+                },
+ 				"tags-bucket": {
+                  "filter": {
+                    "bool": {
+                      "must": [],
+                      "filter": [],
+                      "should": [],
+                      "must_not": []
+                    }
+                  },
+                  "aggs": {
+                    "tags-metric": {
+                      "top_metrics": {
+                        "metrics": {
+                          "field": "tags.keyword"
+                        },
+                        "size": 1,
+                        "sort": {
+                          "@timestamp": "desc"
+                        }
+                      }
+                    }
+                  }
+                }                
               }
             }
           }

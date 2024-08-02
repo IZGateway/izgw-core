@@ -4,6 +4,12 @@ import java.util.Arrays;
 import java.util.List;
 import org.apache.commons.lang3.StringUtils;
 
+/**
+ * SystemUtils answers questions about the system and server environment.
+ * 
+ * @author Audacious Inquiry
+ *
+ */
 public class SystemUtils {
 
 	private static final String HOSTNAME = hostName();
@@ -18,14 +24,29 @@ public class SystemUtils {
     protected static final String[] ENVIRONMENT_TAGS = { "unknown", "prod", "test", "onboard", "staging", "dev" };
 
     private SystemUtils() { }
+    
+    /**
+     * Get the hostname.
+     * @return	The hostname.
+     */
 	public static String getHostname() {
 		return HOSTNAME;
 	}
 	
+	/**
+	 * Get the value that identifies the environment.
+	 * @return The destination type.
+	 */
 	public static int getDestType() {
 		return DESTTYPE;
 	}
 
+	/** 
+	 * Dynamically get the value that identifies the hostname.
+	 * Used during class initiation ONCE.
+	 * 
+	 * @return The hostname.
+	 */
 	private static String hostName() {
 		String host = System.getenv("HOSTNAME"); 
         if (  StringUtils.isEmpty( host)) {
@@ -43,6 +64,11 @@ public class SystemUtils {
         return host;
 	}
 
+	/**
+	 * Dynamically get the value that identifies the environment.
+	 * Used during class initiation ONCE.
+	 * @return The environment id.
+	 */
 	private static int destType() {
 		String tag = System.getenv("ELASTIC_ENV_TAG");
 		if (tag == null) {
@@ -63,26 +89,43 @@ public class SystemUtils {
 		}
 	}
 
+	/**
+	 * Convert environment to a human readable string
+	 * @return a human readable string representation of the environment id
+	 */
 	public static String getDestTypeAsString() {
 		return ENVIRONMENTS[DESTTYPE];
 	}
 	
+	/**
+	 * Convert environment to the tag used to identify it in logs.
+	 * @return the elastic log tag for the environment.
+	 */
 	public static String getDestTag() {
 		return ENVIRONMENT_TAGS[DESTTYPE];
 	}
 	
-	public static String getDestTag(int destType) {
-		return ENVIRONMENT_TAGS[destType];
-	}
-	
+	/**
+	 * Get All tags used to identify an environment in elastic.
+	 * @return the elastic log tags for all known environments.
+	 */
 	public static String[] getDestTags() {
 		return ENVIRONMENT_TAGS;
 	}
 
+	/**
+	 * Convert the string back to an integer
+	 * @param destType2	The string
+	 * @return	The environment value it corresponds to
+	 */
 	public static int getDestTypeId(String destType2) {
 		return Arrays.asList(SystemUtils.ENVIRONMENTS).indexOf(destType2);
 	}
 
+	/**
+	 * Get the list of legitimate environment names
+	 * @return the list of legitimate environment names
+	 */
 	public static List<String> getDestTypes() {
 		return Arrays.asList(SystemUtils.ENVIRONMENTS).subList(1, SystemUtils.ENVIRONMENTS.length);
 	}

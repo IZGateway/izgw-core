@@ -49,16 +49,27 @@ public class XmlUtils {
         }
     }
 
+    /**
+     * Parse a String as an XML Document using an safe XML Builder.
+     * @param s	The string to parse
+     * @return	The parsed document, or null if the string was empty, or there was any sort of error
+     */
     public static Document parseDocument(String s) {
-        if (documentBuilder == null) {
+        if (documentBuilder == null || StringUtils.isBlank(s)) {
             return null;
         }
         try {
         	if (!StringUtils.isEmpty(s)) {
                 return documentBuilder.parse(new InputSource(new StringReader(s)));
         	}
-        } catch (SAXException | IOException e) {
-        	// Swallow the exception
+        	
+            Document d = documentBuilder.newDocument();
+            d.appendChild(d.createElement("ErrorText"));
+            d.getDocumentElement().appendChild(d.createTextNode(s));
+            return d;
+            
+        } catch (Exception e) {
+        	// Swallow any exception
         }
         Document d = documentBuilder.newDocument();
         d.appendChild(d.createElement("ErrorText"));
@@ -66,6 +77,11 @@ public class XmlUtils {
         return d;
     }
     
+    /**
+     * Convert an input stream to a string 
+     * @param is	The stream
+     * @return	The string, or null if any sort of error occurred.
+     */
     public static String toString(InputStream is) {
         try {
         	if (is != null) {

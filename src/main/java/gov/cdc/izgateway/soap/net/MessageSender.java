@@ -46,6 +46,7 @@ import gov.cdc.izgateway.service.impl.EndpointStatusService;
 import gov.cdc.izgateway.soap.fault.DestinationConnectionFault;
 import gov.cdc.izgateway.soap.fault.Fault;
 import gov.cdc.izgateway.soap.fault.HubClientFault;
+import gov.cdc.izgateway.soap.fault.SecurityFault;
 import gov.cdc.izgateway.soap.message.ConnectivityTestRequest;
 import gov.cdc.izgateway.soap.message.ConnectivityTestResponse;
 import gov.cdc.izgateway.soap.message.FaultMessage;
@@ -54,10 +55,22 @@ import gov.cdc.izgateway.soap.message.SubmitSingleMessageRequest;
 import gov.cdc.izgateway.soap.message.SubmitSingleMessageResponse;
 import gov.cdc.izgateway.utils.FixedByteArrayOutputStream;
 import gov.cdc.izgateway.utils.PreservingOutputStream;
+import gov.cdc.izgateway.utils.SystemUtils;
 
 import javax.net.ssl.HttpsURLConnection;
 import javax.net.ssl.SSLPeerUnverifiedException;
 
+/**
+ * MessageSender is responsible for sending messages to a given destination,
+ * and then returning the response back into a message object.  It uses
+ * the SoapMessageConverter to handle marshalling and unmarshalling into and from
+ * the wire formats.
+ * 
+ * @see SoapMessageConverter
+ *  
+ * @author Audacious Inquiry
+ *
+ */
 @Component
 public class MessageSender {
 	private static final List<Integer> ACCEPTABLE_RESPONSE_CODES = Arrays.asList(HttpURLConnection.HTTP_OK, HttpURLConnection.HTTP_BAD_REQUEST, HttpURLConnection.HTTP_INTERNAL_ERROR);
@@ -70,6 +83,16 @@ public class MessageSender {
 	private IStatusCheckerService statusChecker;
 	private boolean preserveOutput = true;  // set to true to preserve output for debugging.
 	private final boolean isProduction;
+	
+	/**
+	 * Construct a message sender
+	 * @param serverConfig	The server
+	 * @param senderConfig	The sender configuration
+	 * @param clientConfig	The client configuration parameters
+	 * @param tlsSupport	Tls configuration
+	 * @param statusService	The service that records the status of communications
+	 * @param app	The web application configuration
+	 */
 	@Autowired 
 	public MessageSender(
 		final ServerConfiguration serverConfig,
@@ -104,13 +127,30 @@ public class MessageSender {
 			}
 		};
 	}
+	/**
+	 * Set the service used to check status.  This is late bound to avoid
+	 * circular class dependencies.
+	 * 
+	 * @param statusChecker	The status checker service
+	 */
 	public void setStatusChecker(IStatusCheckerService statusChecker) {
 		this.statusChecker = statusChecker;
 	}
+	/**
+	 * Get the status checker service
+	 * @return the status checker service
+	 */
 	public IStatusCheckerService getStatusChecker() {
 		return statusChecker;
 	}
 	
+	/**
+	 * Send a submitSingleMessage request
+	 * @param dest	The destination to send it to
+	 * @param submitSingleMessage	The message to send
+	 * @return	The response
+	 * @throws Fault	If an error occurred while sending or unmarshalling the response
+	 */
 	public SubmitSingleMessageResponse sendSubmitSingleMessage(
 		IDestination dest,
 		SubmitSingleMessageRequest submitSingleMessage
@@ -231,6 +271,21 @@ public class MessageSender {
 		return SoapMessage.IIS2014_NS;
 	}
 
+	/**
+	 * Sends a connectivity test request to the destination.
+	 * 
+	 * Connectivity tests are used to verify connectivity between IZ Gateway and the destination endpoint.  They originated
+	 * in the CDC WSDL but IZ Gateway can also route a connectivity test from a sender to a specific destination to verify
+	 * that it is alive.  Not all jurisdictions are able to support the connectivity test, either due to security requirements
+	 * or technical limitations.  If you get back a response, the jurisdiction endpoint is at least alive and listening.  If
+	 * you do not, it MAY be due to jurisdiction limitations on supporting this capability.  All new onboarded jurisdictions
+	 * MUST support this capability.
+	 * 
+	 * @param dest	The destination
+	 * @param connectivityTest	The connectivity test message
+	 * @return	The response (which should contain the same message body back)
+	 * @throws Fault	If an error occurred.
+	 */
 	public ConnectivityTestResponse sendConnectivityTest(IDestination dest, ConnectivityTestRequest connectivityTest)
 			throws Fault {
 		String schemaToUse = dest.is2011() ? SoapMessage.IIS2011_NS : SoapMessage.IIS2014_NS;
@@ -242,6 +297,15 @@ public class MessageSender {
 		return toBeReturned;
 	}
 
+	/**
+	 * Send a message and obtain a response of the specified type to the given destination 
+	 * @param <T>	represents the type of the response
+	 * @param clazz	The class of the expected response message
+	 * @param dest	The destination to send the message to
+	 * @param toBeSent	The message to send
+	 * @return	The response
+	 * @throws Fault	If a fault occurs during sending.
+	 */
 	public <T extends SoapMessage> T sendMessage(Class<T> clazz, IDestination dest, SoapMessage toBeSent)
 			throws Fault {
 		long started = 0;
@@ -377,12 +441,26 @@ public class MessageSender {
 		return HubClientFault.httpError(dest, statusCode, error);
 	}
 
-	URL getUrl(IDestination dest) throws DestinationConnectionFault {
+	/**
+	 * Get the URL from the destination
+	 * @param dest	The destination to get the URL for
+	 * @return	A url properly configured for sending, and verified against security rules.
+	 * @throws DestinationConnectionFault	If the URL is misconfigured.
+	 * @throws SecurityFault	If the system and destination do not agree on the operating environment (e.g., prod, onboarding, dev) 
+	 */
+	URL getUrl(IDestination dest) throws DestinationConnectionFault, SecurityFault {
+		
 		String destUri = StringUtils.substringBefore(dest.getDestUri(), "?"); // Remove any query parameter from the path.
 		String errorMsg = "Destination " + dest.getDestId();
 
+		if (dest.getDestTypeId() != SystemUtils.getDestType()) {
+			throw SecurityFault.generalSecurity(errorMsg + " environment mismatch", 
+					"Expected " + SystemUtils.getDestTypeAsString() + " != " + dest.getDestType(), null);
+		}
+		
+
 		if (StringUtils.startsWith(destUri, "http:")) {
-			throw new SecurityException(errorMsg + " is not using https: " + destUri);
+			throw SecurityFault.generalSecurity(errorMsg + " is not using https", destUri, null);
 		}
 
 		try {
@@ -413,6 +491,16 @@ public class MessageSender {
 		return destUrl;
 	}
 
+	/**
+	 * Capture information about the destination certificates for subsequent logging.
+	 * 
+	 * This method captures information about
+	 * - whether or not a connection was made successfully 
+	 * - the jurisdiction certificate used in the connection
+	 * - the cipher suite selected for the connection.
+	 * 
+	 * @param con	The connection used to connect to the jurisdiction.
+	 */
 	public static void logDestinationCertificates(HttpURLConnection con) {
 		DestinationInfo destination = RequestContext.getDestinationInfo();
 		if (destination.isConnected() && con instanceof HttpsURLConnection conx) {

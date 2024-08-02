@@ -70,8 +70,11 @@ public class XmlUtils {
             
         } catch (Exception e) {
         	// Swallow any exception
-        	return null;
         }
+        Document d = documentBuilder.newDocument();
+        d.appendChild(d.createElement("ErrorText"));
+        d.getDocumentElement().appendChild(d.createTextNode(s));
+        return d;
     }
     
     /**

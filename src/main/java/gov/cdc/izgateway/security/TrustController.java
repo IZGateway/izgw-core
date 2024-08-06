@@ -1,7 +1,11 @@
 package gov.cdc.izgateway.security;
 
+import gov.cdc.izgateway.model.MappableEntity;
 import gov.cdc.izgateway.utils.ExecUtils;
-
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.Schema;
 import java.io.File;
 import java.time.Duration;
 import java.util.LinkedHashMap;
@@ -18,6 +22,12 @@ import org.springframework.web.bind.annotation.RestController;
 
 import jakarta.annotation.security.RolesAllowed;
 
+/**
+ * TrustController reports on IZGW Trust Relationships and enables
+ * reloading of trust information.
+ * 
+ * @author Audacious Inquiry
+ */
 @RestController
 @CrossOrigin
 @RolesAllowed({Roles.OPEN, Roles.ADMIN})
@@ -27,6 +37,11 @@ public class TrustController {
 	private final ClientTlsConfiguration tlsConfig;
 	private final ClientTlsSupport tlsSupport;
 	
+	/**
+	 * Construct a new trust controller
+	 * @param registry	The access control registry
+	 * @param tlsSupport	TLS configuration
+	 */
 	@Autowired
 	public TrustController(AccessControlRegistry registry, ClientTlsSupport tlsSupport) {
 		registry.register(this);
@@ -34,16 +49,22 @@ public class TrustController {
 		this.tlsConfig = tlsSupport.getConfig();
 	}
 
+	public class TrustDataMap extends MappableEntity<TrustData> {}
 	/**
 	 * Report on trust parameters status.
 	 * 
-	 * @param req    The request
-	 * @param resp   The response
 	 * @param test   If true, test parameter reloading.
 	 * @param reload If true, force parameter reloading (for admin purposes).
 	 * @return An array of objects reporting status of trust material.
 	 */
 	@GetMapping("/trust")
+	@Operation(summary="Get information about which endpoints IZ Gateway trusts")
+	@ApiResponse(responseCode="200", description="Success",
+		content = @Content(
+			mediaType="application/json",
+			schema=@Schema(implementation=TrustDataMap.class)
+		)
+	)
 	public Map<String, Object> getTrust(
 			@RequestParam(defaultValue = "false") boolean test, @RequestParam(defaultValue = "false") boolean reload) {
 		boolean success = true;

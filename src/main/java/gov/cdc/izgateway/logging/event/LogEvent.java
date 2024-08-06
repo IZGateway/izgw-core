@@ -53,19 +53,22 @@ public class LogEvent {
 			example="2023-12-01T19:24:24.416+0000",
 			format=Constants.TIMESTAMP_FORMAT
 	)
-	Date getTimestamp() {
+	public Date getTimestamp() {
 		return new Date(event.getTimeStamp());
 	}
 	@Schema(description="The version of the log entry", example="1")
-	@JsonProperty("@version") String getVersion() {
+	@JsonProperty("@version") 
+	public String getVersion() {
 		return "1";
 	}
 	@Schema(description="The class logging this entry", example="gov.cdc.izgateway.Application")
-	@JsonProperty("logger_name") String getLoggerName() {
+	@JsonProperty("logger_name")
+	public String getLoggerName() {
 		return event.getLoggerName();
 	}
 	@Schema(description="The name of the thread logging this entry", example="IZ Gateway")
-	@JsonProperty("thread_name") String getThreadName() {
+	@JsonProperty("thread_name") 
+	public String getThreadName() {
 		return event.getThreadName();
 	}
 	@Schema(description="The logging level of this entry",
@@ -76,7 +79,8 @@ public class LogEvent {
 		return event.getLevel().toString();
 	}
 	@Schema(description="The logging level of this entry", example="20000")
-	@JsonProperty("level_value") int getLevelValue() {
+	@JsonProperty("level_value") 
+	public int getLevelValue() {
 		return event.getLevel().toInt();
 	}
 
@@ -111,7 +115,8 @@ public class LogEvent {
 	}
 
 	@Schema(description="The session id associated with the request that generated this entry.", example="0") 
-	@JsonProperty("sessionId") String getSessionId() {
+	@JsonProperty("sessionId") 
+	public String getSessionId() {
 		return event.getMDCPropertyMap().get("sessionId");
 	}
 

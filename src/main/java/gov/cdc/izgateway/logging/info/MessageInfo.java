@@ -14,6 +14,8 @@ import org.apache.commons.lang3.StringUtils;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonInclude;
 
+import gov.cdc.izgateway.logging.RequestContext;
+import gov.cdc.izgateway.logging.event.TransactionData;
 import gov.cdc.izgateway.soap.message.SoapMessage;
 import gov.cdc.izgateway.soap.message.WsaHeaders;
 import gov.cdc.izgateway.soap.net.SoapMessageWriter;
@@ -21,6 +23,11 @@ import gov.cdc.izgateway.utils.FixedByteArrayOutputStream;
 import gov.cdc.izgateway.utils.IndentingXMLStreamWriter;
 import io.swagger.v3.oas.annotations.media.Schema;
 
+/**
+ * The MessageInfo class is used to support logging of Web Services requests and reponses in logs.
+ * 
+ * @author Audacious Inquiry
+ */
 @Schema(description = "Records a Web Service message to or from an endpoint")
 @Data
 public class MessageInfo {
@@ -84,7 +91,22 @@ public class MessageInfo {
 		return payloadString;
 	}
 	
+	/**
+	 * Construct a MessageInfo
+	 * @param payload	The payload
+	 * @param endpointType	The type of endpoint
+	 * @param direction	The direction
+	 * @param filtering	Whether to filter the content.
+	 */
 	public MessageInfo(SoapMessage payload, EndpointType endpointType, Direction direction, boolean filtering) {
+		TransactionData tData = RequestContext.getTransactionData();
+		if (tData != null) {
+			// Filter logs if the request does not match known test patterns.
+			filtering = filtering || !tData.isTest();
+		} else {
+			// when there is no transaction assume the message is NOT for test purposes
+			filtering = true;
+		}
 		this.filtering = filtering;
 		this.direction = direction;
 		this.endpointType = endpointType;

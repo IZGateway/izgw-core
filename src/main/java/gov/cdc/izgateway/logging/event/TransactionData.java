@@ -251,6 +251,11 @@ public class TransactionData {
     @Schema(description="Information about the source of the transaction")
     private SourceInfo source = new SourceInfo();
 
+    @Getter // It has a special setter
+    @JsonProperty
+    @Schema(description="This is a known test message, only set in non-prod environments")
+    private boolean test = false;
+    
     @JsonProperty
     @Schema(description="The request MSH3 (Sending Application) value in the inbound message")
     @Getter
@@ -487,6 +492,7 @@ public class TransactionData {
     }
     public void setRequestEchoBack(String val) {
         requestHL7Message = val;
+        setTest(true);  // Echo messages are test messages.
         setRequestPayloadType(RequestPayloadType.OTHER);
         setRequestPayloadSize(StringUtils.length(val));
     }
@@ -494,8 +500,60 @@ public class TransactionData {
         responseHL7Message = val;
         setResponsePayloadSize(StringUtils.length(val));
     }
+    
+    private static final Pattern TEST_MESSAGE_PATTERN 
+    	= Pattern.compile("^[A-Z]+(AIRA|TEST|IZG)\\^[A-Z]+(AIRA|TEST|IZG)^", Pattern.CASE_INSENSITIVE);
+    /**
+     * Indicates if the message matches known test patterns
+     * @param message	The message
+     * @return true if the message is for a known test case
+     */
+    public boolean matchesTest(String message) {
+    	if (message == null) {
+    		return true;
+    	}
+        String[] segments = message.split("[\r\n]");
+        String[] mshParts = segments[0].split("\\|");
+        String msgType = getFirstFieldComponent(mshParts, HL7Message.MESSAGE_TYPE - 1);
+        int segIndex = 0;
+        int found = 0;
+        int fieldLoc = 4;
+        if (msgType.contains("QBP")) {
+        	for (segIndex = 1; segIndex < segments.length; segIndex ++) {
+        		if (segments[segIndex].startsWith("QPD")) {
+        			found = segIndex;
+        			fieldLoc = 4;
+        			break;
+        		}
+        	}
+        } else {
+        	for (segIndex = 1; segIndex < segments.length; segIndex ++) {
+        		if (segments[segIndex].startsWith("PID")) {
+        			found = segIndex;
+        			fieldLoc = 5;
+        			break;
+        		}
+        	}
+        }
+        if (found == 0) {
+        	return false;
+        }
+        String[] fields = segments[found].split("\\|");
+        return fields.length > fieldLoc && TEST_MESSAGE_PATTERN.matcher(fields[fieldLoc]).matches();
+    }
+    
+    /**
+     * Mark this message as a known test message if true, otherwise treat as if it contains PHI
+     * @param test true for known test messages, false otherwise
+     * @return the set value.
+     */
+    public boolean setTest(boolean test) {
+    	this.test = test;
+    	return this.test;
+    }
+    
     public void setRequestHL7Message(String val) {
-        requestHL7Message = isProd() ? HL7Utils.protectHL7Message(val) : val;
+        requestHL7Message = isProd() || !setTest(matchesTest(val))  ? HL7Utils.protectHL7Message(val) : val;
         if (!StringUtils.isEmpty(requestHL7Message)) {
             String[] mshParts = StringUtils.substring(requestHL7Message,
                     0, StringUtils.indexOfAny(requestHL7Message, HL7Message.SEGMENT_SEPARATORS)
@@ -514,7 +572,12 @@ public class TransactionData {
     }
 
     public void setResponseHL7Message(String val) {
-        responseHL7Message = isProd() ? HL7Utils.protectHL7Message(val)  : val;
+    	if (isTest() && !matchesTest(val)) {
+    		// Response should match test message requirements as well.  If it doesn't
+    		// reset test to false.
+    		setTest(false);
+    	}
+        responseHL7Message = isProd() || !isTest() ? HL7Utils.protectHL7Message(val)  : val;
         if (!StringUtils.isEmpty(responseHL7Message)) {
             String[] mshParts = StringUtils.substring(responseHL7Message,
                     0, StringUtils.indexOfAny(requestHL7Message, HL7Message.SEGMENT_SEPARATORS)

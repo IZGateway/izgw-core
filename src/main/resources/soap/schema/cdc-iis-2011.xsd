@@ -1,0 +1,91 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<xsd:schema
+        elementFormDefault="qualified"
+        targetNamespace="urn:cdc:iisb:2011"
+        xmlns:tns="urn:cdc:iisb:2011"
+        xmlns:xsd="http://www.w3.org/2001/XMLSchema">
+
+    <!--====================================================================================================
+    = OPERATION PART TYPES: CONNECTIVITY TEST
+    =====================================================================================================-->
+    <xsd:complexType name="connectivityTestRequestType">
+        <xsd:sequence>
+            <xsd:element name="echoBack" type="xsd:string" minOccurs="1" maxOccurs="1" nillable="true"/>
+        </xsd:sequence>
+    </xsd:complexType>
+    <xsd:complexType name="connectivityTestResponseType">
+        <xsd:sequence>
+            <xsd:element name="return" type="xsd:string" minOccurs="1" maxOccurs="1" nillable="true"/>
+        </xsd:sequence>
+    </xsd:complexType>
+
+    <!--====================================================================================================
+    = OPERATION PART TYPES: SUBMIT SINGLE MESSAGE
+    =====================================================================================================-->
+    <xsd:complexType name="submitSingleMessageRequestType">
+        <xsd:sequence>
+            <xsd:element name="username" type="xsd:string" minOccurs="0" maxOccurs="1" nillable="true"/>
+            <xsd:element name="password" type="xsd:string" minOccurs="0" maxOccurs="1" nillable="true"/>
+            <xsd:element name="facilityID" type="xsd:string" minOccurs="0" maxOccurs="1" nillable="true"/>
+            <xsd:element name="hl7Message" type="xsd:string" minOccurs="0" maxOccurs="1" nillable="true"/>
+        </xsd:sequence>
+    </xsd:complexType>
+    <xsd:complexType name="submitSingleMessageResponseType">
+        <xsd:sequence>
+            <xsd:element name="return" type="xsd:string" minOccurs="0" maxOccurs="1" nillable="true"/>
+        </xsd:sequence>
+    </xsd:complexType>
+
+    <!--====================================================================================================
+    = FAULT PART TYPES
+    =====================================================================================================-->
+    <xsd:complexType name="soapFaultType">
+        <xsd:sequence>
+            <xsd:element name="Code" type="xsd:integer" minOccurs="0" nillable="true"/>
+            <xsd:element name="Reason" type="xsd:string" minOccurs="0" nillable="true"/>
+            <xsd:element name="Detail" type="xsd:string" minOccurs="0" nillable="true"/>
+        </xsd:sequence>
+    </xsd:complexType>
+    <xsd:complexType name="UnsupportedOperationFault2011Type">
+        <xsd:sequence>
+            <xsd:element name="Code" type="xsd:integer" minOccurs="0" nillable="true"/>
+            <xsd:element name="Reason" type="xsd:string" minOccurs="0" nillable="true"/>
+            <xsd:element name="Detail" type="xsd:string" minOccurs="0" nillable="true"/>
+        </xsd:sequence>
+    </xsd:complexType>
+    <xsd:complexType name="SecurityFault2011Type">
+        <xsd:sequence>
+            <xsd:element name="Code" type="xsd:integer" minOccurs="0" nillable="true"/>
+            <xsd:element name="Reason" type="xsd:string" minOccurs="0" nillable="true"/>
+            <xsd:element name="Detail" type="xsd:string" minOccurs="0" nillable="true"/>
+        </xsd:sequence>
+    </xsd:complexType>
+    <xsd:complexType name="MessageTooLargeFault2011Type">
+        <xsd:sequence>
+            <xsd:element name="Code" type="xsd:integer" minOccurs="0" nillable="true"/>
+            <xsd:element name="Reason" type="xsd:string" minOccurs="0" nillable="true"/>
+            <xsd:element name="Detail" type="xsd:string" minOccurs="0" nillable="true"/>
+        </xsd:sequence>
+    </xsd:complexType>
+
+    <!--====================================================================================================
+    = OPERATION PART ELEMENTS: CONNECTIVITY TEST
+    =====================================================================================================-->
+    <xsd:element name="connectivityTest" type="tns:connectivityTestRequestType"/>
+    <xsd:element name="connectivityTestResponse" type="tns:connectivityTestResponseType"/>
+
+    <!--====================================================================================================
+    = OPERATION PART ELEMENTS: SUBMIT SINGLE MESSAGE
+    =====================================================================================================-->
+    <xsd:element name="submitSingleMessage" type="tns:submitSingleMessageRequestType"/>
+    <xsd:element name="submitSingleMessageResponse" type="tns:submitSingleMessageResponseType"/>
+
+    <!--====================================================================================================
+    = FAULT PART ELEMENTS
+    =====================================================================================================-->
+    <xsd:element name="fault" type="tns:soapFaultType"/>
+    <xsd:element name="UnsupportedOperationFault" type="tns:UnsupportedOperationFault2011Type"/>
+    <xsd:element name="SecurityFault" type="tns:SecurityFault2011Type"/>
+    <xsd:element name="MessageTooLargeFault" type="tns:MessageTooLargeFault2011Type"/>
+
+</xsd:schema>

@@ -1,0 +1,82 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<xsd:schema xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:iis="urn:cdc:iisb:2014" elementFormDefault="qualified" targetNamespace="urn:cdc:iisb:2014">
+    <!--====================================================================================================
+    = OPERATION PART TYPES: CONNECTIVITY TEST
+    =====================================================================================================-->
+    <xsd:complexType name="ConnectivityTestRequestType">
+        <xsd:sequence>
+            <xsd:element minOccurs="0" name="EchoBack" nillable="true" type="xsd:string"/>
+        </xsd:sequence>
+    </xsd:complexType>
+    <xsd:complexType name="ConnectivityTestResponseType">
+        <xsd:sequence>
+            <xsd:element minOccurs="0" name="EchoBack" nillable="true" type="xsd:string"/>
+        </xsd:sequence>
+    </xsd:complexType>
+    <!--====================================================================================================
+    = OPERATION PART TYPES: SUBMIT SINGLE MESSAGE
+    =====================================================================================================-->
+    <xsd:complexType name="SubmitSingleMessageRequestType">
+        <xsd:sequence>
+            <xsd:group ref="iis:AuthenticationGroup"/>
+            <xsd:element name="Hl7Message" type="xsd:string"/>
+        </xsd:sequence>
+    </xsd:complexType>
+    <xsd:group name="AuthenticationGroup">
+        <xsd:annotation>
+            <xsd:documentation>
+                Creates a common group that can be shared
+            </xsd:documentation>
+        </xsd:annotation>
+        <xsd:sequence>
+            <xsd:element minOccurs="0" name="Username" nillable="true" type="xsd:string"/>
+            <xsd:element minOccurs="0" name="Password" nillable="true" type="xsd:string"/>
+            <xsd:element minOccurs="0" name="FacilityID" nillable="true" type="xsd:string"/>
+        </xsd:sequence>
+    </xsd:group>
+    <xsd:complexType name="SubmitSingleMessageResponseType">
+        <xsd:sequence>
+            <xsd:element name="Hl7Message" type="xsd:string"/>
+        </xsd:sequence>
+    </xsd:complexType>
+    <!--====================================================================================================
+    = FAULT PART TYPES
+    =====================================================================================================-->
+    <xsd:complexType abstract="true" name="FaultType"/>
+    <xsd:complexType name="MessageTooLargeFaultType">
+        <xsd:complexContent>
+            <xsd:extension base="iis:FaultType">
+                <xsd:sequence>
+                    <xsd:element name="Size" type="xsd:unsignedLong"/>
+                    <xsd:element name="MaxSize" type="xsd:unsignedLong"/>
+                </xsd:sequence>
+            </xsd:extension>
+        </xsd:complexContent>
+    </xsd:complexType>
+    <xsd:complexType name="SecurityFaultType">
+        <xsd:complexContent>
+            <xsd:extension base="iis:FaultType"/>
+        </xsd:complexContent>
+    </xsd:complexType>
+    <xsd:complexType name="UnsupportedOperationFaultType">
+        <xsd:complexContent>
+            <xsd:extension base="iis:FaultType"/>
+        </xsd:complexContent>
+    </xsd:complexType>
+    <!--====================================================================================================
+    = OPERATION PART ELEMENTS: CONNECTIVITY TEST
+    =====================================================================================================-->
+    <xsd:element name="ConnectivityTestRequest" type="iis:ConnectivityTestRequestType"/>
+    <xsd:element name="ConnectivityTestResponse" type="iis:ConnectivityTestResponseType"/>
+    <!--====================================================================================================
+    = OPERATION PART ELEMENTS: SUBMIT SINGLE MESSAGE
+    =====================================================================================================-->
+    <xsd:element name="SubmitSingleMessageRequest" type="iis:SubmitSingleMessageRequestType"/>
+    <xsd:element name="SubmitSingleMessageResponse" type="iis:SubmitSingleMessageResponseType"/>
+    <!--====================================================================================================
+    = FAULT PART ELEMENTS
+    =====================================================================================================-->
+    <xsd:element name="MessageTooLargeFault" type="iis:MessageTooLargeFaultType"/>
+    <xsd:element name="SecurityFault" type="iis:SecurityFaultType"/>
+    <xsd:element name="UnsupportedOperationFault" type="iis:UnsupportedOperationFaultType"/>
+</xsd:schema>

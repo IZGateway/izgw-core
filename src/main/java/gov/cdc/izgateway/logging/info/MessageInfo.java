@@ -102,7 +102,7 @@ public class MessageInfo {
 		TransactionData tData = RequestContext.getTransactionData();
 		if (tData != null) {
 			// Filter logs if the request does not match known test patterns.
-			filtering = filtering || !tData.isTest();
+			filtering = filtering || !tData.isKnownTestMessage();
 		} else {
 			// when there is no transaction assume the message is NOT for test purposes
 			filtering = true;

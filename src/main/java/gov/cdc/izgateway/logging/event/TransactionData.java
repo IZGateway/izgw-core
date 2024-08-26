@@ -535,24 +535,27 @@ public class TransactionData {
         	}
         }
         if (found == 0) {
-        	return false;
+        	// NO PID or QPD segment, matches test patterns for MOCK, or for Error cases.
+        	return true;
         }
         String[] fields = segments[found].split("\\|");
-        return fields.length > fieldLoc && isKnownTestPatient(fields[fieldLoc]);
+        return fields.length > fieldLoc && isKnownTestPatient(mshParts, fields[fieldLoc]);
     }
     
     /**
      * Determines if this is a patient matching a KNOWN test pattern. 
+     * @param mshParts 
      * @param name	Patient name in the message
      * @return	true if the patient matches the pattern
      */
-    private boolean isKnownTestPatient(String name) {
+    private boolean isKnownTestPatient(String[] mshParts, String name) {
     	if (name == null) {
     		return false;
     	}
     	String[] nameParts = name.toUpperCase().split("\\^");
     	String familyName = nameParts[0];
     	String givenName = nameParts.length > 1 ? nameParts[1] : "";
+    	
     	if (familyName.contains("IZG") || givenName.contains("IZG")) {
     		return true;
     	}
@@ -566,7 +569,12 @@ public class TransactionData {
     		return true;
     	}
   	
-    	return familyName.endsWith("TEST") && givenName.endsWith("TEST");
+    	if (familyName.endsWith("TEST") && givenName.endsWith("TEST")) {
+    		return true;
+    	}
+
+    	// Specifically marked as a test message in MSH-5.
+    	return (mshParts.length <= 5 || mshParts[5].equals("TEST") || mshParts[3].equals("TEST"));
 	}
 
 	/**

@@ -418,7 +418,7 @@ public abstract class SoapControllerBase {
 			return;
 		}
 		// Message does not match known test cases.
-		throw SecurityFault.generalSecurity("Unknown test case", null, null);
+		throw SecurityFault.generalSecurity("Unknown Test Case", null, null);
 	}
 
 	private void checkMessageSize(SoapMessage soapMessage, MessageTooLargeFault.Direction direction) throws MessageTooLargeFault {

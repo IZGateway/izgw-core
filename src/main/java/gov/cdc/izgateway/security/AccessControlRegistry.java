@@ -121,7 +121,7 @@ public class AccessControlRegistry implements IAccessControlRegistry {
 	 * @param mapping	Request Mappings associated with the method or class.
 	 */
 	private void registerPathsAndRoles(String prefix, RolesAllowed roles, MergedAnnotation<RequestMapping> mapping, boolean add) {
-		if (prefix != null && !prefix.endsWith("/")) {
+		if (prefix != null && !prefix.isEmpty() && !prefix.endsWith("/")) {
 			prefix += "/";
 		}
 		if (mapping == null) {

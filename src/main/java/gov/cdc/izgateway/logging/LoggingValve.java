@@ -50,7 +50,7 @@ public class LoggingValve extends LoggingValveBase implements EventCreator {
 	private ScheduledFuture<?> adsMonitor =
     	Executors.newSingleThreadScheduledExecutor(r -> new Thread(r, "ADS Monitor"))
     		.scheduleAtFixedRate(this::monitorADSRequests, 0, 15, TimeUnit.SECONDS);
-    private static final ConcurrentHashMap<Request, Integer> adsRequests = new ConcurrentHashMap<>();
+    private static final ConcurrentHashMap<Request, String> adsRequests = new ConcurrentHashMap<>();
     
     private Map<String, LoggingValveEvent> map = new LinkedHashMap<>();
     
@@ -79,10 +79,12 @@ public class LoggingValve extends LoggingValveBase implements EventCreator {
     @Override
     protected void handleSpecificInvoke(Request request, Response response, SourceInfo source) throws IOException, ServletException {
         boolean monitored = false;
+        String who = String.format("by %s from %s", source.getCommonName(), source.getIpAddress());
         if ("POST".equals(request.getMethod()) && request.getRequestURI().startsWith(REST_ADS)) {
-            log.info(Markers2.append("Source", source), "New ADS request ({}) started by {} from {}",
-                    request.hashCode(), source.getCommonName(), source.getIpAddress());
-            adsRequests.put(request, Integer.valueOf(1));
+        	
+            log.info(Markers2.append("Source", source), "New ADS request ({}) started {}",
+            		request.getCoyoteRequest().getContentLengthLong(), who);
+            adsRequests.put(request, who);
             monitored = true;
         }
 
@@ -106,25 +108,25 @@ public class LoggingValve extends LoggingValveBase implements EventCreator {
     }
 
     private void monitorADSRequests() {
-    	for (Request req: adsRequests.keySet()) {
-    		reportADSProgress(req);
+    	for (Map.Entry<Request, String> e: adsRequests.entrySet()) {
+    		reportADSProgress(e.getKey(), e.getValue());
     	}
     }
 
-	private void reportADSProgress(Request req) {
+	private void reportADSProgress(Request req, String who) {
 		org.apache.coyote.Request coyoteRequest = req.getCoyoteRequest();
 		if (coyoteRequest == null) {
 			return;
 		}
-		long length = coyoteRequest.getContentLength();
+		long length = coyoteRequest.getContentLengthLong();
 		long bytesRead = coyoteRequest.getBytesRead();
 		String percentDone = "unknown";
-		if (length <= 0) {
+		if (length > 0) {
 			percentDone = String.format("%0.2f%%", bytesRead * 100.0 / length);
 		}
         log.info(Markers2.append("Source", RequestContext.getSourceInfo()), 
-    		"ADS request ({}) progress {} of {} = {}%", 
-    		req.hashCode(), 
+    		"ADS request by {} progress {} of {} = {}%", 
+    		who,
     		convertSize(bytesRead), 
     		length < 0 ? "unknown" : convertSize(length), 
     		percentDone

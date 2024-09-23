@@ -80,7 +80,7 @@ public class TransactionData {
     
     // Types of HL7 messages we encounter
     public enum RequestPayloadType {
-    	QBP("QBP"), VXU("VXU"), OTHER("Other"), COVIDALL("covidallMonthlyVaccination"), COVIDBRIDGE("covidbridgeVaccination"),
+    	QBP("QBP"), VXU("VXU"), OTHER("Other"), COVIDALL("covidallMonthlyVaccination"),
         FLU("influenzaVaccination"), RI("routineImmunization"), RSV("rsvPrevention"), UNKNOWN("Unknown");
         private final String name;
         private RequestPayloadType(String name) {
@@ -160,9 +160,9 @@ public class TransactionData {
 
     @JsonProperty
     @Schema(description="The type of payload associated with this transaction",
-            allowableValues= {"VXU", "QBP", "UNKNOWN",
-                    "covidallMonthlyVaccination", "covidbridgeVaccination",
-                    "influenzaVaccination", "routineImmunization", "rsvPrevention"
+            allowableValues= {
+            		"VXU", "QBP", "UNKNOWN",
+                    "covidallMonthlyVaccination", "influenzaVaccination", "routineImmunization", "rsvPrevention"
             }
     )
     private RequestPayloadType requestPayloadType = RequestPayloadType.UNKNOWN;   // QBP, VXU, other - only avail if hl7 msg not hidden
@@ -556,6 +556,10 @@ public class TransactionData {
     	String familyName = nameParts[0];
     	String givenName = nameParts.length > 1 ? nameParts[1] : "";
     	
+    	if (familyName.isEmpty() && givenName.isEmpty()) {
+    		// QPD w/o name parts is OK.
+    		return true;
+    	}
     	if (familyName.contains("IZG") || givenName.contains("IZG")) {
     		return true;
     	}

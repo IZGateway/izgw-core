@@ -47,6 +47,10 @@ public class AccessControlValve extends ValveBase {
     
     private final IAccessControlService accessControls;
     
+    /**
+     * Create the valve using the supplied access control service.
+     * @param accessControls
+     */
     @Autowired
 	public AccessControlValve(IAccessControlService accessControls) {
     	this.accessControls = accessControls;
@@ -71,8 +75,6 @@ public class AccessControlValve extends ValveBase {
      * @param req  The request object
      * @param resp The response object
      * @return true if access is allowed
-     * @throws IOException
-     * @throws ServletException
      */
     public boolean accessAllowed(HttpServletRequest req, HttpServletResponse resp) {
         X509Certificate[] certs = (X509Certificate[]) req.getAttribute(Globals.CERTIFICATES_ATTR);
@@ -148,6 +150,11 @@ public class AccessControlValve extends ValveBase {
 		return path != null && path.startsWith("/swagger/") && accessControls.isUserInRole(user, Roles.ADMIN);
 	}
 
+	/**
+	 * Return true if the host address is one of the IP addresses that identify it as running on localhost
+	 * @param remoteHost	The host address to check.
+	 * @return true if the remoteHost is localhost.
+	 */
 	public static boolean isLocalHost(String remoteHost) {
     	if (NON_LOCAL_TESTING) {
     		return false;

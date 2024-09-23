@@ -12,9 +12,8 @@ public class Roles {
 	public static final String BLACKLIST = "blacklist";
 	public static final String SOAP = "soap";
 	public static final String USERS = "users";
-	public static final String OPEN = "OPEN";
 	private static final String[] values = {
-		ADMIN, ADS, ADSPILOT, INTERNAL, BLACKLIST, OPERATIONS, SOAP, USERS, OPEN	
+		ADMIN, ADS, ADSPILOT, INTERNAL, BLACKLIST, OPERATIONS, SOAP, USERS	
 	};
 	// ADMIN user can use this header to avoid admin overrides.
 	public static final String NOT_ADMIN_HEADER = "X-Not-Admin";

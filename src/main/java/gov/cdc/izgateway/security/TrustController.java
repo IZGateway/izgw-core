@@ -30,7 +30,7 @@ import jakarta.annotation.security.RolesAllowed;
  */
 @RestController
 @CrossOrigin
-@RolesAllowed({Roles.OPEN, Roles.ADMIN})
+@RolesAllowed({Roles.ADMIN})
 @RequestMapping({"/rest"})
 @Lazy(false)
 public class TrustController {

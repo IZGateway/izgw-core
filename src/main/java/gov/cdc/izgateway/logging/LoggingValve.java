@@ -51,7 +51,6 @@ public class LoggingValve extends LoggingValveBase implements EventCreator {
     	Executors.newSingleThreadScheduledExecutor(r -> new Thread(r, "ADS Monitor"))
     		.scheduleAtFixedRate(this::monitorADSRequests, 0, 15, TimeUnit.SECONDS);
     private static final ConcurrentHashMap<Request, String> adsRequests = new ConcurrentHashMap<>();
-    
     private Map<String, LoggingValveEvent> map = new LinkedHashMap<>();
     
     private static class LoggingValveEvent implements Event {

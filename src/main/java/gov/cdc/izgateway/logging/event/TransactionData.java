@@ -80,7 +80,7 @@ public class TransactionData {
     
     // Types of HL7 messages we encounter
     public enum RequestPayloadType {
-    	QBP("QBP"), VXU("VXU"), OTHER("Other"), COVIDALL("covidallMonthlyVaccination"),
+    	  QBP("QBP"), VXU("VXU"), OTHER("Other"), COVIDALL("covidallMonthlyVaccination"),
         FLU("influenzaVaccination"), RI("routineImmunization"), RSV("rsvPrevention"), UNKNOWN("Unknown");
         private final String name;
         private RequestPayloadType(String name) {
@@ -581,7 +581,7 @@ public class TransactionData {
     	return (mshParts.length <= 5 || mshParts[5].equals("TEST") || mshParts[3].equals("TEST"));
 	}
 
-	/**
+	  /**
      * Mark this message as a known test message if true, otherwise treat as if it contains PHI
      * @param test true for known test messages, false otherwise
      * @return the set value.

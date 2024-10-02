@@ -68,7 +68,6 @@ public class TransactionData {
         	return name;
         }
         
-        
         public MessageType fromString(String value) {
         	for (MessageType v: MessageType.values()) {
         		if (v.toString().equalsIgnoreCase(value)) {
@@ -81,7 +80,7 @@ public class TransactionData {
     
     // Types of HL7 messages we encounter
     public enum RequestPayloadType {
-    	QBP("QBP"), VXU("VXU"), OTHER("Other"), COVIDALL("covidallMonthlyVaccination"), COVIDBRIDGE("covidbridgeVaccination"),
+    	  QBP("QBP"), VXU("VXU"), OTHER("Other"), COVIDALL("covidallMonthlyVaccination"),
         FLU("influenzaVaccination"), RI("routineImmunization"), RSV("rsvPrevention"), UNKNOWN("Unknown");
         private final String name;
         private RequestPayloadType(String name) {
@@ -161,9 +160,9 @@ public class TransactionData {
 
     @JsonProperty
     @Schema(description="The type of payload associated with this transaction",
-            allowableValues= {"VXU", "QBP", "UNKNOWN",
-                    "covidallMonthlyVaccination", "covidbridgeVaccination",
-                    "influenzaVaccination", "routineImmunization", "rsvPrevention"
+            allowableValues= {
+            		"VXU", "QBP", "UNKNOWN",
+                    "covidallMonthlyVaccination", "influenzaVaccination", "routineImmunization", "rsvPrevention"
             }
     )
     private RequestPayloadType requestPayloadType = RequestPayloadType.UNKNOWN;   // QBP, VXU, other - only avail if hl7 msg not hidden
@@ -254,7 +253,7 @@ public class TransactionData {
     @Getter // It has a special setter
     @JsonProperty
     @Schema(description="This is a known test message, only set in non-prod environments")
-    private boolean test = false;
+    private boolean knownTestMessage = false;
     
     @JsonProperty
     @Schema(description="The request MSH3 (Sending Application) value in the inbound message")
@@ -492,7 +491,7 @@ public class TransactionData {
     }
     public void setRequestEchoBack(String val) {
         requestHL7Message = val;
-        setTest(true);  // Echo messages are test messages.
+        setKnownTestMessage(true);  // Echo messages are test messages.
         setRequestPayloadType(RequestPayloadType.OTHER);
         setRequestPayloadSize(StringUtils.length(val));
     }
@@ -502,7 +501,7 @@ public class TransactionData {
     }
     
     private static final Pattern TEST_MESSAGE_PATTERN 
-    	= Pattern.compile("^[A-Z]+(AIRA|TEST|IZG)\\^[A-Z]+(AIRA|TEST|IZG)^", Pattern.CASE_INSENSITIVE);
+    	= Pattern.compile("^(([A-Z]+(AIRA|TEST)\\^[A-Z]+(AIRA|TEST))|([A-Z]*IZG[A-Z]*))\\^", Pattern.CASE_INSENSITIVE);
     /**
      * Indicates if the message matches known test patterns
      * @param message	The message
@@ -536,24 +535,64 @@ public class TransactionData {
         	}
         }
         if (found == 0) {
-        	return false;
+        	// NO PID or QPD segment, matches test patterns for MOCK, or for Error cases.
+        	return true;
         }
         String[] fields = segments[found].split("\\|");
-        return fields.length > fieldLoc && TEST_MESSAGE_PATTERN.matcher(fields[fieldLoc]).matches();
+        return fields.length > fieldLoc && isKnownTestPatient(mshParts, fields[fieldLoc]);
     }
     
     /**
+     * Determines if this is a patient matching a KNOWN test pattern. 
+     * @param mshParts 
+     * @param name	Patient name in the message
+     * @return	true if the patient matches the pattern
+     */
+    private boolean isKnownTestPatient(String[] mshParts, String name) {
+    	if (name == null) {
+    		return false;
+    	}
+    	String[] nameParts = name.toUpperCase().split("\\^");
+    	String familyName = nameParts[0];
+    	String givenName = nameParts.length > 1 ? nameParts[1] : "";
+    	
+    	if (familyName.isEmpty() && givenName.isEmpty()) {
+    		// QPD w/o name parts is OK.
+    		return true;
+    	}
+    	if (familyName.contains("IZG") || givenName.contains("IZG")) {
+    		return true;
+    	}
+    	if (familyName.endsWith("AIRA") && givenName.endsWith("AIRA")) {
+    		return true;
+    	}
+    	if (familyName.startsWith("DOCKET") && givenName.startsWith("DOCKET")) {
+    		return true;
+    	}
+    	if (familyName.startsWith("ZZ") && givenName.startsWith("ZZ")) {
+    		return true;
+    	}
+  	
+    	if (familyName.endsWith("TEST") && givenName.endsWith("TEST")) {
+    		return true;
+    	}
+
+    	// Specifically marked as a test message in MSH-5.
+    	return (mshParts.length <= 5 || mshParts[5].equals("TEST") || mshParts[3].equals("TEST"));
+	}
+
+	  /**
      * Mark this message as a known test message if true, otherwise treat as if it contains PHI
      * @param test true for known test messages, false otherwise
      * @return the set value.
      */
-    public boolean setTest(boolean test) {
-    	this.test = test;
-    	return this.test;
+    public boolean setKnownTestMessage(boolean test) {
+    	this.knownTestMessage = test;
+    	return this.knownTestMessage;
     }
     
     public void setRequestHL7Message(String val) {
-        requestHL7Message = isProd() || !setTest(matchesTest(val))  ? HL7Utils.protectHL7Message(val) : val;
+        requestHL7Message = isProd() || !setKnownTestMessage(matchesTest(val))  ? HL7Utils.protectHL7Message(val) : val;
         if (!StringUtils.isEmpty(requestHL7Message)) {
             String[] mshParts = StringUtils.substring(requestHL7Message,
                     0, StringUtils.indexOfAny(requestHL7Message, HL7Message.SEGMENT_SEPARATORS)
@@ -572,12 +611,12 @@ public class TransactionData {
     }
 
     public void setResponseHL7Message(String val) {
-    	if (isTest() && !matchesTest(val)) {
+    	if (isKnownTestMessage() && !matchesTest(val)) {
     		// Response should match test message requirements as well.  If it doesn't
     		// reset test to false.
-    		setTest(false);
+    		setKnownTestMessage(false);
     	}
-        responseHL7Message = isProd() || !isTest() ? HL7Utils.protectHL7Message(val)  : val;
+        responseHL7Message = isProd() || !isKnownTestMessage() ? HL7Utils.protectHL7Message(val)  : val;
         if (!StringUtils.isEmpty(responseHL7Message)) {
             String[] mshParts = StringUtils.substring(responseHL7Message,
                     0, StringUtils.indexOfAny(requestHL7Message, HL7Message.SEGMENT_SEPARATORS)

@@ -7,8 +7,6 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.function.UnaryOperator;
-
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
@@ -102,7 +100,16 @@ public abstract class SoapControllerBase {
 	@Getter
 	@Value("${server.mode:prod}")
 	private String mode;
+
+	/**
+	 * Catch and kill transactions to non-prod environments when test data does
+	 * not follow known test patterns.
+	 */
 	@Getter
+	@Value("${server.cnk-enabled:false}")
+	private boolean catchAndKillEnabled;
+
+  @Getter
 	@Setter
 	private int maxMessageSize = 65536;
 
@@ -114,12 +121,20 @@ public abstract class SoapControllerBase {
 		return getDestinationService() != null;
 	}
 	protected abstract void checkCredentials(HasCredentials s) throws SecurityFault;
+	
+	/**
+	 * A functional interface for a task that can throw a fault.
+	 * 
+	 * @author Audacious Inquiry
+	 *
+	 * @param <V>	The return type of the task.
+	 */
 	public interface Work<V> {
 		/**
 		 * Computes a result, or throws an exception if unable to do so.
 		 *
 		 * @return computed result
-		 * @throws Exception if unable to compute a result
+		 * @throws Fault if unable to compute a result
 		 */
 		V call() throws Fault;
 	}
@@ -132,17 +147,20 @@ public abstract class SoapControllerBase {
 		this.serviceType = usingHubHeaders ? "Gateway" : "Mock";
 	}
 
-	public static void logStart(SoapMessage soapMessage, boolean isHub, String mode, String serviceType, UnaryOperator<String> getSourceType) {
+	/**
+	 * Log the start content for sending a SOAP Message
+	 * @param soapMessage	The message being sent
+	 */
+	public void logStartOfRequest(SoapMessage soapMessage) {
 		TransactionData tData = RequestContext.getTransactionData();
 		String message;
 		if (soapMessage != null) {
-			soapMessage.updateAction(isHub);
+			soapMessage.updateAction(isHub());
 			if (soapMessage instanceof SubmitSingleMessageRequest s) {
 				tData.setMessageType(MessageType.SUBMIT_SINGLE_MESSAGE);
 				message = s.getHl7Message();
-				tData.getSource().setType(getSourceType.apply(message));
+				tData.getSource().setType(getSourceType(message));
 				tData.setRequestHL7Message(message);
-
 			} else if (soapMessage instanceof ConnectivityTestRequest c) {
 				tData.setMessageType(MessageType.CONNECTIVITY_TEST);
 				message = c.getEchoBack();
@@ -166,9 +184,6 @@ public abstract class SoapControllerBase {
 		tData.setServerMode(mode);
 		tData.setServiceType(serviceType);
 	}
-	protected void logStartOfRequest(SoapMessage soapMessage) {
-		logStart(soapMessage, isHub(), mode, serviceType, this::getSourceType);
-	}
 
 	private String getSourceType(String message) {
 		HL7Message m = new HL7Message(message);
@@ -182,14 +197,15 @@ public abstract class SoapControllerBase {
 		return mshService.getSourceType(mshVals);
 	}
 
-	protected static  <T> ResponseEntity<T> logEndOfRequest(Work<ResponseEntity<T>> doWork) throws Fault {
+	protected <T> ResponseEntity<T> logEndOfRequest(Work<ResponseEntity<T>> doWork) throws Fault {
 		Fault error = null;
 		try {
 			ResponseEntity<T> result = doWork.call();
 			
 			if (result != null && result.getBody() instanceof SoapMessage body) {
+				catchAndKillNonTestMessages();
 				logResponseMessage(body);
-				}
+			}
 			return result;
 		} catch (Fault f) {
 			error = f;
@@ -202,6 +218,10 @@ public abstract class SoapControllerBase {
 		}
 	}
 
+	/**
+	 * Log data need from the response message
+	 * @param body	The response message
+	 */
 	public static void logResponseMessage(SoapMessage body) {
 		TransactionData tData = RequestContext.getTransactionData();
 		String value = "";
@@ -216,6 +236,11 @@ public abstract class SoapControllerBase {
 		tData.getServerResponse().setWs_response_message(new MessageInfo(body, EndpointType.SERVER, Direction.OUTBOUND, AppProperties.isProduction()));
 	}
 
+	/**
+	 * Log data from any fault.
+	 * @param fault	The fault
+	 * @return	The fault
+	 */
 	public static Fault logFault(Fault fault) {
 		if (fault instanceof HasDestinationUri dcf) {
 			log.error(Markers2.append(fault, "destinationUrl", dcf.getDestinationUri()), "{} occured during processing: {}", fault.getClass().getSimpleName(), getCauseMessage(fault));
@@ -239,6 +264,11 @@ public abstract class SoapControllerBase {
 		return fault.getCause().getMessage();
 	}
 
+	/**
+	 * Wrap any unexpected exception as a fault
+	 * @param fault The exception to wrap
+	 * @return	The fault as an UnexpectedExceptionFault
+	 */
 	public static Fault wrapExceptionAsFault(Throwable fault) {
 		if (fault instanceof Fault f) {
 			return f;
@@ -247,6 +277,11 @@ public abstract class SoapControllerBase {
 		return new UnexpectedExceptionFault(fault, "An unexpected exception occured");
 	}
 
+	/**
+	 * Report an invalid API request
+	 * @param req	The request
+	 * @return	The fault response
+	 */
 	@Operation(summary = "Controls reporting on invalid methods", hidden=true, description = "Returns a SOAP Fault for invalid methods")
 	@ApiResponse(responseCode = "405", description = "An invalid method was used", content = @Content)
 	@RequestMapping(produces =
@@ -265,6 +300,14 @@ public abstract class SoapControllerBase {
 		return handleFault(new UnsupportedOperationFault("Request Method Invalid: " + req.getMethod(), null));
 	}
 
+	/**
+	 * Get the WSDL
+	 * @param wsdl	The WSDL parameter
+	 * @param wsdl2	An alternate WSDL parameter in lowercase
+	 * @param xsd	The XSD to get
+	 * @param devAction	The devAction header
+	 * @return	The requested WSDL or XDS in a ResponseEntity.
+	 */
 	@Operation(summary = "Get the description of this Interface", description = "Returns the Web Service Description Language (WSDL) or XML Schema Description (XSD) for this interface")
 	@ApiResponse(responseCode = "200", description = "The WSDL or requested schema", content = @Content(mediaType = MediaType.APPLICATION_XML_VALUE, schema = @Schema(implementation = IMessageHeader.Map.class)))
 	@ApiResponse(responseCode = "404", description = "The requested schema was not found", content = @Content)
@@ -314,6 +357,13 @@ public abstract class SoapControllerBase {
 		return handleFault(fault);
 	}
 
+	/**
+	 * Submit a SOAP request
+	 * @param soapMessage	The request
+	 * @param devAction		The devAction header (requesting an exception be thrown for development testing)
+	 * @return The response
+	 * @throws SecurityFault	If the message does not match acceptable test patterns in non-production environments.
+	 */
 	@Operation(summary = "Post a message to the SOAP Interface", description = "Send a request to the SOAP Interface for IZ Gateway")
 	@ApiResponse(responseCode = "200", description = "The request completed normally", content = @Content(mediaType = MediaType.APPLICATION_XML_VALUE))
 	@ApiResponse(responseCode = "500", description = "A fault occured while processing the request", content = @Content)
@@ -327,14 +377,16 @@ public abstract class SoapControllerBase {
 	})
 
 	public ResponseEntity<?> submitSoapRequest( // NOSONAR ? is intentional here
-												@RequestBody SoapMessage soapMessage,
-												@Schema(description="Throws the fault specified in the header parameter")
-												@RequestHeader(value="X-IIS-Hub-Dev-Action", required=false)
-												String devAction
-	) {
+		@RequestBody SoapMessage soapMessage,
+		@Schema(description="Throws the fault specified in the header parameter")
+		@RequestHeader(value="X-IIS-Hub-Dev-Action", required=false)
+		String devAction
+	) throws SecurityFault {
 		logStartOfRequest(soapMessage);
+		
 		Fault fault;
 		try {
+			catchAndKillNonTestMessages();
 			String destinationId = getDestinationId(soapMessage);
 			if (!StringUtils.isEmpty(devAction)) {
 				throwSimulatedFault(devAction, destinationId);
@@ -353,6 +405,20 @@ public abstract class SoapControllerBase {
 			fault = wrapExceptionAsFault(ex);
 		}
 		return handleFault(fault);
+	}
+
+	private void catchAndKillNonTestMessages() throws SecurityFault {
+		if (!isCatchAndKillEnabled()) {
+			return;
+		}
+		if (RequestContext.getTransactionData().isProd()) {
+			return;
+		}
+		if (RequestContext.getTransactionData().isKnownTestMessage() ) {
+			return;
+		}
+		// Message does not match known test cases.
+		throw SecurityFault.generalSecurity("Unknown Test Case", null, null);
 	}
 
 	private void checkMessageSize(SoapMessage soapMessage, MessageTooLargeFault.Direction direction) throws MessageTooLargeFault {

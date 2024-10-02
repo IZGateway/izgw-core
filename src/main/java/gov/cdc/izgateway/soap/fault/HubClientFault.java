@@ -81,9 +81,9 @@ public class HubClientFault extends Fault implements HasDestinationUri {
 					RetryStrategy.NORMAL, Arrays.asList(HttpStatus.REQUEST_TIMEOUT)),
 
 			new MessageSupport(FAULT_NAME, "204", "HTTP Not Found Error", null,
-					"The Destination endpoint reported that the requested endpoint was not found. "
-							+ "The host server at the destination is running, but the endpoint url is not known. This can occur during IIS maintenance, "
-							+ "or may also occur when there is a problem at the destination IIS.",
+					"The Destination endpoint reported that the requested endpoint or resource was not found. "
+							+ "The host server at the destination is running, but the endpoint url or resource is not known. This can occur during maintenance, "
+							+ "or may also occur when there is a problem at the destination.",
 					RetryStrategy.CHECK_IIS_STATUS, Arrays.asList(HttpStatus.NOT_FOUND)),
 
 			new MessageSupport(FAULT_NAME, "205", "HTTP Internal Server Error", null,

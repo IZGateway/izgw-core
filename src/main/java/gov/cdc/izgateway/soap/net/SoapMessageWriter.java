@@ -27,15 +27,23 @@ public class SoapMessageWriter {
 	private final SoapMessage m;
 	private final XMLStreamWriter w;
 	private final boolean filtering;
+	private boolean maskCredentials = true;
 	
 	public SoapMessageWriter(SoapMessage m, XMLStreamWriter w, boolean filtering) {
 		this.m = m;
 		this.w = w;
 		this.filtering = filtering;
+		this.maskCredentials = true;
 	}
 	
-	public SoapMessageWriter(SoapMessage m, XMLStreamWriter w) {
+	/*
+	 * This method is package protected to ensure credentials are ONLY
+	 * written when used by the soap.net package to send to a destination.
+	 * Public uses can therefore NOT expose credentials in the SOAP message.
+	 */
+	SoapMessageWriter(SoapMessage m, XMLStreamWriter w) {
 		this(m, w, false);
+		this.maskCredentials = false;
 	}
 	
 	public static void setFixNewLines(boolean fixNewlines) {
@@ -264,7 +272,7 @@ public class SoapMessageWriter {
 		if (StringUtils.isEmpty(value)) {
 			return value;
 		}
-		return filtering ? HIDDEN : value;
+		return maskCredentials ? HIDDEN : value;
 	}
 
 	/**

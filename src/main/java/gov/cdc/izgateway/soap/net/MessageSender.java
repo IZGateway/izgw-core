@@ -454,13 +454,13 @@ public class MessageSender {
 		String errorMsg = "Destination " + dest.getDestId();
 
 		if (dest.getDestTypeId() != SystemUtils.getDestType()) {
-			throw SecurityFault.generalSecurity(errorMsg + " environment mismatch", 
-					"Expected " + SystemUtils.getDestTypeAsString() + " != " + dest.getDestType(), null);
+			throw SecurityFault.generalSecurity("Destination Environment Mismatch", 
+					"Expected " + SystemUtils.getDestTypeAsString() + " for " + dest.getDestId() + " != " + dest.getDestType(), null);
 		}
 		
 
 		if (StringUtils.startsWith(destUri, "http:")) {
-			throw SecurityFault.generalSecurity(errorMsg + " is not using https", destUri, null);
+			throw SecurityFault.generalSecurity("Destination Not Using HTTPS", destUri + " for " + dest.getDestId(), null);
 		}
 
 		try {

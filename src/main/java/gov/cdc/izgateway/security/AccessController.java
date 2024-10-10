@@ -91,15 +91,13 @@ public class AccessController {
 	
 	@Operation(summary="Add a user to blacklist", description="Add the specified user to the blacklist")
 	@PostMapping("/access/blacklist")
-	public IAccessControl addUserToBlackList(@RequestParam String user
-	) {
+	public IAccessControl addUserToBlackList(@RequestParam String user) {
 		return service.addUserToBlacklist(user);
 	}
 	
 	@Operation(summary="Delete a user from the blacklist", description="Delete the specified user from the blacklist")
 	@DeleteMapping("/access/blacklist")
-	public IAccessControl removeUserFromBlackList(@RequestParam String user
-	) {
+	public IAccessControl removeUserFromBlackList(@RequestParam String user) {
 		return service.removeUserFromBlacklist(user);
 	}
 

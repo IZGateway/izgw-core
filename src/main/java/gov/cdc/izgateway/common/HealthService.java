@@ -37,4 +37,12 @@ public class HealthService {
 	public static void setBuildName(String build) {
 		health.setBuildName(build);
 	}
+
+	public static void setDatabase(String url) {
+		if (health.getDatabase() == null) {
+			health.setDatabase(url);
+		} else {
+			health.setDatabase(health.getDatabase() + ", " + url);
+		}
+	}
 }

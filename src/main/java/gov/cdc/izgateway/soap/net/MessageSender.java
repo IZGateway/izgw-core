@@ -59,6 +59,7 @@ import gov.cdc.izgateway.utils.SystemUtils;
 
 import javax.net.ssl.HttpsURLConnection;
 import javax.net.ssl.SSLPeerUnverifiedException;
+import javax.xml.stream.XMLStreamException;
 
 /**
  * MessageSender is responsible for sending messages to a given destination,
@@ -183,7 +184,7 @@ public class MessageSender {
 
 	private void checkRetries(IDestination dest, IEndpointStatus status,
 			int retryCount, Fault f) throws Fault {
-		if (f.getRetry() != RetryStrategy.CHECK_IIS_STATUS) {
+		if (f.getRetry() != RetryStrategy.CHECK_IIS_STATUS || f.getCause() instanceof XMLStreamException) {
 			// This is not a retry-able failure.
 			RequestContext.getTransactionData().setRetries(retryCount);
 			throw f;
@@ -377,7 +378,6 @@ public class MessageSender {
 	private <T extends SoapMessage> T readResult(Class<T> clazz, IDestination dest, HttpURLConnection con, long started)
 			throws Fault {
 
-		SoapMessage result = null;
 		int statusCode = -1;
 		try {
 			statusCode = con.getResponseCode();
@@ -394,6 +394,7 @@ public class MessageSender {
 		InputStream body = null;
 		Exception savedEx;
 		try {
+			SoapMessage result = null;
 			// Mark the buffer so we can reread on error.
 			m = new HttpUrlConnectionInputMessage(con, clientConfig.getMaxBufferSize());
 			statusCode = m.getStatusCode();
@@ -425,7 +426,8 @@ public class MessageSender {
 		if (m != null) {
 			m.reset();
 		}
-		throw HubClientFault.invalidMessage(savedEx, dest, statusCode, body, result);
+		// There can be no result here.
+		throw HubClientFault.invalidMessage(savedEx, dest, statusCode, body);
 	}
 
 	private HubClientFault processHttpError(IDestination dest, int statusCode, InputStream err) {

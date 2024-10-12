@@ -61,7 +61,7 @@ public class HubClientFault extends Fault implements HasDestinationUri {
 			new MessageSupport(FAULT_NAME, "227", "Destination Threw Fault", null,
 					"The destination returned a generic fault. See the fault details.", RetryStrategy.CONTACT_SUPPORT),
 			new MessageSupport(FAULT_NAME, "228", "Destination Returned Invalid Response", null,
-					"The destination returned an invalid response to the message", RetryStrategy.CHECK_IIS_STATUS),
+					"The destination returned an invalid response to the message. Please contact the destination IIS.", RetryStrategy.CHECK_IIS_STATUS),
 
 			new MessageSupport(FAULT_NAME, "201", "HTTP Bad Request Error", null,
 					"The Destination sent a 'Bad Request' HTTP Error code in response to the request. "
@@ -136,14 +136,28 @@ public class HubClientFault extends Fault implements HasDestinationUri {
 		this.statusCode = statusCode;
 	}
 
-	// Client returned something, but it didn't parse, go figure it out
-	public static HubClientFault invalidMessage(Throwable rootCause, IDestination dest, int statusCode, InputStream body,
-			SoapMessage result) {
+	/** 
+	 * Client returned something, but it didn't parse, go figure it out
+	 * @param rootCause	The root cause of the error
+	 * @param dest	The destination
+	 * @param statusCode	The status code of the response
+	 * @param body	The message body
+	 * @return
+	 */
+	public static HubClientFault invalidMessage(Throwable rootCause, IDestination dest, int statusCode, InputStream body) {
 		String bodyString = XmlUtils.toString(body);
 		if (statusCode != 500 && statusCode != 200) {
-			return new HubClientFault(getHttpMessageSupport(statusCode), dest, rootCause, statusCode, bodyString, result);
+			return new HubClientFault(getHttpMessageSupport(statusCode), dest, rootCause, statusCode, bodyString, null);
 		}
-		return new HubClientFault(MESSAGE_TEMPLATES[8], dest, rootCause, statusCode, bodyString, result);
+		if (statusCode == 200) {
+			// These are dangerous. The client thought it had successfully shipped something, but it wasn't valid.
+			// DO NOT REPORT the original response as it may have a corrupted HL7 message containing PHI.
+			bodyString = null; 
+		}
+		while (rootCause.getCause() != null) {
+			rootCause = rootCause.getCause();
+		}
+		return new HubClientFault(MESSAGE_TEMPLATES[8].setDetail(rootCause.getMessage()), dest, rootCause, statusCode, bodyString, null);
 	}
 
 	// Client returns 500 (or 400) with a fault message

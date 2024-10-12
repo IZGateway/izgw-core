@@ -109,7 +109,7 @@ public abstract class SoapControllerBase {
 	@Value("${server.cnk-enabled:false}")
 	private boolean catchAndKillEnabled;
 
-  @Getter
+	@Getter
 	@Setter
 	private int maxMessageSize = 65536;
 
@@ -580,6 +580,7 @@ public abstract class SoapControllerBase {
 		logFault(fault);
 		FaultMessage faultMessage = new FaultMessage(fault, messageNamespace);
 		faultMessage.updateAction(isHub());
+		logResponseMessage(faultMessage);
 		return new ResponseEntity<>(faultMessage, HttpStatus.INTERNAL_SERVER_ERROR);
 	}
 	

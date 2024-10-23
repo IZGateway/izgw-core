@@ -109,10 +109,6 @@ public abstract class SoapControllerBase {
 	@Value("${server.cnk-enabled:false}")
 	private boolean catchAndKillEnabled;
 
-	@Getter
-	@Value("${server.cnk-enabled:false}")
-	private boolean catchAndKillEnabled;
-
   @Getter
 	@Setter
 	private int maxMessageSize = 65536;

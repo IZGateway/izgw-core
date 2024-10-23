@@ -25,6 +25,8 @@ public interface IEndpointStatus extends IEndpoint {
 	int getStatusId();
 
 	void setDestId(String destId);
+	
+	int getDestTypeId();
 
 	void setDestUri(String destUri);
 

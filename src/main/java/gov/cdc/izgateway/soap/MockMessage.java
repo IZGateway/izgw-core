@@ -153,8 +153,13 @@ public enum MockMessage {
 			HttpStatus.BAD_REQUEST),
 
 	TC_24H(MediaType.APPLICATION_XML, MockMessageText.TC_24H_TEXT,
-			HttpStatus.BAD_REQUEST), TC_UNKF(MockMessage::simulateFault,
+			HttpStatus.BAD_REQUEST), 
+
+	TC_24I(MockMessageText.TC_24I_TEXT),
+	
+	TC_UNKF(MockMessage::simulateFault,
 					MockMessageText.TC_UNKF_TEXT);
+
 
 	public static final MockMessage TC_FORCE_TIMEOUT = TC_13C;
 	private static int retryableRequestCount = 0;
@@ -596,19 +601,21 @@ class MockMessageText {
 			+ "<soap:Fault><soap:Code><soap:Value>soap:Receiver</soap:Value></soap:Code>"
 			+ "<soap:Reason><soap:Text>Invalid Username, Password or FacilityID</soap:Text></soap:Reason><soap:Detail>"
 			+ "<ns3:SecurityFault xmlns:ns3='urn:cdc:iisb:2014'>"
-			+ "<ns3:Code>401</ns3:Code>" + "<ns3:Reason>Security</ns3:Reason>" // Change
-																				// from
-																				// required
-																				// "Security"
-																				// to
-																				// "Security
-																				// Fault"
+			+ "<ns3:Code>401</ns3:Code><ns3:Reason>Security</ns3:Reason>" 
 			+ "<ns3:Detail>Invalid Username, Password or FacilityID</ns3:Detail>"
 			+ "</ns3:SecurityFault>"
 			+ "</soap:Detail></soap:Fault></soap:Envelope>";
 
 	static final String TC_24H_TEXT = "This is not a SOAP Fault nor is it XML";
 
+	static final String TC_24I_TEXT = "MSH|^~\\&|IRIS IIS|IRIS||IZG|20220205||RSP^K11^RSP_K11|20210330093013AZQ231|P|2.5.1|||||||||Z32^CDCPHINVS\r"
+			+ "MSA|AA|20210330093013AZQ231||0||0^Message Accepted^HL70357" + Character.valueOf((char)0x13)
+			+ "QAK|20210330093013AZQ231|NF|Z34^Request Complete Immunization history^CDCPHINVS\r"
+			+ "QPD|Z34^Request Immunization History^CDCPHINVS|20210330093013IA231|112258-9^^^IA^MR|"
+			+ "JohnsonIZG^JamesIZG^AndrewIZG^^^^L|LeungIZG^SarahIZG^^^^^M|20160414|M|"
+			+ "Main Street&&123^^Adel^IA^50003^^L|^PRN^PH^^^555^5551111|Y|1\r";
+	
+	
 	static final String TC_UNKF_TEXT = "Unknown Exception";
 
 	static final String TC_22B_TEXT = ENVELOPE + "" + "<soap:Fault>"

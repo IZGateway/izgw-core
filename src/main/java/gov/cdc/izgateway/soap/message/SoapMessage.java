@@ -243,10 +243,10 @@ public class SoapMessage implements Serializable {
 	 */
 	public int length() {
 		if (this instanceof HasEchoBack echo) {
-			return echo.getEchoBack().length();
+			return echo.getEchoBack() == null ? 0 : echo.getEchoBack().length();
 		} 
 		if (this instanceof HasHL7Message hl7) {
-			return hl7.getHl7Message().length();
+			return hl7.getHl7Message() == null ? 0 : hl7.getHl7Message().length();
 		}
 		return 0;
 	}

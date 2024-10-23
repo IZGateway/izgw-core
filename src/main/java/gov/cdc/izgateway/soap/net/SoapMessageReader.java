@@ -89,13 +89,34 @@ public class SoapMessageReader {
 	/** You can set a writer to copy events to on the reader. */
 	private XMLStreamWriter writer;
 	
+	/**
+	 * Wraps exceptions found during parsing
+	 * 
+	 * @author Audacious Inquiry
+	 */
 	public static class SoapParseException extends XMLStreamException {
 		private static final long serialVersionUID = 1L;
 		@Getter
 		private final String exchange;
-		SoapParseException(String msg, Location location, Throwable th, String exchange) {
-			super(msg, location == null ? XMLStreamLocation2.NOT_AVAILABLE : location, th);
+		SoapParseException(Throwable th, String exchange) {
+			super(getMessage(th), 
+				th instanceof XMLStreamException xex ? xex.getLocation() : XMLStreamLocation2.NOT_AVAILABLE, th);
 			this.exchange = exchange;
+		}
+		/**
+		 * Remove extra text in the produced message.
+		 * @param th	The original exception.
+		 * @return	Just the message without location and Message: prefix
+		 */
+		private static String getMessage(Throwable th) {
+			if (th instanceof XMLStreamException) {
+				String msg = StringUtils.substringAfter(th.getMessage(), "Message: ");
+				if (StringUtils.isBlank(msg)) {
+					msg = th.getMessage();
+				}
+				return msg;
+			}
+			return th.getMessage();
 		}
 	}
 	/**
@@ -172,15 +193,15 @@ public class SoapMessageReader {
 			}
 		} catch (XMLStreamException ex) {  // NOSONAR Exception handling is OK
 			log.error(Markers2.append(ex), "XMLStreamException parsing SOAP Message");
-			throw new SoapParseException(ex.getMessage(), ex.getLocation(), ex, req == null ? null : req.getClass().getSimpleName());
+			throw new SoapParseException(ex, req == null ? null : req.getClass().getSimpleName());
 		} catch (BadRequestException ex) {	// NOSONAR Exception handling is OK
 			log.error(Markers2.append(ex), "Invalid XML input in SOAP Message");
-			throw new SoapParseException(ex.getMessage(), null, ex, req == null ? null : req.getClass().getSimpleName());
+			throw new SoapParseException(ex, req == null ? null : req.getClass().getSimpleName());
 		} catch (SecurityFault sf) {
 			throw sf;
 		} catch (Exception ex) {	// NOSONAR Exception handling is OK
 			log.error(Markers2.append(ex), "Unexpected exception parsing SOAP Message");
-			throw new SoapParseException(ex.getMessage(), null, ex, req == null ? null : req.getClass().getSimpleName());
+			throw new SoapParseException(ex, req == null ? null : req.getClass().getSimpleName());
 		}
 		req.updateAction(isHub());
 		return req;

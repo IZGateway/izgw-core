@@ -24,7 +24,7 @@ public enum RetryStrategy {
      * The IIS is not responsive for some reason. This may be due to networking infrastructure (Internet)
      * failures between the IZ Gateway and the IIS, or it may be related to routine or emergency IIS
      * maintenance.  Check the IIS Status before attempting a retry.  Some errors (e.g. DNS not found,
-     * expired certificates) will not disappear without human intervention.
+     * expired certificates, or invalid response data) will not disappear without human intervention.
      */
     CHECK_IIS_STATUS("Check IIS Status before Retry", HttpStatus.BAD_GATEWAY),
 

@@ -85,7 +85,11 @@ public class Health {
 	@JsonProperty 
 	@Schema(description="Host name as known by the operating system")
 	private String hostname;
-
+	
+	@JsonProperty
+	@Schema(description="The database in use")
+	private String database;
+	
     public Health() {
         started = new Date(ManagementFactory.getRuntimeMXBean().getStartTime());
         environment = SystemUtils.getDestTypeAsString();
@@ -113,6 +117,7 @@ public class Health {
         this.requestVolume = that.requestVolume;
         this.successVolume = that.successVolume;
         this.hostname = that.hostname;
+        this.database = that.database;
     }
 
     public Health copy() {

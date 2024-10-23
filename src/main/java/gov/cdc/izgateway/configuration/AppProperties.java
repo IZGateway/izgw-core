@@ -21,6 +21,11 @@ public class AppProperties {
 	@Getter
 	@Value("${server.mode:prod}")
 	private String serverMode;
+	
+	@Getter
+	@Value("${spring.database:jpa}")
+	private String databaseType;
+
 	@Getter
 	private final ScheduledExecutorService scheduler = 
 		Executors.newSingleThreadScheduledExecutor(r -> new Thread(r, "Background-Scheduler"));

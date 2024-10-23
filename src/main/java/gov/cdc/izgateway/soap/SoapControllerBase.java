@@ -580,6 +580,7 @@ public abstract class SoapControllerBase {
 		logFault(fault);
 		FaultMessage faultMessage = new FaultMessage(fault, messageNamespace);
 		faultMessage.updateAction(isHub());
+		logResponseMessage(faultMessage);
 		return new ResponseEntity<>(faultMessage, HttpStatus.INTERNAL_SERVER_ERROR);
 	}
 	

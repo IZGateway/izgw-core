@@ -12,12 +12,12 @@ import gov.cdc.izgateway.model.IEndpointStatus;
 public interface EndpointStatusRepository {
 	public static final String[] INCLUDE_ALL = new String[0];
 	
-	List<IEndpointStatus> findAll();
+	List<? extends IEndpointStatus> findAll();
 	IEndpointStatus findById(String id);
 	IEndpointStatus saveAndFlush(IEndpointStatus status);
 	boolean removeById(String id);
 
-	List<IEndpointStatus> find(int maxQuarterHours, String[] include);
+	List<? extends IEndpointStatus> find(int maxQuarterHours, String[] include);
 	boolean refresh();
 	IEndpointStatus newEndpointStatus();
 	IEndpointStatus newEndpointStatus(IDestination dest);

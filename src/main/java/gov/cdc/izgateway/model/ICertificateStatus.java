@@ -5,6 +5,7 @@ import java.security.NoSuchAlgorithmException;
 import java.security.cert.CertificateEncodingException;
 import java.security.cert.X509Certificate;
 import java.sql.Timestamp;
+import java.util.Date;
 import java.util.ServiceConfigurationError;
 
 import jakarta.xml.bind.DatatypeConverter;
@@ -23,13 +24,13 @@ public interface ICertificateStatus {
 
 	void setCertSerialNumber(String certificateSerialNumber);
 
-	Timestamp getLastCheckedTimeStamp();
+	Date getLastCheckedTimeStamp();
 
-	void setLastCheckedTimeStamp(Timestamp lastCheckedTimeStamp);
+	void setLastCheckedTimeStamp(Date lastCheckedTimeStamp);
 
-	Timestamp getNextCheckTimeStamp();
+	Date getNextCheckTimeStamp();
 
-	void setNextCheckTimeStamp(Timestamp nextCheckTimeStamp);
+	void setNextCheckTimeStamp(Date nextCheckTimeStamp);
 
 	String getLastCheckStatus();
 

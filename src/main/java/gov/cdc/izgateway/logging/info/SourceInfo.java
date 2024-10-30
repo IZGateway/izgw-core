@@ -5,6 +5,7 @@ import java.security.cert.X509Certificate;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonPropertyOrder;
 
+import gov.cdc.izgateway.security.Principal;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
@@ -31,8 +32,14 @@ public class SourceInfo extends EndPointInfo {
     @JsonProperty
     private String type;
 
-    public SourceInfo(X509Certificate x509Certificate) {
-        setCertificate(x509Certificate);
+//    public SourceInfo(X509Certificate x509Certificate) {
+//        // TODO Paul - Principal related codeå
+//        setCertificate(x509Certificate);
+//    }
+
+    public SourceInfo(Principal principal) {
+        // TODO Paul - Principal related codeå
+        setPrincipal(principal);
     }
 
     public SourceInfo(SourceInfo that) {

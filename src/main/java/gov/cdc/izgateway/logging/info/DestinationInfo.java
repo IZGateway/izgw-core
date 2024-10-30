@@ -2,12 +2,16 @@ package gov.cdc.izgateway.logging.info;
 
 import java.net.HttpURLConnection;
 import java.security.cert.X509Certificate;
+import java.util.Date;
 
 import javax.net.ssl.HttpsURLConnection;
 import javax.net.ssl.SSLPeerUnverifiedException;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 
+import gov.cdc.izgateway.logging.RequestContext;
+import gov.cdc.izgateway.security.CertPrincipal;
+import gov.cdc.izgateway.security.Principal;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
@@ -62,7 +66,9 @@ public class DestinationInfo extends EndPointInfo {
         if (con instanceof HttpsURLConnection conx) {
             try {
                 X509Certificate[] certs = (X509Certificate[]) conx.getServerCertificates();
-                setCertificate(certs[0]);
+                // TODO Paul - Principal related code
+                // setCertificate(certs[0]);
+                setPrincipal(RequestContext.getPrincipal());
                 setCipherSuite(conx.getCipherSuite());
                 setConnected(true);
             } catch (SSLPeerUnverifiedException | IllegalStateException ex) {

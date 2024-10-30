@@ -13,9 +13,12 @@ import java.net.UnknownHostException;
 import java.nio.charset.StandardCharsets;
 import java.security.cert.X509Certificate;
 import java.util.Arrays;
+import java.util.Date;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
+import gov.cdc.izgateway.security.CertPrincipal;
+import gov.cdc.izgateway.security.Principal;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -508,7 +511,10 @@ public class MessageSender {
 		if (destination.isConnected() && con instanceof HttpsURLConnection conx) {
 			try {
 				X509Certificate[] certs = (X509Certificate[]) conx.getServerCertificates();
-				destination.setCertificate(certs[0]);
+                // TODO Paul - Principal related code
+
+				// destination.setCertificate(certs[0]);
+                destination.setPrincipal(RequestContext.getPrincipal());
 				destination.setCipherSuite(conx.getCipherSuite());
 				destination.setConnected(true);
 			} catch (SSLPeerUnverifiedException | IllegalStateException ex) {

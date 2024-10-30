@@ -63,6 +63,6 @@ public class SecurityFault extends Fault {
      * @return	A new security fault ready to be thrown
      */
     public static SecurityFault userBlacklisted(EndPointInfo endpoint) {
-        return new SecurityFault(MESSAGE_TEMPLATES[2].copy().setDetail(endpoint.getCommonName()), null, endpoint);
+        return new SecurityFault(MESSAGE_TEMPLATES[2].copy().setDetail(endpoint.getPrincipalName()), null, endpoint);
 	}
 }

@@ -4,17 +4,17 @@ import gov.cdc.izgateway.logging.event.EventCreator;
 import gov.cdc.izgateway.logging.event.TransactionData;
 import gov.cdc.izgateway.logging.info.SourceInfo;
 import gov.cdc.izgateway.logging.markers.Markers2;
+import gov.cdc.izgateway.service.IPrincipalService;
 import jakarta.servlet.ServletException;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.catalina.Globals;
 import org.apache.catalina.connector.Request;
 import org.apache.catalina.connector.Response;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.Ordered;
 import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Component;
 
 import java.io.IOException;
-import java.security.cert.X509Certificate;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executors;
@@ -75,10 +75,15 @@ public class LoggingValve extends LoggingValveBase implements EventCreator {
         }
     }
 
+    @Autowired
+    public LoggingValve(IPrincipalService principalService) {
+        this.principalService = principalService;
+    }
+
     @Override
     protected void handleSpecificInvoke(Request request, Response response, SourceInfo source) throws IOException, ServletException {
         boolean monitored = false;
-        String who = String.format("by %s from %s", source.getCommonName(), source.getIpAddress());
+        String who = String.format("by %s from %s", source.getPrincipalName(), source.getIpAddress());
         if ("POST".equals(request.getMethod()) && request.getRequestURI().startsWith(REST_ADS)) {
         	
             log.info(Markers2.append("Source", source), "New ADS request ({}) started {}",

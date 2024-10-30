@@ -7,6 +7,9 @@ import gov.cdc.izgateway.logging.event.TransactionData;
 import gov.cdc.izgateway.logging.info.MessageInfo;
 import gov.cdc.izgateway.logging.info.SourceInfo;
 import gov.cdc.izgateway.logging.markers.Markers2;
+import gov.cdc.izgateway.security.CertPrincipal;
+import gov.cdc.izgateway.security.Principal;
+import gov.cdc.izgateway.service.IPrincipalService;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.servlet.http.HttpSession;
@@ -16,7 +19,9 @@ import org.apache.catalina.connector.Request;
 import org.apache.catalina.connector.Response;
 import org.apache.catalina.valves.ValveBase;
 import org.apache.commons.lang3.StringUtils;
+import org.bouncycastle.cert.ocsp.Req;
 import org.slf4j.MDC;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpHeaders;
 
 import javax.net.ssl.SSLSession;
@@ -37,8 +42,10 @@ public abstract class LoggingValveBase extends ValveBase implements EventCreator
 	public static final String COMMON_NAME = "commonName";
 	public static final List<String> MDC_EVENTS = 
 		Collections.unmodifiableList(Arrays.asList(EVENT_ID, SESSION_ID, METHOD, IP_ADDRESS, REQUEST_URI, COMMON_NAME));
-	
-	// Keep mappings for at most one minute.
+
+    protected IPrincipalService principalService;
+
+    // Keep mappings for at most one minute.
     private static final int MAX_AGE = 60 * 1000;
 
     private Map<String, LoggingValveEvent> map = new LinkedHashMap<>();
@@ -229,7 +236,7 @@ public abstract class LoggingValveBase extends ValveBase implements EventCreator
         MDC.put(REQUEST_URI, requestURI);
         MDC.put(METHOD, req.getMethod());
         MDC.put(IP_ADDRESS, req.getRemoteAddr());
-        MDC.put(COMMON_NAME, source.getCommonName());
+        MDC.put(COMMON_NAME, source.getPrincipalName());
 	}
 	
 	protected void clearMdcValues() {
@@ -243,6 +250,9 @@ public abstract class LoggingValveBase extends ValveBase implements EventCreator
     }
 
     protected SourceInfo setSourceInfoValues(Request req, TransactionData t) {
+        Principal principal = principalService.getPrincipal(req);
+        RequestContext.setPrincipal(principal);
+
         SourceInfo source = t.getSource();
         source.setCipherSuite((String) req.getAttribute(Globals.CIPHER_SUITE_ATTR));
         source.setHost(req.getRemoteHost());
@@ -250,10 +260,13 @@ public abstract class LoggingValveBase extends ValveBase implements EventCreator
         source.setType("Unknown");
         source.setFacilityId("Unknown");
 
-        X509Certificate[] certs = (X509Certificate[])req.getAttribute(Globals.CERTIFICATES_ATTR);
-        if (certs != null) {
-            source.setCertificate(certs[0]);
-        }
+        // TODO Paul - related to Principal
+//        X509Certificate[] certs = (X509Certificate[])req.getAttribute(Globals.CERTIFICATES_ATTR);
+//        if (certs != null) {
+//            source.setCertificate(certs[0]);
+//        }
+        source.setPrincipal(RequestContext.getPrincipal());
+
         return source;
     }
 

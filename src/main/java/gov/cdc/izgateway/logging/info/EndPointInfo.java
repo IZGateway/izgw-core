@@ -7,6 +7,7 @@ import java.util.Date;
 import java.util.Map;
 
 
+import gov.cdc.izgateway.security.Principal;
 import org.apache.commons.lang3.StringUtils;
 import com.fasterxml.jackson.annotation.JsonFormat;
 import com.fasterxml.jackson.annotation.JsonFormat.Shape;
@@ -35,7 +36,7 @@ public abstract class EndPointInfo extends HostInfo implements Serializable {
 
     @Schema(description="The common name on the certificate associated with the requester")
     @JsonProperty
-    private String commonName;
+    private String principalName;
 
     @Schema(description="The cipher suite used by the endpoint.")
     @JsonProperty
@@ -47,7 +48,7 @@ public abstract class EndPointInfo extends HostInfo implements Serializable {
 
     @Schema(description="The serial number associated with the with certificate on the endpoint.")
     @JsonProperty
-    private BigInteger serialNumber;
+    private String uniqueId;
 
     @JsonProperty
     @JsonFormat(shape=Shape.STRING, pattern = Constants.TIMESTAMP_FORMAT)
@@ -69,9 +70,9 @@ public abstract class EndPointInfo extends HostInfo implements Serializable {
      */
     protected EndPointInfo(EndPointInfo that) {
     	super(that.ipAddress, that.host);
-        this.commonName = that.getCommonName();
+        this.principalName = that.getPrincipalName();
         this.organization = that.organization;
-        this.serialNumber = that.serialNumber;
+        this.uniqueId = that.uniqueId;
         this.validFrom = that.validFrom;
         this.validTo = that.validTo;
         this.id = that.id;
@@ -88,56 +89,82 @@ public abstract class EndPointInfo extends HostInfo implements Serializable {
      * This getter is necessary to ensure that the serial number is reported
      * @return the serialNumber in decimal
      */
-    @Schema(description="The serial number in decimal associated with the with certificate on the endpoint.")
-    @JsonProperty
-    public String getSerialNumber() {
-        if (serialNumber == null) {
-            return null;
-        }
-        return serialNumber.toString(10);
-    }
+//    @Schema(description="The serial number in decimal associated with the with certificate on the endpoint.")
+//    @JsonProperty
+//    public String getSerialNumber() {
+//        if (serialNumber == null) {
+//            return null;
+//        }
+//        return serialNumber.toString(10);
+//    }
 
     /**
      * @return the serialNumber in hexadecimal
      */
     @Schema(description="The serial number in hex associated with the with certificate on the endpoint.")
     @JsonProperty
-    public String getSerialNumberHex() {
-        if (serialNumber == null) {
-            return null;
-        }
-        return serialNumber.toString(16);
+    public String getSerialNumberHexOLDPAULTOCHANGEWITHPRINCIPAL() {
+//        if (serialNumber == null) {
+//            return null;
+//        }
+//        return serialNumber.toString(16);
+        return "serialNumberHex not implemented";
     }
 
-    public void setCertificate(X509Certificate cert) {
-    	if (cert == null) {
-    		commonName = null;	
+    public void setPrincipal(Principal principal) {
+        if (principal == null) {
+            principalName = null;
             organization = null;
             validFrom = null;
             validTo = null;
-            serialNumber = null;
+            uniqueId = null;
             return;
-    	}
-    	
-        X500Principal subject = cert.getSubjectX500Principal();
-        Map<String, String> parts = X500Utils.getParts(subject);
-
-        commonName = parts.get(X500Utils.COMMON_NAME);
-
-        // Get organization, and if not present, look for the Organizational Unit
-        String o = parts.get(X500Utils.ORGANIZATION);
-        if (StringUtils.isBlank(o)) {
-            o = parts.get(X500Utils.ORGANIZATION_UNIT);
         }
-        organization = o;
-        validFrom = cert.getNotBefore();
-        validTo = cert.getNotAfter();
-        serialNumber = cert.getSerialNumber();
+
+        principalName = principal.getName();
+
+//        // Get organization, and if not present, look for the Organizational Unit
+//        String o = parts.get(X500Utils.ORGANIZATION);
+//        if (StringUtils.isBlank(o)) {
+//            o = parts.get(X500Utils.ORGANIZATION_UNIT);
+//        }
+
+        organization = principal.getOrganization();
+        validFrom = principal.getValidFrom();
+        validTo = principal.getValidTo();
+        uniqueId = principal.getUniqueId();
+    }
+
+    // TODO: Paul Principal related code
+    public void setCertificateORIGINAL(X509Certificate cert) {
+//    	if (cert == null) {
+//    		principalName = null;
+//            organization = null;
+//            validFrom = null;
+//            validTo = null;
+//            uniqueId = null;
+//            return;
+//    	}
+//
+//        X500Principal subject = cert.getSubjectX500Principal();
+//        Map<String, String> parts = X500Utils.getParts(subject);
+//
+//        principalName = parts.get(X500Utils.COMMON_NAME);
+//
+//        // Get organization, and if not present, look for the Organizational Unit
+//        String o = parts.get(X500Utils.ORGANIZATION);
+//        if (StringUtils.isBlank(o)) {
+//            o = parts.get(X500Utils.ORGANIZATION_UNIT);
+//        }
+//        organization = o;
+//        validFrom = cert.getNotBefore();
+//        validTo = cert.getNotAfter();
+//        serialNumber = cert.getSerialNumber();
     }
 
     @Schema(description="The organization name in the certificate associated with the endpoint.")
     @JsonIgnore 
     public String getName() {
-		return StringUtils.isBlank(organization) ? commonName : organization;
+		return StringUtils.isBlank(organization) ? principalName : organization;
     }
 }

@@ -83,7 +83,7 @@ public class LoggingValve extends LoggingValveBase implements EventCreator {
     @Override
     protected void handleSpecificInvoke(Request request, Response response, SourceInfo source) throws IOException, ServletException {
         boolean monitored = false;
-        String who = String.format("by %s from %s", source.getPrincipalName(), source.getIpAddress());
+        String who = String.format("by %s from %s", source.getCommonName(), source.getIpAddress());
         if ("POST".equals(request.getMethod()) && request.getRequestURI().startsWith(REST_ADS)) {
         	
             log.info(Markers2.append("Source", source), "New ADS request ({}) started {}",

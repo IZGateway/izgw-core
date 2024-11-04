@@ -1,13 +1,10 @@
 package gov.cdc.izgateway.logging.info;
 
 import java.io.Serializable;
-import java.math.BigInteger;
-import java.security.cert.X509Certificate;
 import java.util.Date;
-import java.util.Map;
 
 
-import gov.cdc.izgateway.security.Principal;
+import gov.cdc.izgateway.security.IzgPrincipal;
 import org.apache.commons.lang3.StringUtils;
 import com.fasterxml.jackson.annotation.JsonFormat;
 import com.fasterxml.jackson.annotation.JsonFormat.Shape;
@@ -15,12 +12,10 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
 import gov.cdc.izgateway.common.Constants;
-import gov.cdc.izgateway.utils.X500Utils;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
-import javax.security.auth.x500.X500Principal;
 
 /**
  * An endpoint describes the inbound or outbound connection to
@@ -36,7 +31,7 @@ public abstract class EndPointInfo extends HostInfo implements Serializable {
 
     @Schema(description="The common name on the certificate associated with the requester")
     @JsonProperty
-    private String principalName;
+    private String commonName;
 
     @Schema(description="The cipher suite used by the endpoint.")
     @JsonProperty
@@ -48,7 +43,9 @@ public abstract class EndPointInfo extends HostInfo implements Serializable {
 
     @Schema(description="The serial number associated with the with certificate on the endpoint.")
     @JsonProperty
-    private String uniqueId;
+    private String serialNumber;
+
+    private String serialNumberHex;
 
     @JsonProperty
     @JsonFormat(shape=Shape.STRING, pattern = Constants.TIMESTAMP_FORMAT)
@@ -70,9 +67,10 @@ public abstract class EndPointInfo extends HostInfo implements Serializable {
      */
     protected EndPointInfo(EndPointInfo that) {
     	super(that.ipAddress, that.host);
-        this.principalName = that.getPrincipalName();
+        this.commonName = that.getCommonName();
         this.organization = that.organization;
-        this.uniqueId = that.uniqueId;
+        this.serialNumber = that.serialNumber;
+        this.serialNumberHex = that.serialNumberHex;
         this.validFrom = that.validFrom;
         this.validTo = that.validTo;
         this.id = that.id;
@@ -89,82 +87,43 @@ public abstract class EndPointInfo extends HostInfo implements Serializable {
      * This getter is necessary to ensure that the serial number is reported
      * @return the serialNumber in decimal
      */
-//    @Schema(description="The serial number in decimal associated with the with certificate on the endpoint.")
-//    @JsonProperty
-//    public String getSerialNumber() {
-//        if (serialNumber == null) {
-//            return null;
-//        }
-//        return serialNumber.toString(10);
-//    }
+    @Schema(description="The serial number in decimal associated with the with certificate on the endpoint.")
+    @JsonProperty
+    public String getSerialNumber() {
+        return serialNumber;
+    }
 
     /**
      * @return the serialNumber in hexadecimal
      */
     @Schema(description="The serial number in hex associated with the with certificate on the endpoint.")
     @JsonProperty
-    public String getSerialNumberHexOLDPAULTOCHANGEWITHPRINCIPAL() {
-//        if (serialNumber == null) {
-//            return null;
-//        }
-//        return serialNumber.toString(16);
-        return "serialNumberHex not implemented";
+    public String getSerialNumberHex() {
+        return serialNumberHex;
     }
 
-    public void setPrincipal(Principal principal) {
-        if (principal == null) {
-            principalName = null;
+    public void setPrincipal(IzgPrincipal izgPrincipal) {
+        if (izgPrincipal == null) {
+            commonName = null;
             organization = null;
             validFrom = null;
             validTo = null;
-            uniqueId = null;
+            serialNumber = null;
+            serialNumberHex = null;
             return;
         }
 
-        principalName = principal.getName();
-
-//        // Get organization, and if not present, look for the Organizational Unit
-//        String o = parts.get(X500Utils.ORGANIZATION);
-//        if (StringUtils.isBlank(o)) {
-//            o = parts.get(X500Utils.ORGANIZATION_UNIT);
-//        }
-
-        organization = principal.getOrganization();
-        validFrom = principal.getValidFrom();
-        validTo = principal.getValidTo();
-        uniqueId = principal.getUniqueId();
-    }
-
-    // TODO: Paul Principal related code
-    public void setCertificateORIGINAL(X509Certificate cert) {
-//    	if (cert == null) {
-//    		principalName = null;
-//            organization = null;
-//            validFrom = null;
-//            validTo = null;
-//            uniqueId = null;
-//            return;
-//    	}
-//
-//        X500Principal subject = cert.getSubjectX500Principal();
-//        Map<String, String> parts = X500Utils.getParts(subject);
-//
-//        principalName = parts.get(X500Utils.COMMON_NAME);
-//
-//        // Get organization, and if not present, look for the Organizational Unit
-//        String o = parts.get(X500Utils.ORGANIZATION);
-//        if (StringUtils.isBlank(o)) {
-//            o = parts.get(X500Utils.ORGANIZATION_UNIT);
-//        }
-//        organization = o;
-//        validFrom = cert.getNotBefore();
-//        validTo = cert.getNotAfter();
-//        serialNumber = cert.getSerialNumber();
+        commonName = izgPrincipal.getName();
+        organization = izgPrincipal.getOrganization();
+        validFrom = izgPrincipal.getValidFrom();
+        validTo = izgPrincipal.getValidTo();
+        serialNumber = izgPrincipal.getSerialNumber();
+        serialNumberHex = izgPrincipal.getSerialNumberHex();
     }
 
     @Schema(description="The organization name in the certificate associated with the endpoint.")
     @JsonIgnore 
     public String getName() {
-		return StringUtils.isBlank(organization) ? principalName : organization;
+		return StringUtils.isBlank(organization) ? commonName : organization;
     }
 }

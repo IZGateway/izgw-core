@@ -1,7 +1,5 @@
 package gov.cdc.izgateway.security;
 
-import gov.cdc.izgateway.service.IPrincipalService;
-import org.apache.catalina.Globals;
 import org.apache.catalina.connector.Request;
 import org.apache.catalina.connector.Response;
 import org.apache.catalina.valves.ValveBase;
@@ -16,14 +14,12 @@ import gov.cdc.izgateway.logging.RequestContext;
 import gov.cdc.izgateway.logging.info.HostInfo;
 import gov.cdc.izgateway.service.IAccessControlService;
 import gov.cdc.izgateway.utils.SystemUtils;
-import gov.cdc.izgateway.utils.X500Utils;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.extern.slf4j.Slf4j;
 
 import java.io.IOException;
-import java.security.cert.X509Certificate;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Set;
@@ -59,6 +55,7 @@ public class AccessControlValve extends ValveBase {
 
     @Override
     public void invoke(Request req, Response resp) throws IOException, ServletException {
+        req.getUserPrincipal();
         if (accessAllowed(req, resp)) {
         	try {
         		this.getNext().invoke(req, resp);
@@ -78,7 +75,7 @@ public class AccessControlValve extends ValveBase {
      * @return true if access is allowed
      */
     public boolean accessAllowed(HttpServletRequest req, HttpServletResponse resp) {
-        Principal principal = RequestContext.getPrincipal();
+        IzgPrincipal izgPrincipal = RequestContext.getPrincipal();
 
         // Paul - comment out and/or remove the certs line after we get Principal working
         // X509Certificate[] certs = (X509Certificate[]) req.getAttribute(Globals.CERTIFICATES_ATTR);
@@ -95,7 +92,7 @@ public class AccessControlValve extends ValveBase {
         	notAdminHeader = true;
         }
         
-        if (principal == null) {
+        if (izgPrincipal == null) {
         //if (certs == null || certs[0] == null) {
             if (!isLocalHost(req.getRemoteHost())) {
             	log.error("Access denied to protected URL {} address by unauthenticated user at {}", path, host);
@@ -105,7 +102,7 @@ public class AccessControlValve extends ValveBase {
             user = "localhost@" + SystemUtils.getHostname();
         } else {
         	// user = X500Utils.getCommonName(certs[0].getSubjectX500Principal());
-            user = principal.getName();
+            user = izgPrincipal.getName();
         }
 
         // Local user has Admin level access to everything.

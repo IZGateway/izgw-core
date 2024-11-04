@@ -8,7 +8,7 @@ import java.util.Set;
 import gov.cdc.izgateway.logging.event.TransactionData;
 import gov.cdc.izgateway.logging.info.DestinationInfo;
 import gov.cdc.izgateway.logging.info.SourceInfo;
-import gov.cdc.izgateway.security.Principal;
+import gov.cdc.izgateway.security.IzgPrincipal;
 import jakarta.servlet.http.HttpServletResponse;
 
 /**
@@ -18,7 +18,7 @@ import jakarta.servlet.http.HttpServletResponse;
  */
 public class RequestContext {
 	private RequestContext() {}
-    private static ThreadLocal<Principal> principalDataVar = new ThreadLocal<>();
+    private static ThreadLocal<IzgPrincipal> principalDataVar = new ThreadLocal<>();
 	private static ThreadLocal<TransactionData> transactionDataVar = new ThreadLocal<>();
 	private static ThreadLocal<SourceInfo> sourceInfoVar = new ThreadLocal<>();
 	private static ThreadLocal<DestinationInfo> destinationInfoVar = new ThreadLocal<>();
@@ -30,8 +30,8 @@ public class RequestContext {
 	public static TransactionData getTransactionData() {
 		return transactionDataVar.get();
 	}
-    public static void setPrincipal(Principal principal) {
-        principalDataVar.set(principal);
+    public static void setPrincipal(IzgPrincipal izgPrincipal) {
+        principalDataVar.set(izgPrincipal);
     }
 
 	public static void setTransactionData(TransactionData transactionData) {
@@ -50,7 +50,7 @@ public class RequestContext {
 		return init;
 	}
 
-    public static Principal getPrincipal() {
+    public static IzgPrincipal getPrincipal() {
         return principalDataVar.get();
     }
 	public static SourceInfo getSourceInfo() {

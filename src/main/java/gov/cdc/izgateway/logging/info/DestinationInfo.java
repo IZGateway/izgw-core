@@ -2,7 +2,6 @@ package gov.cdc.izgateway.logging.info;
 
 import java.net.HttpURLConnection;
 import java.security.cert.X509Certificate;
-import java.util.Date;
 
 import javax.net.ssl.HttpsURLConnection;
 import javax.net.ssl.SSLPeerUnverifiedException;
@@ -10,8 +9,6 @@ import javax.net.ssl.SSLPeerUnverifiedException;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
 import gov.cdc.izgateway.logging.RequestContext;
-import gov.cdc.izgateway.security.CertPrincipal;
-import gov.cdc.izgateway.security.Principal;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Data;
 import lombok.EqualsAndHashCode;

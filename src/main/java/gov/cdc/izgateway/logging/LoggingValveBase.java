@@ -7,8 +7,8 @@ import gov.cdc.izgateway.logging.event.TransactionData;
 import gov.cdc.izgateway.logging.info.MessageInfo;
 import gov.cdc.izgateway.logging.info.SourceInfo;
 import gov.cdc.izgateway.logging.markers.Markers2;
-import gov.cdc.izgateway.security.CertPrincipal;
-import gov.cdc.izgateway.security.Principal;
+import gov.cdc.izgateway.security.IzgPrincipal;
+import gov.cdc.izgateway.security.PrincipalException;
 import gov.cdc.izgateway.service.IPrincipalService;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletResponse;
@@ -19,15 +19,12 @@ import org.apache.catalina.connector.Request;
 import org.apache.catalina.connector.Response;
 import org.apache.catalina.valves.ValveBase;
 import org.apache.commons.lang3.StringUtils;
-import org.bouncycastle.cert.ocsp.Req;
 import org.slf4j.MDC;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpHeaders;
 
 import javax.net.ssl.SSLSession;
 import java.io.IOException;
 import java.nio.charset.Charset;
-import java.security.cert.X509Certificate;
 import java.util.*;
 import java.util.Map.Entry;
 import java.util.function.Predicate;
@@ -84,6 +81,22 @@ public abstract class LoggingValveBase extends ValveBase implements EventCreator
 
     @Override
     public void invoke(Request req, Response resp) throws IOException, ServletException {
+        // TODO Paul notes with Keith
+        // now grabbing from Principal
+        // differentiate from source cert and source principal
+        // Health may be an open API, if Principal is not available, but the end point is open, let it go.
+        // Let access control valve do its job.
+
+        // Get the principal (certificate- or JWT-based), on error send unauthorized
+        try {
+            IzgPrincipal izgPrincipal = principalService.getPrincipal(req);
+            RequestContext.setPrincipal(izgPrincipal);
+        } catch (PrincipalException e) {
+            log.error(Markers2.append(e), "Error getting Principal");
+            resp.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+            return;
+        }
+
         HttpSession sess = req.getSession();
         // When IZ Gateway calls itself (e.g., for Mock access), we don't want to treat this as a new event, instead,
         // we want to retain the existing event ID to track them all together.
@@ -236,7 +249,7 @@ public abstract class LoggingValveBase extends ValveBase implements EventCreator
         MDC.put(REQUEST_URI, requestURI);
         MDC.put(METHOD, req.getMethod());
         MDC.put(IP_ADDRESS, req.getRemoteAddr());
-        MDC.put(COMMON_NAME, source.getPrincipalName());
+        MDC.put(COMMON_NAME, source.getCommonName());
 	}
 	
 	protected void clearMdcValues() {
@@ -250,8 +263,6 @@ public abstract class LoggingValveBase extends ValveBase implements EventCreator
     }
 
     protected SourceInfo setSourceInfoValues(Request req, TransactionData t) {
-        Principal principal = principalService.getPrincipal(req);
-        RequestContext.setPrincipal(principal);
 
         SourceInfo source = t.getSource();
         source.setCipherSuite((String) req.getAttribute(Globals.CIPHER_SUITE_ATTR));

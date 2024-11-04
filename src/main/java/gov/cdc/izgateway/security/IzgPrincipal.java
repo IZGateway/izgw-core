@@ -5,8 +5,6 @@ import lombok.Data;
 import java.util.Date;
 
 @Data
-// Paul: look at ServletPrincipal
-// java.security.Principal - request.getUserPrincipal()
 public abstract class IzgPrincipal implements java.security.Principal {
     String name;
     String organization;

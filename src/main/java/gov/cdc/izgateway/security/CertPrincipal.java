@@ -7,7 +7,6 @@ import java.util.List;
 
 @Data
 public class CertPrincipal extends IzgPrincipal {
-    private List<String> roles;
 
     public String getSerialNumberHex() {
         // If isNumeric, return the hex representation

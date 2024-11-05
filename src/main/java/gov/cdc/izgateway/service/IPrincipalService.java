@@ -5,5 +5,5 @@ import gov.cdc.izgateway.security.PrincipalException;
 import jakarta.servlet.http.HttpServletRequest;
 
 public interface IPrincipalService {
-    IzgPrincipal getPrincipal(HttpServletRequest request) throws PrincipalException;
+    IzgPrincipal getPrincipal(HttpServletRequest request);
 }

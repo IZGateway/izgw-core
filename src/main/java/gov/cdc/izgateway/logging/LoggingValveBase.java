@@ -81,21 +81,8 @@ public abstract class LoggingValveBase extends ValveBase implements EventCreator
 
     @Override
     public void invoke(Request req, Response resp) throws IOException, ServletException {
-        // TODO Paul notes with Keith
-        // now grabbing from Principal
-        // differentiate from source cert and source principal
-        // Health may be an open API, if Principal is not available, but the end point is open, let it go.
-        // Let access control valve do its job.
 
-        // Get the principal (certificate- or JWT-based), on error send unauthorized
-        try {
-            IzgPrincipal izgPrincipal = principalService.getPrincipal(req);
-            RequestContext.setPrincipal(izgPrincipal);
-        } catch (PrincipalException e) {
-            log.error(Markers2.append(e), "Error getting Principal");
-            resp.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
-            return;
-        }
+        RequestContext.setPrincipal(principalService.getPrincipal(req));
 
         HttpSession sess = req.getSession();
         // When IZ Gateway calls itself (e.g., for Mock access), we don't want to treat this as a new event, instead,

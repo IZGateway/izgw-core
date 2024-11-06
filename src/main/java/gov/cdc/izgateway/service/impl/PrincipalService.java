@@ -72,7 +72,7 @@ public class PrincipalService implements IPrincipalService {
 
         String authHeader = request.getHeader("Authorization");
         if (authHeader == null || !authHeader.startsWith("Bearer ")) {
-            log.info("No JWT token found in Authorization header");
+            log.debug("No JWT token found in Authorization header");
             return null;
         }
 

@@ -7,8 +7,6 @@ import gov.cdc.izgateway.logging.event.TransactionData;
 import gov.cdc.izgateway.logging.info.MessageInfo;
 import gov.cdc.izgateway.logging.info.SourceInfo;
 import gov.cdc.izgateway.logging.markers.Markers2;
-import gov.cdc.izgateway.security.IzgPrincipal;
-import gov.cdc.izgateway.security.PrincipalException;
 import gov.cdc.izgateway.service.IPrincipalService;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletResponse;
@@ -257,12 +255,6 @@ public abstract class LoggingValveBase extends ValveBase implements EventCreator
         source.setIpAddress(req.getRemoteAddr());
         source.setType("Unknown");
         source.setFacilityId("Unknown");
-
-        // TODO Paul - related to Principal
-//        X509Certificate[] certs = (X509Certificate[])req.getAttribute(Globals.CERTIFICATES_ATTR);
-//        if (certs != null) {
-//            source.setCertificate(certs[0]);
-//        }
         source.setPrincipal(RequestContext.getPrincipal());
 
         return source;

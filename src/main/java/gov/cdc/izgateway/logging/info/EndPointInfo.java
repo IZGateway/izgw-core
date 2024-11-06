@@ -1,10 +1,13 @@
 package gov.cdc.izgateway.logging.info;
 
 import java.io.Serializable;
+import java.security.cert.X509Certificate;
 import java.util.Date;
+import java.util.Map;
 
 
 import gov.cdc.izgateway.security.IzgPrincipal;
+import gov.cdc.izgateway.utils.X500Utils;
 import org.apache.commons.lang3.StringUtils;
 import com.fasterxml.jackson.annotation.JsonFormat;
 import com.fasterxml.jackson.annotation.JsonFormat.Shape;
@@ -16,6 +19,8 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
+
+import javax.security.auth.x500.X500Principal;
 
 /**
  * An endpoint describes the inbound or outbound connection to
@@ -31,35 +36,39 @@ public abstract class EndPointInfo extends HostInfo implements Serializable {
 
     @Schema(description="The common name on the certificate associated with the requester")
     @JsonProperty
-    private String commonName;
+    protected String commonName;
 
     @Schema(description="The cipher suite used by the endpoint.")
     @JsonProperty
-    private String cipherSuite;
+    protected String cipherSuite;
 
     @Schema(description="The organization associated with the with the endpoint.")
     @JsonProperty
-    private String organization;
+    protected String organization;
 
+    /*
+        TODO: Discuss during code review.  serialNumber changes to String because info
+              in the JWT that we use for serialNumber is not always a number.
+     */
     @Schema(description="The serial number associated with the with certificate on the endpoint.")
     @JsonProperty
-    private String serialNumber;
+    protected String serialNumber;
 
-    private String serialNumberHex;
+    protected String serialNumberHex;
 
     @JsonProperty
     @JsonFormat(shape=Shape.STRING, pattern = Constants.TIMESTAMP_FORMAT)
     @Schema(description="The starting date associated with the with certificate on the endpoint.")
-    private Date validFrom;
+    protected Date validFrom;
 
     @JsonProperty
     @Schema(description="The expiration date associated with the with certificate on the endpoint.")
     @JsonFormat(shape=Shape.STRING, pattern = Constants.TIMESTAMP_FORMAT)
-    private Date validTo;
+    protected Date validTo;
 
     @Schema(description="The identifier of the endpoint.")
     @JsonProperty
-    private String id;
+    protected String id;
 
     /**
      * Copy constructor
@@ -100,25 +109,6 @@ public abstract class EndPointInfo extends HostInfo implements Serializable {
     @JsonProperty
     public String getSerialNumberHex() {
         return serialNumberHex;
-    }
-
-    public void setPrincipal(IzgPrincipal izgPrincipal) {
-        if (izgPrincipal == null) {
-            commonName = null;
-            organization = null;
-            validFrom = null;
-            validTo = null;
-            serialNumber = null;
-            serialNumberHex = null;
-            return;
-        }
-
-        commonName = izgPrincipal.getName();
-        organization = izgPrincipal.getOrganization();
-        validFrom = izgPrincipal.getValidFrom();
-        validTo = izgPrincipal.getValidTo();
-        serialNumber = izgPrincipal.getSerialNumber();
-        serialNumberHex = izgPrincipal.getSerialNumberHex();
     }
 
     @Schema(description="The organization name in the certificate associated with the endpoint.")

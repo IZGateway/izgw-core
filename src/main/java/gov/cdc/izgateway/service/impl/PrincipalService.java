@@ -8,7 +8,6 @@ import com.nimbusds.jose.proc.SecurityContext;
 import gov.cdc.izgateway.security.CertPrincipal;
 import gov.cdc.izgateway.security.IzgPrincipal;
 import gov.cdc.izgateway.security.JWTPrincipal;
-import gov.cdc.izgateway.security.PrincipalException;
 import gov.cdc.izgateway.security.UnauthenticatedPrincipal;
 import gov.cdc.izgateway.service.IPrincipalService;
 import gov.cdc.izgateway.utils.X500Utils;
@@ -30,6 +29,7 @@ import java.security.cert.X509Certificate;
 import java.time.Duration;
 import java.util.Date;
 import java.util.Map;
+import java.util.Objects;
 
 @Service
 @Slf4j
@@ -43,7 +43,6 @@ public class PrincipalService implements IPrincipalService {
      * will return an UnauthenticatedPrincipal.
      * @param request
      * @return
-     * @throws PrincipalException
      */
     @Override
     public IzgPrincipal getPrincipal(HttpServletRequest request) {
@@ -64,55 +63,44 @@ public class PrincipalService implements IPrincipalService {
         return izgPrincipal;
     }
 
-    // TODO - list of
-    // OKTA
-    // APHL - OKTA
-    // Self-hosted - someone else's - config
     private IzgPrincipal createJWTPrincipal(HttpServletRequest request) {
 
-        // Return null if jwkSetUri is not set
         if (StringUtils.isBlank(jwkSetUri)) {
             log.warn("No JWT set URI configured.  JWT authentication is disabled.");
             return null;
         }
 
         String authHeader = request.getHeader("Authorization");
-
         if (authHeader == null || !authHeader.startsWith("Bearer ")) {
             log.info("No JWT token found in Authorization header");
             return null;
         }
 
         JwtDecoder jwtDecoder = NimbusJwtDecoder.withJwkSetUri(jwkSetUri).build();
-
         Jwt jwt;
 
         try {
             String token = authHeader.substring(7);
-
-            log.info("*** TRYING JWT");
             jwt = jwtDecoder.decode(token);
-            log.info("*** JWT claims for current request: {}", jwt.getClaims());
-
         } catch (Exception e) {
-            log.error("Error parsing JWT token", e);
+            log.warn("Error parsing JWT token", e);
             return null;
         }
 
-        IzgPrincipal izgPrincipal = new JWTPrincipal();
+        IzgPrincipal principal = new JWTPrincipal();
+        principal.setName(jwt.getSubject());
+        principal.setOrganization(jwt.getClaim("organization"));
+        principal.setValidFrom(Date.from(Objects.requireNonNull(jwt.getIssuedAt())));
+        principal.setValidTo(Date.from(Objects.requireNonNull(jwt.getExpiresAt())));
+        principal.setSerialNumber(jwt.getId());
+        principal.setIssuer(jwt.getIssuer().toString());
+        principal.setAudience(jwt.getAudience());
 
-        izgPrincipal.setName(jwt.getSubject());
-        izgPrincipal.setOrganization("JWT PRINCIPAL ORG NOT IMPLEMENTED");
-        izgPrincipal.setValidFrom(Date.from(jwt.getIssuedAt()));
-        izgPrincipal.setValidTo(Date.from(jwt.getExpiresAt()));
-        izgPrincipal.setSerialNumber(jwt.getId());
-
-        return izgPrincipal;
+        return principal;
     }
 
     private IzgPrincipal createCertPrincipal(HttpServletRequest req) {
-        IzgPrincipal izgPrincipal = new CertPrincipal();
-
+        IzgPrincipal principal = new CertPrincipal();
         X509Certificate[] certs = (X509Certificate[]) req.getAttribute(Globals.CERTIFICATES_ATTR);
 
         if (certs == null || certs.length == 0) {
@@ -121,29 +109,21 @@ public class PrincipalService implements IPrincipalService {
         }
 
         X509Certificate cert = certs[0];
-
         X500Principal subject = cert.getSubjectX500Principal();
+
         Map<String, String> parts = X500Utils.getParts(subject);
-
-        izgPrincipal.setName(parts.get(X500Utils.COMMON_NAME));
-
-        // Get organization, and if not present, look for the Organizational Unit
+        principal.setName(parts.get(X500Utils.COMMON_NAME));
         String o = parts.get(X500Utils.ORGANIZATION);
         if (StringUtils.isBlank(o)) {
             o = parts.get(X500Utils.ORGANIZATION_UNIT);
         }
-        izgPrincipal.setOrganization(o);
-        izgPrincipal.setValidFrom(cert.getNotBefore());
-        izgPrincipal.setValidTo(cert.getNotAfter());
-        izgPrincipal.setSerialNumber(String.valueOf(cert.getSerialNumber()));
+        principal.setOrganization(o);
 
-        return izgPrincipal;
+        principal.setValidFrom(cert.getNotBefore());
+        principal.setValidTo(cert.getNotAfter());
+        principal.setSerialNumber(String.valueOf(cert.getSerialNumber()));
+        principal.setIssuer(cert.getIssuerX500Principal().getName());
+
+        return principal;
     }
-
-    /*
-        TODO: PCahill - make sure these comments from the review are addressed:
-        java.security.Principal p = request.getUserPrincipal();
-        override - isUSerInRole,
-     */
-
 }

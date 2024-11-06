@@ -509,9 +509,9 @@ public class MessageSender {
 			try {
 				X509Certificate[] certs = (X509Certificate[]) conx.getServerCertificates();
                 // TODO Paul - Principal related code
-
-				// destination.setCertificate(certs[0]);
-                destination.setPrincipal(RequestContext.getPrincipal());
+                // need to fix this - may need to break out source and destination info because destination won't have a principal'
+				destination.setCertificate(certs[0]);
+                // destination.setPrincipal(RequestContext.getPrincipal());
 				destination.setCipherSuite(conx.getCipherSuite());
 				destination.setConnected(true);
 			} catch (SSLPeerUnverifiedException | IllegalStateException ex) {

@@ -30,13 +30,7 @@ public class SourceInfo extends EndPointInfo {
     @JsonProperty
     private String type;
 
-//    public SourceInfo(X509Certificate x509Certificate) {
-//        // TODO Paul - Principal related codeå
-//        setCertificate(x509Certificate);
-//    }
-
     public SourceInfo(IzgPrincipal izgPrincipal) {
-        // TODO Paul - Principal related codeå
         setPrincipal(izgPrincipal);
     }
 
@@ -45,4 +39,24 @@ public class SourceInfo extends EndPointInfo {
         this.facilityId = that.facilityId;
         this.type = that.type;
     }
+
+    public void setPrincipal(IzgPrincipal principal) {
+        if (principal == null) {
+            commonName = null;
+            organization = null;
+            validFrom = null;
+            validTo = null;
+            serialNumber = null;
+            serialNumberHex = null;
+            return;
+        }
+
+        commonName = principal.getName();
+        organization = principal.getOrganization();
+        validFrom = principal.getValidFrom();
+        validTo = principal.getValidTo();
+        serialNumber = principal.getSerialNumber();
+        serialNumberHex = principal.getSerialNumberHex();
+    }
+
 }

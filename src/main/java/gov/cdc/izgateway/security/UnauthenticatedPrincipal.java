@@ -14,7 +14,7 @@ public class UnauthenticatedPrincipal extends IzgPrincipal {
         this.validTo = new Date(Long.MAX_VALUE);
         this.serialNumber = "0";
         this.issuer = "None";
-        this.audience = "Public";
+        this.audience = null;
         this.scopes = new HashSet<>();
         this.roles = new HashSet<>();
     }

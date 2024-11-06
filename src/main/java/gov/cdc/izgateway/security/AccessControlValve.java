@@ -30,7 +30,7 @@ import java.util.Set;
  */
 @Slf4j
 @Component("valveAccessControl")
-@Order(Ordered.HIGHEST_PRECEDENCE)
+@Order(Ordered.HIGHEST_PRECEDENCE + 10)
 public class AccessControlValve extends ValveBase {
 	/**
 	 * Set this value to false to disable blacklist security.  This is here so we can turn it off by
@@ -55,7 +55,6 @@ public class AccessControlValve extends ValveBase {
 
     @Override
     public void invoke(Request req, Response resp) throws IOException, ServletException {
-        req.getUserPrincipal();
         if (accessAllowed(req, resp)) {
         	try {
         		this.getNext().invoke(req, resp);
@@ -75,10 +74,8 @@ public class AccessControlValve extends ValveBase {
      * @return true if access is allowed
      */
     public boolean accessAllowed(HttpServletRequest req, HttpServletResponse resp) {
-        IzgPrincipal izgPrincipal = RequestContext.getPrincipal();
+        IzgPrincipal principal = RequestContext.getPrincipal();
 
-        // Paul - comment out and/or remove the certs line after we get Principal working
-        // X509Certificate[] certs = (X509Certificate[]) req.getAttribute(Globals.CERTIFICATES_ATTR);
         String user = null;
         String path = req.getRequestURI();
         String host = req.getRemoteHost();
@@ -92,8 +89,7 @@ public class AccessControlValve extends ValveBase {
         	notAdminHeader = true;
         }
         
-        if (izgPrincipal == null) {
-        //if (certs == null || certs[0] == null) {
+        if (principal == null) {
             if (!isLocalHost(req.getRemoteHost())) {
             	log.error("Access denied to protected URL {} address by unauthenticated user at {}", path, host);
                 resp.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
@@ -101,8 +97,7 @@ public class AccessControlValve extends ValveBase {
             }
             user = "localhost@" + SystemUtils.getHostname();
         } else {
-        	// user = X500Utils.getCommonName(certs[0].getSubjectX500Principal());
-            user = izgPrincipal.getName();
+            user = principal.getName();
         }
 
         // Local user has Admin level access to everything.

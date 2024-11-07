@@ -1,0 +1,35 @@
+@startuml
+class JwtSharedSecretPrincipalProvider {
+    - String sharedSecret
+    + createPrincipalFromJwt(HttpServletRequest request): IzgPrincipal
+    - parseJwt(String authHeader): Claims
+    - buildPrincipal(Claims claims): IzgPrincipal
+    - extractScopes(Claims claims): TreeSet<String>
+}
+
+class IzgPrincipal {
+    String name
+    String organization
+    Date validFrom
+    Date validTo
+    String serialNumber
+    String issuer
+    List<String> audience
+    Set<String> scopes
+    Set<String> roles
+    + getSerialNumberHex(): String
+}
+
+class JWTPrincipal {
+    + getSerialNumberHex(): String
+    - isUUID(String string): boolean
+}
+
+class CertPrincipal {
+    + getSerialNumberHex(): String
+}
+
+JwtSharedSecretPrincipalProvider --> IzgPrincipal
+IzgPrincipal <|-- JWTPrincipal
+IzgPrincipal <|-- CertPrincipal
+@enduml

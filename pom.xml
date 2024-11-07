@@ -38,7 +38,7 @@
     <!-- 17 needs a certified encryption module -->
     <timestamp>${maven.build.timestamp}</timestamp>
     <skipDependencyCheck>false</skipDependencyCheck>
-    <spring-security.version>6.3.4</spring-security.version>
+    <!-- <spring-security.version>6.3.4</spring-security.version> -->
   </properties>
   <dependencies>
     <dependency>
@@ -194,7 +194,6 @@
     <dependency>
       <groupId>org.springframework.boot</groupId>
       <artifactId>spring-boot-starter-web</artifactId>
-      <version>3.3.5</version>
     </dependency>
     <dependency>
       <groupId>org.springframework.data</groupId>

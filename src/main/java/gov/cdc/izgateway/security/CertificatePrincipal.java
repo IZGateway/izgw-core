@@ -3,10 +3,9 @@ package gov.cdc.izgateway.security;
 import lombok.Data;
 
 import java.math.BigInteger;
-import java.util.List;
 
 @Data
-public class CertPrincipal extends IzgPrincipal {
+public class CertificatePrincipal extends IzgPrincipal {
 
     public String getSerialNumberHex() {
         // If isNumeric, return the hex representation

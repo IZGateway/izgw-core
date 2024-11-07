@@ -4,7 +4,7 @@ import gov.cdc.izgateway.logging.event.EventCreator;
 import gov.cdc.izgateway.logging.event.TransactionData;
 import gov.cdc.izgateway.logging.info.SourceInfo;
 import gov.cdc.izgateway.logging.markers.Markers2;
-import gov.cdc.izgateway.service.IPrincipalService;
+import gov.cdc.izgateway.security.service.PrincipalService;
 import jakarta.servlet.ServletException;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.catalina.connector.Request;
@@ -76,7 +76,7 @@ public class LoggingValve extends LoggingValveBase implements EventCreator {
     }
 
     @Autowired
-    public LoggingValve(IPrincipalService principalService) {
+    public LoggingValve(PrincipalService principalService) {
         this.principalService = principalService;
     }
 

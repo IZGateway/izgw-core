@@ -7,7 +7,7 @@ import gov.cdc.izgateway.logging.event.TransactionData;
 import gov.cdc.izgateway.logging.info.MessageInfo;
 import gov.cdc.izgateway.logging.info.SourceInfo;
 import gov.cdc.izgateway.logging.markers.Markers2;
-import gov.cdc.izgateway.service.IPrincipalService;
+import gov.cdc.izgateway.security.service.PrincipalService;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.servlet.http.HttpSession;
@@ -38,7 +38,7 @@ public abstract class LoggingValveBase extends ValveBase implements EventCreator
 	public static final List<String> MDC_EVENTS = 
 		Collections.unmodifiableList(Arrays.asList(EVENT_ID, SESSION_ID, METHOD, IP_ADDRESS, REQUEST_URI, COMMON_NAME));
 
-    protected IPrincipalService principalService;
+    protected PrincipalService principalService;
 
     // Keep mappings for at most one minute.
     private static final int MAX_AGE = 60 * 1000;

@@ -120,7 +120,7 @@ public class AccessControlValve extends ValveBase {
         if (Boolean.FALSE.equals(check)) {  // NOSONAR Null is still possible here, SONAR flags it as always true
 	        log.error("Access denied to protected URL {} address by {} at {}", path, user, host);
 	        resp.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
-	        return true;
+	        return false; // TODO: PCahill - discuss at code review - I assume this should be false here
         } 
         
         if (isSwagger(path, user)) {

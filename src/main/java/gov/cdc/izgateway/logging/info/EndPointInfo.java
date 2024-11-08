@@ -46,10 +46,6 @@ public abstract class EndPointInfo extends HostInfo implements Serializable {
     @JsonProperty
     protected String organization;
 
-    /*
-        TODO: Discuss during code review.  serialNumber changes to String because info
-              in the JWT that we use for serialNumber is not always a number.
-     */
     @Schema(description="The serial number associated with the with certificate on the endpoint.")
     @JsonProperty
     protected String serialNumber;

@@ -62,4 +62,8 @@ public class EndpointStatusService {
 	public boolean removeById(String id) {
 		return endpointStatusRepository.removeById(id);
 	}
+
+	public void resetCircuitBreakers() {
+		endpointStatusRepository.resetCircuitBreakers();
+	}
 }

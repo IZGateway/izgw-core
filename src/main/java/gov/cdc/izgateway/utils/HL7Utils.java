@@ -7,6 +7,8 @@ import java.util.List;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.function.UnaryOperator;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import org.apache.commons.lang3.StringUtils;
 
@@ -24,8 +26,25 @@ public class HL7Utils {
     static {
     	DEFAULT_ALLOWED_SEGMENTS.put("MSH", Arrays.asList(1, 2, 3, 4, 5, 6, 8, 9, 10, 11, 12, 21));
     	DEFAULT_ALLOWED_SEGMENTS.put("MSA", Arrays.asList(1, 2, 3));
+    	DEFAULT_ALLOWED_SEGMENTS.put("QAK", Arrays.asList(1, 2, 3));
     	DEFAULT_ALLOWED_SEGMENTS.put("ERR", Arrays.asList(1, 2, -3, 4));
     }
+
+	/**
+	 * Remove any potential PHI from the text of the message
+	 * This function ensures that HL7 message content potentially containing PHI is removed from the message.
+	 * Sadly, some systems report detailed message content in fault responses.
+	 *  
+	 * MSH|^~\\&|WebIZ.1.0.9035.29972|PW0000|AS0000|AS0000|20241116123011.989+0900||RSP^K11^RSP_K11|PW000020241116301198|P|2.5.1|||NE|NE|||||Z33^CDCPHINVS\r
+	 * MSA|AE|AS000020241115301090\rERR||MSH^1^6^1^1|999^ApplicationError^HL70357|E|4^Invalid value^HL70533^WEBIZ-AUTH-625^Facility is inactive or suspended^L||,  
+	 * Next Diagnostic: |Facility is inactive or suspended.,  Next Message: One or more errors/warnings occured that may effect query results.\r
+	 * QAK|755718|AE|Z34^Request Immunization History^CDCPHINVS\r
+	 * QPD|Z34^Request Immunization History^CDCPHINVS|755718|84579^^^AS0000^MR~000000002^^^PW0000^SR|SIMPSON^BART^M^^^^L||19990101|M|2000 AS ST^^AENKAN^AS^96960^^P|^NET^X.400^BERSERY-KEMP@ENVISIONTECHNOLOGY.COM~^PRN^PH^^^864^1309701|N\r
+	 * ZSA|AF^Application Fail - Message Failed to Execute. Generally this occurs for critical errors, which preve...^ENV0008|1853^^^PW0000^HL7LogIdIncomming~701265^^^PW0000^WebServiceLogIdIncomming~AS000020241115301090^^^AS0000^MessageControlId\r
+	 * @param message	The message text
+	 * @return	The masked message text
+	 */
+	public static final Pattern SEGMENT_STARTS = Pattern.compile("((^|[^\\w])(\\w{3})\\|[^\\r\\n]*([\\r\\n]|$))");
     
 	private HL7Utils() {
 		// Do nothing
@@ -217,5 +236,28 @@ public class HL7Utils {
 			}
 			return StringUtils.substringBefore(parts[index], "~");
 		}
+	}
+
+	/**
+	 * Mash PHI in segments
+	 * @param message	The message that may contain an HL7 Segment containing PHI in it
+	 * @return	The masked message
+	 */
+	public static String maskSegments(String message) {
+		// Identify segment starts in text messages using the case sensitive pattern /[^a-zA-Z0-9][A-Z]{3}\|/
+		// (a non-alphanumeric character, followed by three uppercase alphabetic characters followed by a vertical bar |).
+		// identify segment ends at either \r or \n or next segment start.
+		Matcher m = HL7Utils.SEGMENT_STARTS.matcher(message);
+		StringBuffer b = new StringBuffer();
+		for (boolean result = m.find(); result; result = m.find()) {
+			String seg = m.group(3);
+			if (!DEFAULT_ALLOWED_SEGMENTS.containsKey(seg)) {
+				m.appendReplacement(b, "$2$3|...");
+			} else {
+				m.appendReplacement(b, "$0");
+			}
+		}
+		m.appendTail(b);
+		return b.toString();
 	}
 }

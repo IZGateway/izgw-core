@@ -24,6 +24,11 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+/**
+ * The HubClientFault class is used to report errors when the client reports a SOAP Fault or other connection error.  
+ * 
+ * @author Audacious Inquiry
+ */
 public class HubClientFault extends Fault implements HasDestinationUri {
 
 	private static final long serialVersionUID = 1L;
@@ -92,9 +97,9 @@ public class HubClientFault extends Fault implements HasDestinationUri {
 					RetryStrategy.CHECK_IIS_STATUS, Arrays.asList(HttpStatus.INTERNAL_SERVER_ERROR)),
 			new MessageSupport(FAULT_NAME, "206", "HTTP Gateway Error", null,
 					"The Destination sent an internal infrastructure HTTP Error code in response to the request. "
-							+ "This error code usually indicates the destination is offline for maintenance.",
+							+ "This error code usually indicates that a destination component is offline for maintenance.",
 					RetryStrategy.CHECK_IIS_STATUS,
-					Arrays.asList(HttpStatus.BAD_GATEWAY, HttpStatus.SERVICE_UNAVAILABLE, HttpStatus.GATEWAY_TIMEOUT)),
+					Arrays.asList(HttpStatus.BAD_GATEWAY, HttpStatus.SERVICE_UNAVAILABLE, HttpStatus.GATEWAY_TIMEOUT, HttpStatus.INTERNAL_SERVER_ERROR)),
 			new MessageSupport(FAULT_NAME, "207", "HTTP Unknown Error", null,
 					"The Destination sent an unexpected HTTP Error code. "
 							+ "This error code do not make sense in the context of the IZ Gateway integration, and may be a result of "
@@ -142,7 +147,7 @@ public class HubClientFault extends Fault implements HasDestinationUri {
 	 * @param dest	The destination
 	 * @param statusCode	The status code of the response
 	 * @param body	The message body
-	 * @return
+	 * @return The hub client fault
 	 */
 	public static HubClientFault invalidMessage(Throwable rootCause, IDestination dest, int statusCode, InputStream body) {
 		String bodyString = XmlUtils.toString(body);
@@ -161,6 +166,15 @@ public class HubClientFault extends Fault implements HasDestinationUri {
 	}
 
 	// Client returns 500 (or 400) with a fault message
+	/**
+	 * Construct a HubClientFault  
+	 * @param rootCause	The root cause of the fault
+	 * @param dest	The destination throwing the fault
+	 * @param statusCode	The status code returned 
+	 * @param body	The body of the fault content
+	 * @param result	The resulting soap message
+	 * @return	The hub client fault
+	 */
 	public static HubClientFault clientThrewFault(Throwable rootCause, IDestination dest, int statusCode,
 			InputStream body, SoapMessage result) {
 		String bodyString = XmlUtils.toString(body);
@@ -181,17 +195,33 @@ public class HubClientFault extends Fault implements HasDestinationUri {
 				    + "</ns3:SecurityFault>"
 				    + "</soap:Detail></soap:Fault></soap:Envelope>";
 
+	/**
+	 * Construct a developer selected fault for error response testing
+	 * @param dest	The destination throwing the fault
+	 * @return	The Hub Client Fault
+	 */
 	public static HubClientFault devAction(IDestination dest) {
 		return clientThrewFault(UnsupportedOperationFault.devAction(), dest, 420,
 				new ByteArrayInputStream(FAULT_XML.getBytes(StandardCharsets.UTF_8)),
 				new SoapMessage());
 	}
 
-	// Client returned an Http status code without a valid fault message.
+	/**
+	 * Construct a HubClientFault when the Client returns an Http status code without a valid fault message. 
+	 * @param dest	The destination 
+	 * @param statusCode	The status code
+	 * @param error	The error message
+	 * @return	The hub client fault
+	 */
 	public static HubClientFault httpError(IDestination dest, int statusCode, String error) {
 		return new HubClientFault(getHttpMessageSupport(statusCode), dest, null, statusCode, error, null);
 	}
 
+	/**
+	 * Create a generic simulated fault
+	 * @param dest	The destination
+	 * @return	The simulated fault
+	 */
 	public static HubClientFault devHttpAction(IDestination dest) {
 		return httpError(dest, 420, "This is a simulated fault");
 	}

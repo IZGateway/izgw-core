@@ -19,6 +19,7 @@ public interface EndpointStatusRepository {
 
 	List<? extends IEndpointStatus> find(int maxQuarterHours, String[] include);
 	boolean refresh();
+	void resetCircuitBreakers();
 	IEndpointStatus newEndpointStatus();
 	IEndpointStatus newEndpointStatus(IDestination dest);
 }

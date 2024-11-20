@@ -121,6 +121,8 @@ public enum MockMessage {
 	TC_22D(MediaType.APPLICATION_XML, MockMessageText.TC_22D_TEXT),
 
 	TC_22F(MediaType.APPLICATION_XML, MockMessageText.TC_22F_TEXT),
+	// PHI Masking in faults
+	TC_22G(MediaType.APPLICATION_XML, MockMessageText.TC_22G_TEXT),
 	
 	TC_22S(MediaType.TEXT_HTML, MockMessageText.TC_22S_TEXT),
 	
@@ -156,7 +158,6 @@ public enum MockMessage {
 			HttpStatus.BAD_REQUEST), 
 
 	TC_24I(MockMessageText.TC_24I_TEXT),
-	
 	TC_UNKF(MockMessage::simulateFault,
 					MockMessageText.TC_UNKF_TEXT);
 
@@ -644,6 +645,33 @@ class MockMessageText {
 			+ "<Summary>javascript:alert('This is text in error')</Summary>"
 			+ "<Retry>CORRECT_MESSAGE</Retry>" + "</soap:Detail>"
 			+ "</soap:Fault></soap:Envelope>";
+	static final String TC_22G_TEXT = ENVELOPE
+			+ "<soap:Envelope xmlns:soap=\"http://www.w3.org/2003/05/soap-envelope>\n"
+			+ "<soap:Body>\r\n"
+			+ "<soap:Fault>\r\n"
+			+ "<soap:Code><soap:Value>soap:Sender</soap:Value></soap:Code>\r\n"
+			+ "<soap:Reason><soap:Text xml:lan=\"en-US\">\r\n"
+			+ "Authentication Error Occurred. Inspect the HL7 Response message for more details.\r\n"
+			+ "\r\n"
+			+ "Original HL7 Response\r\n"
+			+ "MSH|^\\~&amp;|WebIZ.24.12.0.21|KS0000|TestApplication|KSHL71234|20231115123051.679-0700||RSP^K11^RSP_K11|KS000020231115123051167|D|2.5.1|||NE|NE|||||Z33^CDCPHIVS\r"
+			+ "MSA|AE|KS999938854000000232\r\n"
+			+ "ERR||MSH^1^6^1^1~MSH^1^4^1^1|999^Application Error^HL70357|E|4^Invalid value^HL70533^WEBIZ-AUTH-609^Invalid Receiving Facility for Incoming Message\r"
+			+ "QPD|Z24^Request Immunization Hiistory|CDCPHINVS|querytag||SIMPSON^BART^^^^L19990101\r\n"
+			+ "</soap:Text></soap:Reason>"
+			+ "<soap:Detail>"
+			+ "<soap:Text xml:lan=\"en-US\">"
+			+ "Authentication Error Occurred. Inspect the HL7 Response message for more details.\n"
+			+ "\n"
+			+ "Original HL7 Response\n"
+			+ "MSH|^\\~&amp;|WebIZ.24.12.0.21|KS0000|TestApplication|KSHL71234|20231115123051.679-0700||RSP^K11^RSP_K11|KS000020231115123051167|D|2.5.1|||NE|NE|||||Z33^CDCPHIVS\r\n"
+			+ "MSA|AE|KS999938854000000232\n"
+			+ "ERR||MSH^1^6^1^1~MSH^1^4^1^1|999^Application Error^HL70357|E|4^Invalid value^HL70533^WEBIZ-AUTH-609^Invalid Receiving Facility for Incoming Message\r"
+			+ "QPD|Z24^Request Immunization Hiistory|CDCPHINVS|querytag||SIMPSON^BART^^^^L19990101\r\n"
+			+ "More text"
+			+ "</soap:Text>\r\n"
+			+ "</soap:Detail>"
+			+ "</soap:Fault></soap:Body></soap:Envelope>";
 	static final String TC_22S_TEXT = "<!DOCTYPE html>\r\n"
 			+ "<!--/secure/error.jsp-->\r\n"
 			+ "<!--/WEB-INF/jspf/standardHeader.jsp-->\r\n"

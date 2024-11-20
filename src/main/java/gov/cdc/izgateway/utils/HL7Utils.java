@@ -247,6 +247,9 @@ public class HL7Utils {
 		// Identify segment starts in text messages using the case sensitive pattern /[^a-zA-Z0-9][A-Z]{3}\|/
 		// (a non-alphanumeric character, followed by three uppercase alphabetic characters followed by a vertical bar |).
 		// identify segment ends at either \r or \n or next segment start.
+		if (message == null) {
+			return null;
+		}
 		Matcher m = HL7Utils.SEGMENT_STARTS.matcher(message);
 		StringBuffer b = new StringBuffer();
 		for (boolean result = m.find(); result; result = m.find()) {

@@ -29,10 +29,10 @@ public class EndpointStatusService {
     	return l;
     }
     
-    public List<IEndpointStatus> findAll() {
+    public List<? extends IEndpointStatus> findAll() {
         return endpointStatusRepository.find(1, EndpointStatusRepository.INCLUDE_ALL);
     }
-	public List<IEndpointStatus> find(int count, String[] include) {
+	public List<? extends IEndpointStatus> find(int count, String[] include) {
 		return endpointStatusRepository.find(count, include);
 	}
 
@@ -61,5 +61,9 @@ public class EndpointStatusService {
 
 	public boolean removeById(String id) {
 		return endpointStatusRepository.removeById(id);
+	}
+
+	public void resetCircuitBreakers() {
+		endpointStatusRepository.resetCircuitBreakers();
 	}
 }

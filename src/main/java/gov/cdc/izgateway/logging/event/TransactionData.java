@@ -30,7 +30,6 @@ import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 
 import org.apache.commons.lang3.StringUtils;
-
 import java.util.Date;
 import java.util.Map;
 import java.util.TreeMap;
@@ -653,12 +652,13 @@ public class TransactionData {
     }
 
     public void setProcessError(String summary, String detail) {
-        processErrorSummary = summary;
-        processErrorDetail = detail;
+        processErrorSummary = HL7Utils.maskSegments(summary);
+        processErrorDetail = HL7Utils.maskSegments(detail);
         hasProcessError = !StringUtils.isAllEmpty(summary, detail);
     }
     
-    public void setProcessError(Exception fault) {
+    
+	public void setProcessError(Exception fault) {
         FaultSupport s = null;
 		if (fault instanceof UnsupportedOperationFault f) {
 			setMessageType(MessageType.INVALID_REQUEST);

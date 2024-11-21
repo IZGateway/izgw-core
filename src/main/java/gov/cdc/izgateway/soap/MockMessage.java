@@ -121,8 +121,6 @@ public enum MockMessage {
 	TC_22D(MediaType.APPLICATION_XML, MockMessageText.TC_22D_TEXT),
 
 	TC_22F(MediaType.APPLICATION_XML, MockMessageText.TC_22F_TEXT),
-	// PHI Masking in faults
-	TC_22G(MediaType.APPLICATION_XML, MockMessageText.TC_22G_TEXT),
 	
 	TC_22S(MediaType.TEXT_HTML, MockMessageText.TC_22S_TEXT),
 	
@@ -158,6 +156,8 @@ public enum MockMessage {
 			HttpStatus.BAD_REQUEST), 
 
 	TC_24I(MockMessageText.TC_24I_TEXT),
+	// PHI Masking in faults
+	TC_25(MediaType.APPLICATION_XML, MockMessageText.TC_25_TEXT, HttpStatus.INTERNAL_SERVER_ERROR),
 	TC_UNKF(MockMessage::simulateFault,
 					MockMessageText.TC_UNKF_TEXT);
 
@@ -645,8 +645,7 @@ class MockMessageText {
 			+ "<Summary>javascript:alert('This is text in error')</Summary>"
 			+ "<Retry>CORRECT_MESSAGE</Retry>" + "</soap:Detail>"
 			+ "</soap:Fault></soap:Envelope>";
-	static final String TC_22G_TEXT = ENVELOPE
-			+ "<soap:Envelope xmlns:soap=\"http://www.w3.org/2003/05/soap-envelope>\n"
+	static final String TC_25_TEXT = "<soap:Envelope xmlns:soap='http://www.w3.org/2003/05/soap-envelope'>"
 			+ "<soap:Body>\r\n"
 			+ "<soap:Fault>\r\n"
 			+ "<soap:Code><soap:Value>soap:Sender</soap:Value></soap:Code>\r\n"

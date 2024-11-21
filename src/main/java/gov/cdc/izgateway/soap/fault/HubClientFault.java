@@ -5,6 +5,7 @@ import gov.cdc.izgateway.model.IDestination;
 import gov.cdc.izgateway.model.RetryStrategy;
 import gov.cdc.izgateway.soap.message.FaultMessage;
 import gov.cdc.izgateway.soap.message.SoapMessage;
+import gov.cdc.izgateway.utils.HL7Utils;
 import gov.cdc.izgateway.utils.XmlUtils;
 import lombok.Getter;
 
@@ -136,7 +137,7 @@ public class HubClientFault extends Fault implements HasDestinationUri {
 			String originalBody, SoapMessage faultMessage) {
 		super(messageSupport, rootCause);
 		this.destination = destination;
-		this.originalBody = originalBody;
+		this.originalBody = HL7Utils.maskSegments(originalBody);
 		this.faultMessage = faultMessage;
 		this.statusCode = statusCode;
 	}
@@ -293,7 +294,7 @@ public class HubClientFault extends Fault implements HasDestinationUri {
 	}
 
 	private static String getFaultName(Throwable rootCause, String originalBody, String[] details) {
-		String faultName = rootCause == null ? "UnnamedFault" : rootCause.getClass().getSimpleName();
+		String faultName = rootCause == null ? "Fault" : rootCause.getClass().getSimpleName();
 
 		if (originalBody == null) {
 			return faultName;

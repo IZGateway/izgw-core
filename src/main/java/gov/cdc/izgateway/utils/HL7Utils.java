@@ -255,74 +255,83 @@ public class HL7Utils {
 		if (message == null) {
 			return null;
 		}
+		StringReader r = new StringReader(message);
 		ParseState state = ParseState.CAN_START_SEGMENT;	// Can start segment delimiter
+		StringBuilder save = new StringBuilder();
+		StringBuilder b = new StringBuilder();
 		int cc;
-		StringBuilder save = new StringBuilder(), b = new StringBuilder();
-		try (Reader r = new StringReader(message)) {
+		try {
 			while ((cc = r.read()) != -1) {
 				char c = (char) cc;
-				switch (state) {
-				case CANNOT_START_SEGMENT: // Not ready to start segment
-					b.append(c);
-					if (!Character.isLetterOrDigit(c)) {
-						state = ParseState.CAN_START_SEGMENT;
-					}
-					break;
-				case CAN_START_SEGMENT: // Ready to start segment
-					if (Character.isLetterOrDigit(c)) {
-						save.setLength(0);
-						save.append(c);
-						state = ParseState.WITHIN_SEGMENT;	// Started segment delimiter
-					} else {
-						b.append(c);
-					}
-					break;
-				case WITHIN_SEGMENT: // within a segment
-					save.append(c);
-					if (Character.isLetterOrDigit(c)) {
-						if (save.length() == 3) {
-							state = ParseState.END_SEGMENT_NAME;
-						}
-					} else {
-						b.append(save.toString());
-						save.setLength(0);
-						state = ParseState.CAN_START_SEGMENT;
-					}
-					break;
-				case END_SEGMENT_NAME: // waiting for |
-					save.append(c);
-					String seg = save.toString();
-					b.append(seg);
-					if (c == '|') {
-						seg = seg.substring(0, 3);
-						if (HL7Utils.DEFAULT_ALLOWED_SEGMENTS.containsKey(seg)) {
-							// These segments don't contain PHI and so can be passed through.
-							state = ParseState.CAN_START_SEGMENT;
-						} else {
-							b.append("...[masked]...");
-							state = ParseState.CHOMP_TO_DELIMITER;
-						}
-					} else if (Character.isLetterOrDigit(c)) {
-						state = ParseState.CANNOT_START_SEGMENT;
-					} else {
-						state = ParseState.CAN_START_SEGMENT;
-					}
-					save.setLength(0);
-					break;
-				case CHOMP_TO_DELIMITER: // within a segment until \n or \r
-					if (c == '\n' || c == '\r') {
-						b.append(c);
-						state = ParseState.CAN_START_SEGMENT;
-					}
-					break;
-				}
+				state = transitionState(state, save, b, c);
 			}
 		} catch (IOException e) {
-			// StringReader never throws exceptions
+			// Never happens
 		}
 		if (!save.isEmpty()) {
 			b.append(save);
 		}
 		return b.toString();
+	}
+
+	private static ParseState transitionState( // NOSONAR (Sonar hates state machines)
+		ParseState state, 
+		StringBuilder save, 
+		StringBuilder b, 
+		char c
+	) {  
+		switch (state) {
+		case CANNOT_START_SEGMENT: // Not ready to start segment
+			b.append(c);
+			if (!Character.isLetterOrDigit(c)) {
+				return ParseState.CAN_START_SEGMENT;
+			}
+			return state;
+		case CAN_START_SEGMENT: // Ready to start segment
+			if (Character.isLetterOrDigit(c)) {
+				save.setLength(0);
+				save.append(c);
+				return ParseState.WITHIN_SEGMENT;	// Started segment delimiter
+			} 
+			b.append(c);
+			return state;
+		case WITHIN_SEGMENT: // within a segment
+			save.append(c);
+			if (Character.isLetterOrDigit(c)) {
+				if (save.length() == 3) {
+					return ParseState.END_SEGMENT_NAME;
+				}
+				return ParseState.WITHIN_SEGMENT;
+			} 
+			b.append(save.toString());
+			save.setLength(0);
+			return ParseState.CAN_START_SEGMENT;
+		case END_SEGMENT_NAME: // waiting for |
+			save.append(c);
+			String seg = save.toString();
+			save.setLength(0);
+			b.append(seg);
+			if (c == '|') {
+				seg = seg.substring(0, 3);
+				if (HL7Utils.DEFAULT_ALLOWED_SEGMENTS.containsKey(seg)) {
+					// These segments don't contain PHI and so can be passed through.
+					return ParseState.CAN_START_SEGMENT;
+				}
+				b.append("...[masked]...");
+				return ParseState.CHOMP_TO_DELIMITER;
+			} 
+			if (Character.isLetterOrDigit(c)) {
+				return ParseState.CANNOT_START_SEGMENT;
+			}
+			return ParseState.CAN_START_SEGMENT;
+		case CHOMP_TO_DELIMITER: // within a segment until \n or \r
+			if (c == '\n' || c == '\r') {
+				b.append(c);
+				return ParseState.CAN_START_SEGMENT;
+			}
+			return state;
+		default:
+			return state;
+		}
 	}
 }

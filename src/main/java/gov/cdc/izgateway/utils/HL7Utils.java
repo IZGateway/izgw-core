@@ -4,9 +4,15 @@ import java.util.Collection;
 import java.util.Map;
 import java.util.TreeMap;
 import java.util.List;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.Reader;
+import java.io.StringReader;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.function.UnaryOperator;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import org.apache.commons.lang3.StringUtils;
 
@@ -24,9 +30,10 @@ public class HL7Utils {
     static {
     	DEFAULT_ALLOWED_SEGMENTS.put("MSH", Arrays.asList(1, 2, 3, 4, 5, 6, 8, 9, 10, 11, 12, 21));
     	DEFAULT_ALLOWED_SEGMENTS.put("MSA", Arrays.asList(1, 2, 3));
+    	DEFAULT_ALLOWED_SEGMENTS.put("QAK", Arrays.asList(1, 2, 3));
     	DEFAULT_ALLOWED_SEGMENTS.put("ERR", Arrays.asList(1, 2, -3, 4));
     }
-    
+
 	private HL7Utils() {
 		// Do nothing
 	}
@@ -216,6 +223,115 @@ public class HL7Utils {
 				return null;
 			}
 			return StringUtils.substringBefore(parts[index], "~");
+		}
+	}
+
+	private enum ParseState {
+		CANNOT_START_SEGMENT,
+		CAN_START_SEGMENT,
+		WITHIN_SEGMENT,
+		END_SEGMENT_NAME,
+		CHOMP_TO_DELIMITER
+	};
+	/**
+	 * Mash PHI in segments
+	 * This function ensures that HL7 message content potentially containing PHI is removed from the message.
+	 * Sadly, some systems report detailed message content in fault responses.
+	 *  
+	 * MSH|^~\\&|WebIZ.1.0.9035.29972|PW0000|AS0000|AS0000|20241116123011.989+0900||RSP^K11^RSP_K11|PW000020241116301198|P|2.5.1|||NE|NE|||||Z33^CDCPHINVS\r
+	 * MSA|AE|AS000020241115301090\rERR||MSH^1^6^1^1|999^ApplicationError^HL70357|E|4^Invalid value^HL70533^WEBIZ-AUTH-625^Facility is inactive or suspended^L||,  
+	 * Next Diagnostic: |Facility is inactive or suspended.,  Next Message: One or more errors/warnings occured that may effect query results.\r
+	 * QAK|755718|AE|Z34^Request Immunization History^CDCPHINVS\r
+	 * QPD|Z34^Request Immunization History^CDCPHINVS|755718|84579^^^AS0000^MR~000000002^^^PW0000^SR|SIMPSON^BART^M^^^^L||19990101|M|2000 AS ST^^AENKAN^AS^96960^^P|^NET^X.400^BERSERY-KEMP@ENVISIONTECHNOLOGY.COM~^PRN^PH^^^864^1309701|N\r
+	 * ZSA|AF^Application Fail - Message Failed to Execute. Generally this occurs for critical errors, which preve...^ENV0008|1853^^^PW0000^HL7LogIdIncomming~701265^^^PW0000^WebServiceLogIdIncomming~AS000020241115301090^^^AS0000^MessageControlId\r
+	 *
+	 * @param message	The message that may contain an HL7 Segment containing PHI in it
+	 * @return	The masked message
+	 */
+	public static String maskSegments(String message) {
+		// Identify segment starts in text messages using the case sensitive pattern /[^a-zA-Z0-9][A-Z]{3}\|/
+		// (a non-alphanumeric character, followed by three uppercase alphabetic characters followed by a vertical bar |).
+		// identify segment ends at either \r or \n or next segment start.
+		if (message == null) {
+			return null;
+		}
+		StringReader r = new StringReader(message);
+		ParseState state = ParseState.CAN_START_SEGMENT;	// Can start segment delimiter
+		StringBuilder save = new StringBuilder();
+		StringBuilder b = new StringBuilder();
+		int cc;
+		try {
+			while ((cc = r.read()) != -1) {
+				char c = (char) cc;
+				state = transitionState(state, save, b, c);
+			}
+		} catch (IOException e) {
+			// Never happens
+		}
+		if (!save.isEmpty()) {
+			b.append(save);
+		}
+		return b.toString();
+	}
+
+	private static ParseState transitionState( // NOSONAR (Sonar hates state machines)
+		ParseState state, 
+		StringBuilder save, 
+		StringBuilder b, 
+		char c
+	) {  
+		switch (state) {
+		case CANNOT_START_SEGMENT: // Not ready to start segment
+			b.append(c);
+			if (!Character.isLetterOrDigit(c)) {
+				return ParseState.CAN_START_SEGMENT;
+			}
+			return state;
+		case CAN_START_SEGMENT: // Ready to start segment
+			if (Character.isLetterOrDigit(c)) {
+				save.setLength(0);
+				save.append(c);
+				return ParseState.WITHIN_SEGMENT;	// Started segment delimiter
+			} 
+			b.append(c);
+			return state;
+		case WITHIN_SEGMENT: // within a segment
+			save.append(c);
+			if (Character.isLetterOrDigit(c)) {
+				if (save.length() == 3) {
+					return ParseState.END_SEGMENT_NAME;
+				}
+				return ParseState.WITHIN_SEGMENT;
+			} 
+			b.append(save.toString());
+			save.setLength(0);
+			return ParseState.CAN_START_SEGMENT;
+		case END_SEGMENT_NAME: // waiting for |
+			save.append(c);
+			String seg = save.toString();
+			save.setLength(0);
+			b.append(seg);
+			if (c == '|') {
+				seg = seg.substring(0, 3);
+				if (HL7Utils.DEFAULT_ALLOWED_SEGMENTS.containsKey(seg)) {
+					// These segments don't contain PHI and so can be passed through.
+					return ParseState.CAN_START_SEGMENT;
+				}
+				b.append("...[masked]...");
+				return ParseState.CHOMP_TO_DELIMITER;
+			} 
+			if (Character.isLetterOrDigit(c)) {
+				return ParseState.CANNOT_START_SEGMENT;
+			}
+			return ParseState.CAN_START_SEGMENT;
+		case CHOMP_TO_DELIMITER: // within a segment until \n or \r
+			if (c == '\n' || c == '\r') {
+				b.append(c);
+				return ParseState.CAN_START_SEGMENT;
+			}
+			return state;
+		default:
+			return state;
 		}
 	}
 }

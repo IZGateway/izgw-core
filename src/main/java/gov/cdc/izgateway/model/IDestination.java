@@ -91,6 +91,8 @@ public interface IDestination extends IEndpoint, HasDestinationUri {
 	boolean isHub();
 
 	boolean isDex();
+	
+	boolean isAzure();
 
 	String getDestinationUri();
 

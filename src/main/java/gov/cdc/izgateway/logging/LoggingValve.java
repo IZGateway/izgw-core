@@ -4,17 +4,17 @@ import gov.cdc.izgateway.logging.event.EventCreator;
 import gov.cdc.izgateway.logging.event.TransactionData;
 import gov.cdc.izgateway.logging.info.SourceInfo;
 import gov.cdc.izgateway.logging.markers.Markers2;
+import gov.cdc.izgateway.security.service.PrincipalService;
 import jakarta.servlet.ServletException;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.catalina.Globals;
 import org.apache.catalina.connector.Request;
 import org.apache.catalina.connector.Response;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.Ordered;
 import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Component;
 
 import java.io.IOException;
-import java.security.cert.X509Certificate;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executors;
@@ -73,6 +73,11 @@ public class LoggingValve extends LoggingValveBase implements EventCreator {
         public Date getDate() {
             return date;
         }
+    }
+
+    @Autowired
+    public LoggingValve(PrincipalService principalService) {
+        this.principalService = principalService;
     }
 
     @Override

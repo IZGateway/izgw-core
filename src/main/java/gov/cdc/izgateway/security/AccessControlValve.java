@@ -1,6 +1,5 @@
 package gov.cdc.izgateway.security;
 
-import org.apache.catalina.Globals;
 import org.apache.catalina.connector.Request;
 import org.apache.catalina.connector.Response;
 import org.apache.catalina.valves.ValveBase;
@@ -15,14 +14,12 @@ import gov.cdc.izgateway.logging.RequestContext;
 import gov.cdc.izgateway.logging.info.HostInfo;
 import gov.cdc.izgateway.service.IAccessControlService;
 import gov.cdc.izgateway.utils.SystemUtils;
-import gov.cdc.izgateway.utils.X500Utils;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.extern.slf4j.Slf4j;
 
 import java.io.IOException;
-import java.security.cert.X509Certificate;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Set;
@@ -46,7 +43,7 @@ public class AccessControlValve extends ValveBase {
     private static final List<String> LOCAL_HOST_IPS = Arrays.asList(HostInfo.LOCALHOST_IP4, "0:0:0:0:0:0:0:1", HostInfo.LOCALHOST_IP6);
     
     private final IAccessControlService accessControls;
-    
+
     /**
      * Create the valve using the supplied access control service.
      * @param accessControls
@@ -77,7 +74,8 @@ public class AccessControlValve extends ValveBase {
      * @return true if access is allowed
      */
     public boolean accessAllowed(HttpServletRequest req, HttpServletResponse resp) {
-        X509Certificate[] certs = (X509Certificate[]) req.getAttribute(Globals.CERTIFICATES_ATTR);
+        IzgPrincipal principal = RequestContext.getPrincipal();
+
         String user = null;
         String path = req.getRequestURI();
         String host = req.getRemoteHost();
@@ -91,7 +89,7 @@ public class AccessControlValve extends ValveBase {
         	notAdminHeader = true;
         }
         
-        if (certs == null || certs[0] == null) {
+        if (principal == null) {
             if (!isLocalHost(req.getRemoteHost())) {
             	log.error("Access denied to protected URL {} address by unauthenticated user at {}", path, host);
                 resp.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
@@ -99,7 +97,7 @@ public class AccessControlValve extends ValveBase {
             }
             user = "localhost@" + SystemUtils.getHostname();
         } else {
-        	user = X500Utils.getCommonName(certs[0].getSubjectX500Principal());
+            user = principal.getName();
         }
 
         // Local user has Admin level access to everything.

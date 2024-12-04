@@ -7,6 +7,7 @@ import gov.cdc.izgateway.logging.event.TransactionData;
 import gov.cdc.izgateway.logging.info.MessageInfo;
 import gov.cdc.izgateway.logging.info.SourceInfo;
 import gov.cdc.izgateway.logging.markers.Markers2;
+import gov.cdc.izgateway.security.service.PrincipalService;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.servlet.http.HttpSession;
@@ -22,7 +23,6 @@ import org.springframework.http.HttpHeaders;
 import javax.net.ssl.SSLSession;
 import java.io.IOException;
 import java.nio.charset.Charset;
-import java.security.cert.X509Certificate;
 import java.util.*;
 import java.util.Map.Entry;
 import java.util.function.Predicate;
@@ -37,8 +37,10 @@ public abstract class LoggingValveBase extends ValveBase implements EventCreator
 	public static final String COMMON_NAME = "commonName";
 	public static final List<String> MDC_EVENTS = 
 		Collections.unmodifiableList(Arrays.asList(EVENT_ID, SESSION_ID, METHOD, IP_ADDRESS, REQUEST_URI, COMMON_NAME));
-	
-	// Keep mappings for at most one minute.
+
+    protected PrincipalService principalService;
+
+    // Keep mappings for at most one minute.
     private static final int MAX_AGE = 60 * 1000;
 
     private Map<String, LoggingValveEvent> map = new LinkedHashMap<>();
@@ -77,6 +79,9 @@ public abstract class LoggingValveBase extends ValveBase implements EventCreator
 
     @Override
     public void invoke(Request req, Response resp) throws IOException, ServletException {
+
+        RequestContext.setPrincipal(principalService.getPrincipal(req));
+
         HttpSession sess = req.getSession();
         // When IZ Gateway calls itself (e.g., for Mock access), we don't want to treat this as a new event, instead,
         // we want to retain the existing event ID to track them all together.
@@ -243,17 +248,15 @@ public abstract class LoggingValveBase extends ValveBase implements EventCreator
     }
 
     protected SourceInfo setSourceInfoValues(Request req, TransactionData t) {
+
         SourceInfo source = t.getSource();
         source.setCipherSuite((String) req.getAttribute(Globals.CIPHER_SUITE_ATTR));
         source.setHost(req.getRemoteHost());
         source.setIpAddress(req.getRemoteAddr());
         source.setType("Unknown");
         source.setFacilityId("Unknown");
+        source.setPrincipal(RequestContext.getPrincipal());
 
-        X509Certificate[] certs = (X509Certificate[])req.getAttribute(Globals.CERTIFICATES_ATTR);
-        if (certs != null) {
-            source.setCertificate(certs[0]);
-        }
         return source;
     }
 

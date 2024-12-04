@@ -1,10 +1,9 @@
 package gov.cdc.izgateway.logging.info;
 
-import java.security.cert.X509Certificate;
-
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonPropertyOrder;
 
+import gov.cdc.izgateway.security.IzgPrincipal;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
@@ -31,8 +30,8 @@ public class SourceInfo extends EndPointInfo {
     @JsonProperty
     private String type;
 
-    public SourceInfo(X509Certificate x509Certificate) {
-        setCertificate(x509Certificate);
+    public SourceInfo(IzgPrincipal izgPrincipal) {
+        setPrincipal(izgPrincipal);
     }
 
     public SourceInfo(SourceInfo that) {
@@ -40,4 +39,24 @@ public class SourceInfo extends EndPointInfo {
         this.facilityId = that.facilityId;
         this.type = that.type;
     }
+
+    public void setPrincipal(IzgPrincipal principal) {
+        if (principal == null) {
+            commonName = null;
+            organization = null;
+            validFrom = null;
+            validTo = null;
+            serialNumber = null;
+            serialNumberHex = null;
+            return;
+        }
+
+        commonName = principal.getName();
+        organization = principal.getOrganization();
+        validFrom = principal.getValidFrom();
+        validTo = principal.getValidTo();
+        serialNumber = principal.getSerialNumber();
+        serialNumberHex = principal.getSerialNumberHex();
+    }
+
 }

@@ -1,12 +1,13 @@
 package gov.cdc.izgateway.logging.info;
 
 import java.io.Serializable;
-import java.math.BigInteger;
 import java.security.cert.X509Certificate;
 import java.util.Date;
 import java.util.Map;
 
 
+import gov.cdc.izgateway.security.IzgPrincipal;
+import gov.cdc.izgateway.utils.X500Utils;
 import org.apache.commons.lang3.StringUtils;
 import com.fasterxml.jackson.annotation.JsonFormat;
 import com.fasterxml.jackson.annotation.JsonFormat.Shape;
@@ -14,11 +15,11 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
 import gov.cdc.izgateway.common.Constants;
-import gov.cdc.izgateway.utils.X500Utils;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
+
 import javax.security.auth.x500.X500Principal;
 
 /**
@@ -35,33 +36,35 @@ public abstract class EndPointInfo extends HostInfo implements Serializable {
 
     @Schema(description="The common name on the certificate associated with the requester")
     @JsonProperty
-    private String commonName;
+    protected String commonName;
 
     @Schema(description="The cipher suite used by the endpoint.")
     @JsonProperty
-    private String cipherSuite;
+    protected String cipherSuite;
 
     @Schema(description="The organization associated with the with the endpoint.")
     @JsonProperty
-    private String organization;
+    protected String organization;
 
     @Schema(description="The serial number associated with the with certificate on the endpoint.")
     @JsonProperty
-    private BigInteger serialNumber;
+    protected String serialNumber;
+
+    protected String serialNumberHex;
 
     @JsonProperty
     @JsonFormat(shape=Shape.STRING, pattern = Constants.TIMESTAMP_FORMAT)
     @Schema(description="The starting date associated with the with certificate on the endpoint.")
-    private Date validFrom;
+    protected Date validFrom;
 
     @JsonProperty
     @Schema(description="The expiration date associated with the with certificate on the endpoint.")
     @JsonFormat(shape=Shape.STRING, pattern = Constants.TIMESTAMP_FORMAT)
-    private Date validTo;
+    protected Date validTo;
 
     @Schema(description="The identifier of the endpoint.")
     @JsonProperty
-    private String id;
+    protected String id;
 
     /**
      * Copy constructor
@@ -72,6 +75,7 @@ public abstract class EndPointInfo extends HostInfo implements Serializable {
         this.commonName = that.getCommonName();
         this.organization = that.organization;
         this.serialNumber = that.serialNumber;
+        this.serialNumberHex = that.serialNumberHex;
         this.validFrom = that.validFrom;
         this.validTo = that.validTo;
         this.id = that.id;
@@ -91,10 +95,7 @@ public abstract class EndPointInfo extends HostInfo implements Serializable {
     @Schema(description="The serial number in decimal associated with the with certificate on the endpoint.")
     @JsonProperty
     public String getSerialNumber() {
-        if (serialNumber == null) {
-            return null;
-        }
-        return serialNumber.toString(10);
+        return serialNumber;
     }
 
     /**
@@ -103,36 +104,7 @@ public abstract class EndPointInfo extends HostInfo implements Serializable {
     @Schema(description="The serial number in hex associated with the with certificate on the endpoint.")
     @JsonProperty
     public String getSerialNumberHex() {
-        if (serialNumber == null) {
-            return null;
-        }
-        return serialNumber.toString(16);
-    }
-
-    public void setCertificate(X509Certificate cert) {
-    	if (cert == null) {
-    		commonName = null;	
-            organization = null;
-            validFrom = null;
-            validTo = null;
-            serialNumber = null;
-            return;
-    	}
-    	
-        X500Principal subject = cert.getSubjectX500Principal();
-        Map<String, String> parts = X500Utils.getParts(subject);
-
-        commonName = parts.get(X500Utils.COMMON_NAME);
-
-        // Get organization, and if not present, look for the Organizational Unit
-        String o = parts.get(X500Utils.ORGANIZATION);
-        if (StringUtils.isBlank(o)) {
-            o = parts.get(X500Utils.ORGANIZATION_UNIT);
-        }
-        organization = o;
-        validFrom = cert.getNotBefore();
-        validTo = cert.getNotAfter();
-        serialNumber = cert.getSerialNumber();
+        return serialNumberHex;
     }
 
     @Schema(description="The organization name in the certificate associated with the endpoint.")

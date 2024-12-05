@@ -1,12 +1,9 @@
 package gov.cdc.izgateway.security;
 
-import lombok.Data;
-
 import java.math.BigInteger;
 import java.nio.charset.StandardCharsets;
 import java.util.UUID;
 
-@Data
 public class JWTPrincipal extends IzgPrincipal {
 
     public String getSerialNumberHex() {

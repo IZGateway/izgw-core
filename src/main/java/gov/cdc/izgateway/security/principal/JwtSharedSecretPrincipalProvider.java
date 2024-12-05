@@ -9,11 +9,15 @@ import io.jsonwebtoken.security.Keys;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.lang.Nullable;
 import org.springframework.stereotype.Component;
 
 import javax.crypto.SecretKey;
 import java.util.Collections;
+import java.util.List;
+import java.util.Set;
 import java.util.TreeSet;
 
 @Slf4j
@@ -21,6 +25,16 @@ import java.util.TreeSet;
 public class JwtSharedSecretPrincipalProvider implements JwtPrincipalProvider {
     @Value("${jwt.shared-secret:}")
     private String sharedSecret;
+
+    private final GroupToRoleMapper groupToRoleMapper;
+    private final ScopeToRoleMapper scopeToRoleMapper;
+
+    @Autowired
+    public JwtSharedSecretPrincipalProvider(@Nullable GroupToRoleMapper groupToRoleMapper,
+                                            @Nullable ScopeToRoleMapper scopeToRoleMapper) {
+        this.groupToRoleMapper = groupToRoleMapper;
+        this.scopeToRoleMapper = scopeToRoleMapper;
+    }
 
     @Override
     public IzgPrincipal createPrincipalFromJwt(HttpServletRequest request) {
@@ -64,11 +78,21 @@ public class JwtSharedSecretPrincipalProvider implements JwtPrincipalProvider {
         principal.setSerialNumber(claims.getId());
         principal.setIssuer(claims.getIssuer());
         principal.setAudience(Collections.singletonList(claims.getAudience()));
-
-        TreeSet<String> scopes = extractScopes(claims);
-        principal.setRoles(RoleMapper.mapScopesToRoles(scopes));
+        addRolesFromScopes(claims, principal);
+        addRolesFromGroups(claims, principal);
+        log.debug("Roles created from JWT: {}", principal.getRoles());
 
         return principal;
+    }
+
+    private void addRolesFromScopes(Claims claims, IzgPrincipal principal) {
+        if (scopeToRoleMapper == null) {
+            log.debug("No scope to role mapper was set. Skipping scope to role mapping.");
+            return;
+        }
+
+        TreeSet<String> scopes = extractScopes(claims);
+        principal.getRoles().addAll(scopeToRoleMapper.mapScopesToRoles(scopes));
     }
 
     private TreeSet<String> extractScopes(Claims claims) {
@@ -78,5 +102,21 @@ public class JwtSharedSecretPrincipalProvider implements JwtPrincipalProvider {
             Collections.addAll(scopes, scopeString.split(" "));
         }
         return scopes;
+    }
+
+    private void addRolesFromGroups(Claims claims, IzgPrincipal principal) {
+        if (groupToRoleMapper == null) {
+            log.debug("No group to role mapper was set. Skipping group to role mapping.");
+            return;
+        }
+
+        List<String> groupsList = claims.get("groups", List.class);
+        if (groupsList == null || groupsList.isEmpty()) {
+            return;
+        }
+        Set<String> groups = new TreeSet<>(groupsList);
+
+        Set<String> roles = groupToRoleMapper.mapGroupsToRoles(groups);
+        principal.getRoles().addAll(roles);
     }
 }

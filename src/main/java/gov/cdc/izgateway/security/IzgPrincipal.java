@@ -14,9 +14,9 @@ public abstract class IzgPrincipal implements java.security.Principal {
     Date validTo;
     String serialNumber;
     String issuer;
-    List<String> audience;
-    Set<String> scopes;
-    Set<String> roles;
+    List<String> audience = new ArrayList<>();
+    Set<String> scopes = new TreeSet<>();
+    Set<String> roles = new TreeSet<>();
 
     public abstract String getSerialNumberHex();
 }

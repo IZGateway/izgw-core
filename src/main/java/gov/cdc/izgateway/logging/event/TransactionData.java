@@ -18,6 +18,7 @@ import gov.cdc.izgateway.logging.markers.MarkerObjectFieldName;
 import gov.cdc.izgateway.logging.markers.Markers2;
 import gov.cdc.izgateway.soap.fault.Fault;
 import gov.cdc.izgateway.soap.fault.FaultSupport;
+import gov.cdc.izgateway.soap.fault.HubClientFault;
 import gov.cdc.izgateway.soap.fault.UnexpectedExceptionFault;
 import gov.cdc.izgateway.soap.fault.UnsupportedOperationFault;
 import gov.cdc.izgateway.logging.info.SourceInfo;
@@ -665,6 +666,9 @@ public class TransactionData {
 			s = f;
 		} else if (fault instanceof Fault f) {
             s = f;
+            if (f instanceof HubClientFault hcf && hcf.getOriginalBody() instanceof String body) {
+            	this.setResponse(body);
+            }
         } else {
             s = new UnexpectedExceptionFault(fault, null);
         }

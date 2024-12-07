@@ -666,8 +666,8 @@ public class TransactionData {
 			s = f;
 		} else if (fault instanceof Fault f) {
             s = f;
-            if (f instanceof HubClientFault hcf && hcf.getOriginalBody() instanceof String body) {
-            	this.setResponse(body);
+            if (f instanceof HubClientFault hcf && hcf.getOriginalBody() != null) {
+            	this.setResponse(hcf.getOriginalBody());
             }
         } else {
             s = new UnexpectedExceptionFault(fault, null);

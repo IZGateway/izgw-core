@@ -133,6 +133,14 @@ public class DestinationConnectionFault extends Fault implements HasDestinationU
         	"There was an error establishing a trusted connection between IZ Gateway and the destination endpoint. The destination endpoint does not trust IZ Gateway.  This can result from a problem with the destination's"
         	+ "acceptance of the IZ Gateway trust parameters including supported protocol versions, encryption suites or the destination certificate.",
         	RetryStrategy.CONTACT_SUPPORT
+        ),
+        new MessageSupport(
+        	FAULT_NAME,
+        	"24",
+        	"IO Error At Destination", "Error communicating from/to destination",
+        	"There was an IO Error accessing the destination endpoint. This may indicate a problem with the networking infrastructure between"
+        	+ "IZ Gateway and the endpoint.",
+        	RetryStrategy.NORMAL
         )
     };
     static {
@@ -226,6 +234,9 @@ public class DestinationConnectionFault extends Fault implements HasDestinationU
 			return new DestinationConnectionFault(12, routing, ex.getMessage(), ex);
 		}
 		return new DestinationConnectionFault(11, routing, ex.getMessage(), ex);
+	}
+	public static DestinationConnectionFault ioError(IDestination routing, IOException ex) {
+		return new DestinationConnectionFault(14, routing, ex.getMessage(), ex);
 	}
 
 	public static DestinationConnectionFault tlsErrorAtDestination(IDestination routing, TlsFatalAlertReceived tlsErr, long elapsedTimeIIS) {

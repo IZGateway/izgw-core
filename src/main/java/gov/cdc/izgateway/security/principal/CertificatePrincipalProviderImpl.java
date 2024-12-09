@@ -24,8 +24,6 @@ public class CertificatePrincipalProviderImpl implements CertificatePrincipalPro
         X509Certificate[] certs = (X509Certificate[]) request.getAttribute(Globals.CERTIFICATES_ATTR);
 
         if (certs == null || certs.length == 0) {
-            // Removing the warning log message as it is causing tests to fail
-            // log.warn("No certificates found in request.");
             return null;
         }
 

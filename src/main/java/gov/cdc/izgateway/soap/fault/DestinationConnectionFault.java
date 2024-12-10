@@ -106,7 +106,7 @@ public class DestinationConnectionFault extends Fault implements HasDestinationU
         	FAULT_NAME,
         	"20",
         	"Write Error", "Error writing message to the destination endpoint",
-        	"There was an IO Error writing to the destination endpoint. This may indicate a problem with the networking infrastructure between"
+        	"There was an IO Error writing to the destination endpoint. This may indicate a problem with the networking infrastructure between "
         	+ "IZ Gateway and the endpoint.",
         	RetryStrategy.NORMAL
         ),
@@ -114,7 +114,7 @@ public class DestinationConnectionFault extends Fault implements HasDestinationU
         	FAULT_NAME,
         	"21",
         	"Read Error", "Error reading message from the destination endpoint",
-        	"There was an IO Error reading from the destination endpoint. This may indicate a problem with the networking infrastructure between"
+        	"There was an IO Error reading from the destination endpoint. This may indicate a problem with the networking infrastructure between "
         	+ "IZ Gateway and the endpoint.",
         	RetryStrategy.NORMAL
         ),
@@ -138,7 +138,7 @@ public class DestinationConnectionFault extends Fault implements HasDestinationU
         	FAULT_NAME,
         	"24",
         	"IO Error At Destination", "Error communicating from/to destination",
-        	"There was an IO Error accessing the destination endpoint. This may indicate a problem with the networking infrastructure between"
+        	"There was an IO Error accessing the destination endpoint. This may indicate a problem with the networking infrastructure between "
         	+ "IZ Gateway and the endpoint.",
         	RetryStrategy.NORMAL
         )

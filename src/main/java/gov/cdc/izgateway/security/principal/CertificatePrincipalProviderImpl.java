@@ -14,21 +14,36 @@ import javax.security.auth.x500.X500Principal;
 import java.security.cert.X509Certificate;
 import java.util.Map;
 
+/**
+ * A Principal Provider that uses certificates to identify the principal
+ * by common name and organization.
+ * 
+ * @author Audacious Inquiry
+ *
+ */
 @Slf4j
 @Component
 public class CertificatePrincipalProviderImpl implements CertificatePrincipalProvider {
 
     @Override
     public IzgPrincipal createPrincipalFromCertificate(HttpServletRequest request) {
-        IzgPrincipal principal = new CertificatePrincipal();
         X509Certificate[] certs = (X509Certificate[]) request.getAttribute(Globals.CERTIFICATES_ATTR);
 
         if (certs == null || certs.length == 0) {
             return null;
         }
 
-        X509Certificate cert = certs[0];
-        X500Principal subject = cert.getSubjectX500Principal();
+        return createPrincipalFromCertificate(certs[0]);
+    }
+
+	/**
+	 * Create a principal from a certificate
+	 * @param cert	The certificate
+	 * @return	The principal
+	 */
+	public static IzgPrincipal createPrincipalFromCertificate(X509Certificate cert) {
+        IzgPrincipal principal = new CertificatePrincipal();
+		X500Principal subject = cert.getSubjectX500Principal();
 
         Map<String, String> parts = X500Utils.getParts(subject);
         principal.setName(parts.get(X500Utils.COMMON_NAME));
@@ -44,5 +59,5 @@ public class CertificatePrincipalProviderImpl implements CertificatePrincipalPro
         principal.setIssuer(cert.getIssuerX500Principal().getName());
 
         return principal;
-    }
+	}
 }

@@ -26,7 +26,6 @@ import org.apache.commons.lang3.StringUtils;
 import org.w3c.dom.Document;
 import org.w3c.dom.Node;
 import org.xml.sax.InputSource;
-import org.xml.sax.SAXException;
 
 public class XmlUtils {
 	private static DocumentBuilder documentBuilder = getDocumentBuilder();

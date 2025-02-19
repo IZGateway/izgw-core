@@ -7,7 +7,6 @@ import com.fasterxml.jackson.annotation.JsonPropertyOrder;
 
 import gov.cdc.izgateway.security.IzgPrincipal;
 import gov.cdc.izgateway.security.principal.CertificatePrincipalProviderImpl;
-import gov.cdc.izgateway.utils.X500Utils;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Data;
 import lombok.EqualsAndHashCode;

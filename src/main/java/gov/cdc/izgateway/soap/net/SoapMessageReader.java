@@ -32,7 +32,6 @@ import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 
 import javax.xml.namespace.QName;
-import javax.xml.stream.Location;
 import javax.xml.stream.XMLStreamConstants;
 import javax.xml.stream.XMLStreamException;
 import javax.xml.stream.XMLStreamReader;

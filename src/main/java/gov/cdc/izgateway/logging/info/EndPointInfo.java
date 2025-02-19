@@ -1,13 +1,7 @@
 package gov.cdc.izgateway.logging.info;
 
 import java.io.Serializable;
-import java.security.cert.X509Certificate;
 import java.util.Date;
-import java.util.Map;
-
-
-import gov.cdc.izgateway.security.IzgPrincipal;
-import gov.cdc.izgateway.utils.X500Utils;
 import org.apache.commons.lang3.StringUtils;
 import com.fasterxml.jackson.annotation.JsonFormat;
 import com.fasterxml.jackson.annotation.JsonFormat.Shape;
@@ -19,8 +13,6 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
-
-import javax.security.auth.x500.X500Principal;
 
 /**
  * An endpoint describes the inbound or outbound connection to

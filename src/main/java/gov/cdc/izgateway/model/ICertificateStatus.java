@@ -4,7 +4,6 @@ import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.security.cert.CertificateEncodingException;
 import java.security.cert.X509Certificate;
-import java.sql.Timestamp;
 import java.util.Date;
 import java.util.ServiceConfigurationError;
 

@@ -2,6 +2,7 @@ package gov.cdc.izgateway.security.principal;
 
 import gov.cdc.izgateway.principal.provider.CertificatePrincipalProvider;
 import gov.cdc.izgateway.security.CertificatePrincipal;
+import gov.cdc.izgateway.security.ClientTlsSupport;
 import gov.cdc.izgateway.security.IzgPrincipal;
 import gov.cdc.izgateway.utils.X500Utils;
 import jakarta.servlet.http.HttpServletRequest;
@@ -10,16 +11,17 @@ import org.apache.catalina.Globals;
 import org.apache.commons.lang3.StringUtils;
 import org.bouncycastle.util.io.pem.PemObject;
 import org.bouncycastle.util.io.pem.PemReader;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
+import javax.net.ssl.X509TrustManager;
 import javax.security.auth.x500.X500Principal;
 import java.io.ByteArrayInputStream;
 import java.io.StringReader;
 import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
-import java.security.cert.CertificateFactory;
-import java.security.cert.X509Certificate;
+import java.security.cert.*;
 import java.util.Map;
 
 /**
@@ -35,6 +37,13 @@ public class CertificatePrincipalProviderImpl implements CertificatePrincipalPro
     // The header key that contains the certificate (populated by the ALB )
     @Value("${client.ssl.certificate-header:}")
     private String certHeaderKey;
+
+    private final ClientTlsSupport clientTlsSupport;
+
+    @Autowired
+    public CertificatePrincipalProviderImpl(ClientTlsSupport clientTlsSupport) {
+        this.clientTlsSupport = clientTlsSupport;
+    }
 
     @Override
     public IzgPrincipal createPrincipalFromCertificate(HttpServletRequest request) {
@@ -63,7 +72,6 @@ public class CertificatePrincipalProviderImpl implements CertificatePrincipalPro
             o = parts.get(X500Utils.ORGANIZATION_UNIT);
         }
         principal.setOrganization(o);
-
         principal.setValidFrom(cert.getNotBefore());
         principal.setValidTo(cert.getNotAfter());
         principal.setSerialNumber(String.valueOf(cert.getSerialNumber()));
@@ -97,6 +105,15 @@ public class CertificatePrincipalProviderImpl implements CertificatePrincipalPro
                     byte[] decodedCert = pemObject.getContent();
                     CertificateFactory certFactory = CertificateFactory.getInstance("X.509");
                     cert = (X509Certificate) certFactory.generateCertificate(new ByteArrayInputStream(decodedCert));
+                    cert.checkValidity();
+
+                    // Validate the certificate chain
+                    if (!isValidCertificateChain(cert)) {
+                        log.error("Invalid certificate chain");
+                        return null;
+                    } else {
+                        log.info("Valid certificate chain");
+                    }
                 } catch (Exception e) {
                     log.error("Failed to parse certificate from header", e);
                     return null;
@@ -105,5 +122,21 @@ public class CertificatePrincipalProviderImpl implements CertificatePrincipalPro
         }
 
         return cert;
+    }
+
+    private boolean isValidCertificateChain(X509Certificate cert) {
+        try {
+            X509TrustManager trustManager = (X509TrustManager) clientTlsSupport.getTrustManagers()[0];
+
+            trustManager.checkClientTrusted(new X509Certificate[]{cert}, "TLS-client-auth");
+
+            return true;
+        } catch (CertificateException e) {
+            log.error("Certificate chain validation failed", e);
+            return false;
+        } catch (Exception e) {
+            log.error("Unexpected error during certificate chain validation", e);
+            return false;
+        }
     }
 }

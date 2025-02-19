@@ -36,10 +36,12 @@ public interface IDestination extends IEndpoint, HasDestinationUri {
 
 	IDestinationId getId();
 
+	@JsonFormat(shape=Shape.STRING, pattern=Constants.TIMESTAMP_FORMAT) 
 	Date getMaintEnd();
 
 	String getMaintReason();
 
+	@JsonFormat(shape=Shape.STRING, pattern=Constants.TIMESTAMP_FORMAT) 
 	Date getMaintStart();
 
 	String getMsh22();
@@ -53,11 +55,13 @@ public interface IDestination extends IEndpoint, HasDestinationUri {
 	String getMsh6();
 
 	String getPassword();
+	
+	Date getPassExpiry();
 
 	String getRxa11();
 
 	String getUsername();
-
+	
 	void setDestUri(String destUri);
 
 	void setDestVersion(String destVersion);
@@ -73,7 +77,6 @@ public interface IDestination extends IEndpoint, HasDestinationUri {
 
 	void setMaintReason(String maintReason);
 
-	@JsonFormat(shape=Shape.STRING, pattern=Constants.TIMESTAMP_FORMAT) 
 	void setMaintStart(Date maintStart);
 
 	void setMsh22(String msh22);
@@ -88,6 +91,8 @@ public interface IDestination extends IEndpoint, HasDestinationUri {
 
 	@JsonIgnore
 	void setPassword(String password);
+	
+	void setPassExpiry(Date expiry);
 
 	void setRxa11(String rxa11);
 

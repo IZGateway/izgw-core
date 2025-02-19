@@ -49,6 +49,7 @@ public class TrustController {
 		this.tlsConfig = tlsSupport.getConfig();
 	}
 
+	@SuppressWarnings({ "serial" })
 	public class TrustDataMap extends MappableEntity<TrustData> {}
 	/**
 	 * Report on trust parameters status.

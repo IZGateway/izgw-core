@@ -227,7 +227,7 @@ public class HL7Utils {
 		WITHIN_SEGMENT,
 		END_SEGMENT_NAME,
 		CHOMP_TO_DELIMITER
-	};
+	}
 	/**
 	 * Mash PHI in segments
 	 * This function ensures that HL7 message content potentially containing PHI is removed from the message.

@@ -500,8 +500,6 @@ public class TransactionData {
         setResponsePayloadSize(StringUtils.length(val));
     }
     
-    private static final Pattern TEST_MESSAGE_PATTERN 
-    	= Pattern.compile("^(([A-Z]+(AIRA|TEST)\\^[A-Z]+(AIRA|TEST))|([A-Z]*IZG[A-Z]*))\\^", Pattern.CASE_INSENSITIVE);
     /**
      * Indicates if the message matches known test patterns
      * @param message	The message

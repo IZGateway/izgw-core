@@ -44,37 +44,11 @@ public class LoggingValve extends LoggingValveBase implements EventCreator {
 		Collections.unmodifiableList(Arrays.asList(EVENT_ID, SESSION_ID, METHOD, IP_ADDRESS, REQUEST_URI, COMMON_NAME));
 	
 	private static final String REST_ADS = "/rest/ads";
-	// Keep mappings for at most one minute.
-    private static final int MAX_AGE = 60 * 1000;
-    @SuppressWarnings("unused")
+	@SuppressWarnings("unused")
 	private ScheduledFuture<?> adsMonitor =
     	Executors.newSingleThreadScheduledExecutor(r -> new Thread(r, "ADS Monitor"))
     		.scheduleAtFixedRate(this::monitorADSRequests, 0, 15, TimeUnit.SECONDS);
     private static final ConcurrentHashMap<Request, String> adsRequests = new ConcurrentHashMap<>();
-    private Map<String, LoggingValveEvent> map = new LinkedHashMap<>();
-    
-    private static class LoggingValveEvent implements Event {
-        private final String id;
-        private Date date;
-        private int refs;
-
-        private LoggingValveEvent(String id, Date date) {
-            refs = 1;
-            this.id = id;
-            this.date = date;
-        }
-
-        @Override
-        public String getId() {
-            return id;
-        }
-
-        @Override
-        public Date getDate() {
-            return date;
-        }
-    }
-
     @Autowired
     public LoggingValve(PrincipalService principalService) {
         this.principalService = principalService;

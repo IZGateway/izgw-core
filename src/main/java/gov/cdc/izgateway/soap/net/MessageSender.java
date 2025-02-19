@@ -403,13 +403,15 @@ public class MessageSender {
 			EndPointInfo endPoint = RequestContext.getDestinationInfo();
 			if (ACCEPTABLE_RESPONSE_CODES.contains(statusCode)) {
 				result = converter.read(m, endPoint);
-				if (result instanceof FaultMessage fm) {
+				if (result instanceof FaultMessage) {
 					m.reset();
 					throw HubClientFault.clientThrewFault(null, dest, statusCode, body, result);
 				} 
 				return clazz.cast(result);
 			} else {
-				throw processHttpError(dest, statusCode, con.getErrorStream());
+				try (InputStream errStream = con.getErrorStream()) {
+					throw processHttpError(dest, statusCode, errStream);
+				}
 			}
 		} catch (ClassCastException ex) {
 			savedEx = ex;

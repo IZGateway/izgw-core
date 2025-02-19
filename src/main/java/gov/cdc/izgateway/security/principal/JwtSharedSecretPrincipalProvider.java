@@ -110,7 +110,8 @@ public class JwtSharedSecretPrincipalProvider implements JwtPrincipalProvider {
             return;
         }
 
-        List<String> groupsList = claims.get("groups", List.class);
+        @SuppressWarnings("unchecked")
+		List<String> groupsList = claims.get("groups", List.class);
         if (groupsList == null || groupsList.isEmpty()) {
             return;
         }

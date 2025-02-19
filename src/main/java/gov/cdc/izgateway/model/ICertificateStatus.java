@@ -50,7 +50,6 @@ public interface ICertificateStatus {
      * 
      * @param cert	The certificate to compute the thumbprint.
      * @return A string representing the thumbprint using SHA-1
-     * @throws CertificateEncodingException if the binary encoding of the certificate cannot be produced.
      */
     static String computeThumbprint(X509Certificate cert) {
     	if (cert == null) {

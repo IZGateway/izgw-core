@@ -101,10 +101,9 @@ public class HL7Utils {
 	/**
 	 * Strip an HL7 Segment of allowed fields
 	 * 
-	 * @param b             The string builder to copy the result to
 	 * @param segment       The segment to strip.
 	 * @param allowedFields The set of allowed fields.
-	 * @returns The stripped segment
+	 * @return The stripped segment
 	 */
 	public static String stripSegment(String segment, Collection<Integer> allowedFields) {
 		return stripParts(segment, allowedFields, "|", HL7Utils::stripCWE);

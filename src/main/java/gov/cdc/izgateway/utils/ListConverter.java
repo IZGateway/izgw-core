@@ -10,6 +10,8 @@ import java.util.function.Function;
  * allow one to iterate over "To" items without creating a bunch of new objects.  This is especially helpful
  * to translate between interface classes.  It is used in Logging to convert from the LogBack IListEvent class
  * to the LogEvent class in IZ Gateway mostly to serve as a way to document logging events in Swagger. 
+ * @param <From> The class to convert from
+ * @param <To> The class to convert to
  */
 public final class ListConverter<From, To> extends AbstractList<To> {
 	private final List<From> events;

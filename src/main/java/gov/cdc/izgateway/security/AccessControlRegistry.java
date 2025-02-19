@@ -87,8 +87,8 @@ public class AccessControlRegistry implements IAccessControlRegistry {
 	/**
 	 * Register a controller class in this registry. Does the bulk of the work for above method.
 	 * This method exists to enable testing without instantiating the class (possibly expensive). 
-	 * 
-	 * @param controller The class of the @RestController object to register
+
+	 * @param controllerClass The class of the @RestController object to register
 	 * @param prefix	The prefix under which this controller is installed.
 	 */
 	public void register(Class<?> controllerClass, String prefix) {
@@ -150,6 +150,7 @@ public class AccessControlRegistry implements IAccessControlRegistry {
 
 	/**
 	 * Dynamically add an access control for a path.
+	 * @param methods The methods that apply to the path
 	 * @param path	The path to add the access control for.
 	 * @param roles The roles to add the access control for.
 	 */
@@ -161,6 +162,7 @@ public class AccessControlRegistry implements IAccessControlRegistry {
 	
 	/**
 	 * Dynamically remove an access control for a path.
+	 * @param methods The methods used with the path.
 	 * @param path	The path to add the access control for.
 	 * @param roles The roles to add the access control for.
 	 */

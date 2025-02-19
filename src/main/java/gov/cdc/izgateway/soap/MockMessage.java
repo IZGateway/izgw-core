@@ -328,11 +328,10 @@ public enum MockMessage {
 	/**
 	 * Get the message response this mock is intended to return.
 	 *
-	 * @param resp
-	 *            The HttpServeltResponse (may be used to return a non-XML body)
 	 * @param message
 	 *            The SOAP message object, used again to return a non-XML body.
 	 * @return The mocked response
+	 * @throws Fault To mock a generic fault
 	 * @throws SecurityFault
 	 *             To mock a security fault.
 	 * @throws MessageTooLargeFault

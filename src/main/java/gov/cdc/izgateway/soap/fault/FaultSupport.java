@@ -5,8 +5,6 @@ import gov.cdc.izgateway.model.RetryStrategy;
 /**
  * Access to this interface is supported by Faults created in this package to enable
  * structured diagnostics and logging with Faults.
- *
- * @see HasFaultSupport
  */
 public interface FaultSupport {
     /** Name for Summary content in fault */
@@ -52,6 +50,7 @@ public interface FaultSupport {
      * for automated interpretation that embodies the type of fault, the subtype and the retry strategy
      * to apply.  It is a 3 digit code in which the first digit indicate the fault type, the second
      * provides the subtype, and the third, the retry strategy.
+     * @return The code for error
      */
     String getCode();
 

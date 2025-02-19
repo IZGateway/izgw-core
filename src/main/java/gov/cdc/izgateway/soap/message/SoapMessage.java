@@ -66,6 +66,7 @@ public class SoapMessage implements Serializable {
 	 * 
 	 * @param that	The message to copy from.
 	 * @param schema	The schema to use.
+	 * @param isUpgradeOrSchemaChange true if this is an upgrade or schema change
 	 */
 	public SoapMessage(SoapMessage that, String schema, boolean isUpgradeOrSchemaChange) {
 		// Always copy the HubHeader

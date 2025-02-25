@@ -329,9 +329,7 @@
                     <systemPropertyVariables>
                         <elastic.api.key>${env.ELASTIC_API_KEY}</elastic.api.key>
                     </systemPropertyVariables>
-                    <argLine>--add-opens=java.base/java.lang.reflect=ALL-UNNAMED
-                        --add-opens=java.base/java.net=ALL-UNNAMED
-                    </argLine>
+                    <argLine>--add-opens=java.base/java.lang.reflect=ALL-UNNAMED --add-opens=java.base/java.net=ALL-UNNAMED</argLine>
                     <includes>
                         <include>**/*Tests.java</include>
                     </includes>

@@ -113,4 +113,44 @@ public class IpAddressFilterTests {
         verify(filterChain, never()).doFilter(any(), any());
         verify(response).setStatus(HttpServletResponse.SC_FORBIDDEN);
     }
+
+    @Test
+    void testIpv6Localhost() throws IOException, ServletException {
+        IpAddressFilter filter = new IpAddressFilter("127.0.0.1/32,::1/128", true);
+
+        when(request.getRemoteAddr()).thenReturn("0:0:0:0:0:0:0:1");
+        filter.doFilter(request, response, filterChain);
+        verify(filterChain).doFilter(request, response);
+        verify(response, never()).setStatus(anyInt());
+
+        reset(request, response, filterChain);
+    }
+
+    @Test
+    void testNonLocalIpv6Address() throws IOException, ServletException {
+        // Setup with IPv4 CIDR only
+        IpAddressFilter filter = new IpAddressFilter("::1/128", true);
+
+        // Test with a non-localhost IPv6 address
+        when(request.getRemoteAddr()).thenReturn("2001:0db8:85a3:0000:0000:8a2e:0370:7334");
+        filter.doFilter(request, response, filterChain);
+
+        // Should be denied as the IPv6 address isn't in allowed CIDRs
+        verify(filterChain, never()).doFilter(any(), any());
+        verify(response).setStatus(HttpServletResponse.SC_FORBIDDEN);
+    }
+
+    @Test
+    void testAllowedIpv6Address() throws IOException, ServletException {
+        // Setup with both IPv4 and IPv6 CIDRs
+        IpAddressFilter filter = new IpAddressFilter("2001:0db8:85a3:0000:0000:8a2e:0370:7334/128", true);
+
+        // Test with an allowed IPv6 address
+        when(request.getRemoteAddr()).thenReturn("2001:0db8:85a3:0000:0000:8a2e:0370:7334");
+        filter.doFilter(request, response, filterChain);
+
+        // Should be allowed as the IPv6 address is in allowed CIDR
+        verify(filterChain).doFilter(request, response);
+        verify(response, never()).setStatus(anyInt());
+    }
 }

@@ -1,10 +1,11 @@
 package gov.cdc.izgateway.security.filter;
 
+import inet.ipaddr.IPAddress;
+import inet.ipaddr.IPAddressString;
 import jakarta.servlet.*;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.commons.net.util.SubnetUtils;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.Ordered;
 import org.springframework.core.annotation.Order;
@@ -20,7 +21,7 @@ import java.util.stream.Collectors;
 @Component
 @Order(Ordered.HIGHEST_PRECEDENCE)
 public class IpAddressFilter implements Filter {
-    private List<SubnetUtils.SubnetInfo> allowedSubnets = Collections.emptyList();
+    private List<IPAddress> allowedSubnets = Collections.emptyList();
     private final boolean ipFilterEnabled;
 
     public IpAddressFilter(
@@ -34,12 +35,12 @@ public class IpAddressFilter implements Filter {
                 throw new IllegalStateException("IP filtering enabled, no IP CIDRs configured.");
             }
 
-            this.allowedSubnets = Arrays.stream(allowedCidr.split(",")).map(String::trim).filter(cidr -> !cidr.isEmpty()).map(cidr -> {
-                SubnetUtils utils = new SubnetUtils(cidr);
-                // network and broadcast addresses can possibly be used.
-                utils.setInclusiveHostCount(true);
-                return utils.getInfo();
-            }).collect(Collectors.toList());
+            this.allowedSubnets = Arrays.stream(allowedCidr.split(","))
+                    .map(String::trim)
+                    .filter(cidr -> !cidr.isEmpty())
+                    .map(cidr -> new IPAddressString(cidr).getAddress())
+                    .collect(Collectors.toList());
+
             log.info("IP whitelist configured with {} CIDR blocks: {}", this.allowedSubnets.size(), allowedCidr);
 
         } else {
@@ -61,7 +62,18 @@ public class IpAddressFilter implements Filter {
             return;
         }
 
-        boolean allowed = allowedSubnets.stream().anyMatch(subnet -> subnet.isInRange(clientIp));
+        boolean allowed;
+        try {
+            IPAddress ipAddress = new IPAddressString(clientIp).getAddress();
+            allowed = allowedSubnets.stream().anyMatch(subnet -> subnet.contains(ipAddress));
+
+        } catch (Exception e) {
+            // We were unable to parse the IP address, block access
+            log.warn("Unable to parse/verify IP: {}. Error: {}", clientIp, e.getMessage());
+            HttpServletResponse httpResponse = (HttpServletResponse) servletResponse;
+            httpResponse.setStatus(HttpServletResponse.SC_FORBIDDEN);
+            return;
+        }
 
         if (allowed) {
             filterChain.doFilter(servletRequest, servletResponse);

@@ -398,6 +398,7 @@ public class MessageSender {
 			// Mark the buffer so we can reread on error.
 			m = new HttpUrlConnectionInputMessage(con, clientConfig.getMaxBufferSize());
 			statusCode = m.getStatusCode();
+			logDestinationCertificates(con);
 			body = m.getBody();
 			m.mark();
 			EndPointInfo endPoint = RequestContext.getDestinationInfo();
@@ -509,10 +510,10 @@ public class MessageSender {
 		DestinationInfo destination = RequestContext.getDestinationInfo();
 		if (destination.isConnected() && con instanceof HttpsURLConnection conx) {
 			try {
-				X509Certificate[] certs = (X509Certificate[]) conx.getServerCertificates();
-				destination.setCertificate(certs[0]);
 				destination.setCipherSuite(conx.getCipherSuite());
 				destination.setConnected(true);
+				X509Certificate[] certs = (X509Certificate[]) conx.getServerCertificates();
+				destination.setCertificate(certs[0]);
 			} catch (SSLPeerUnverifiedException | IllegalStateException ex) {
 				// Ignore this.
 			}

@@ -5,15 +5,13 @@ on:
     branches:
       - Release*
       - main
-      - testrelease
-      - testmain
+      - develop
 
   pull_request:
     branches:
       - Release*
       - main
-      - testrelease
-      - testmain
+      - develop
 
 # Ensure only one build changes dev environment at the same time    
 concurrency: izgw-core-dev

@@ -26,7 +26,7 @@ public class IpAddressFilter implements Filter {
 
     public IpAddressFilter(
             @Value("${hub.security.ip-filter.allowed-cidr:}") String allowedCidr,
-            @Value("${hub.security.ip-filter.enabled:true}") boolean ipFilterEnabled
+            @Value("${hub.security.ip-filter.enabled:false}") boolean ipFilterEnabled
     ) {
         this.ipFilterEnabled = ipFilterEnabled;
 

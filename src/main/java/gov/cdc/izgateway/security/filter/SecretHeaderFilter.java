@@ -1,5 +1,7 @@
 package gov.cdc.izgateway.security.filter;
 
+import gov.cdc.izgateway.logging.RequestContext;
+import gov.cdc.izgateway.logging.markers.Markers2;
 import jakarta.servlet.*;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -9,7 +11,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.Ordered;
 import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Component;
-
+import gov.cdc.izgateway.security.AccessControlValve;
 import java.io.IOException;
 
 /**
@@ -20,7 +22,7 @@ import java.io.IOException;
  */
 @Slf4j
 @Component
-@Order(Ordered.HIGHEST_PRECEDENCE)
+@Order(Ordered.LOWEST_PRECEDENCE)
 public class SecretHeaderFilter implements Filter {
     private final boolean headerFilterEnabled;
     private final String headerFilterKey;
@@ -46,7 +48,7 @@ public class SecretHeaderFilter implements Filter {
 
     @Override
     public void doFilter(ServletRequest servletRequest, ServletResponse servletResponse, FilterChain filterChain) throws IOException, ServletException {
-        if (!headerFilterEnabled) {
+        if (!headerFilterEnabled || AccessControlValve.isLocalHost(servletRequest.getRemoteAddr())) {
             filterChain.doFilter(servletRequest, servletResponse);
             return;
         }
@@ -57,7 +59,7 @@ public class SecretHeaderFilter implements Filter {
         String headerValue = request.getHeader(headerFilterKey);
 
         if (headerValue == null || !headerValue.equals(headerFilterValue)) {
-            log.warn("Request does not contain the secret header, rejecting request");
+            log.error(Markers2.append(RequestContext.getSourceInfo()), "Request does not contain the secret header, rejecting request.");
             response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
             return;
         }

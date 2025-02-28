@@ -1,5 +1,7 @@
 package gov.cdc.izgateway.security.filter;
 
+import gov.cdc.izgateway.logging.RequestContext;
+import gov.cdc.izgateway.logging.markers.Markers2;
 import inet.ipaddr.IPAddress;
 import inet.ipaddr.IPAddressString;
 import jakarta.servlet.*;
@@ -19,7 +21,7 @@ import java.util.stream.Collectors;
 
 @Slf4j
 @Component
-@Order(Ordered.HIGHEST_PRECEDENCE)
+@Order(Ordered.LOWEST_PRECEDENCE)
 public class IpAddressFilter implements Filter {
     private List<IPAddress> allowedSubnets = Collections.emptyList();
     private final boolean ipFilterEnabled;
@@ -69,7 +71,7 @@ public class IpAddressFilter implements Filter {
 
         } catch (Exception e) {
             // We were unable to parse the IP address, block access
-            log.warn("Unable to parse/verify IP: {}. Error: {}", clientIp, e.getMessage());
+            log.error(Markers2.append(RequestContext.getSourceInfo()), "Unable to parse/verify IP: {}. Error: {}", clientIp, e.getMessage());
             HttpServletResponse httpResponse = (HttpServletResponse) servletResponse;
             httpResponse.setStatus(HttpServletResponse.SC_FORBIDDEN);
             return;
@@ -78,7 +80,7 @@ public class IpAddressFilter implements Filter {
         if (allowed) {
             filterChain.doFilter(servletRequest, servletResponse);
         } else {
-            log.warn("Access denied for IP: {}. Not in any configured allowed CIDR.", clientIp);
+            log.error(Markers2.append(RequestContext.getSourceInfo()), "Access denied for IP: {}. Not in any configured allowed CIDR.", clientIp);
             HttpServletResponse httpResponse = (HttpServletResponse) servletResponse;
             httpResponse.setStatus(HttpServletResponse.SC_FORBIDDEN);
         }

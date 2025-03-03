@@ -67,7 +67,7 @@ public class SourceInfo extends EndPointInfo {
 	 * @param certificate
 	 */
 	public void setCertificate(X509Certificate certificate) {
-		setPrincipal(CertificatePrincipalProviderImpl.createPrincipalFromCertificate(certificate));
+        setPrincipal(CertificatePrincipalProviderImpl.createPrincipalFromCertificate(certificate));
 	}
 
 }

@@ -102,6 +102,15 @@ public class ClientTlsSupport implements InitializingBean {
 			TimeUnit.SECONDS);					// specified in sections
 	}
 
+    public TrustManager[] getTrustManagers() {
+        boolean reload = checkForUpdates();
+
+        KeyStore trustStore = loadTrustStore(reload);
+        TrustManager[] tm = { getTrustManager(trustStore) };
+
+        return tm;
+    }
+
 	public SSLContext getSSLContext() {
 		boolean reload = checkForUpdates();
 		if (sslContext != null && !reload) {

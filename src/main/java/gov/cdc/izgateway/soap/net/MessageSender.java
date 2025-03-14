@@ -184,7 +184,7 @@ public class MessageSender {
 
 	private void checkRetries(IDestination dest, IEndpointStatus status,
 			int retryCount, Fault f) throws Fault {
-		if (f.getRetry() != RetryStrategy.CHECK_IIS_STATUS || f.getCause() instanceof XMLStreamException) {
+		if (!f.isRetryable() || f.getCause() instanceof XMLStreamException) {
 			// This is not a retry-able failure.
 			RequestContext.getTransactionData().setRetries(retryCount);
 			throw f;

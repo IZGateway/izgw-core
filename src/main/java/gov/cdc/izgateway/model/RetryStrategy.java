@@ -51,4 +51,11 @@ public enum RetryStrategy {
     public String toString() {
         return super.toString() + ": " + message;
     }
+    
+    /**
+     * @return true if this message could be retried successfully
+     */
+    public boolean isRetryable() {
+    	return this == NORMAL || this == CHECK_IIS_STATUS;
+    }
 }

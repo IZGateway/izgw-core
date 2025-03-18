@@ -39,4 +39,17 @@ public interface IStatusCheckerService {
 	 * @return	true if the destination is one of the exempted destinations.
 	 */
 	boolean isExempt(String destId);
+
+	/**
+	 * Report that a circuit breaker has been reset for a given endpoint.
+	 * @param status The endpoint status
+	 */
+	void logCircuitBreakerReset(IEndpointStatus status);
+
+	/**
+	 * Report that a circuit breaker has been thrown for a given endpoint.
+	 * @param status The endpoint status
+	 * @param why The reason for the status
+	 */
+	void logCircuitBreakerThrown(IEndpointStatus status, Throwable why);
 }

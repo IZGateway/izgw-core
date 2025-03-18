@@ -9,17 +9,17 @@ import gov.cdc.izgateway.model.IEndpointStatus;
 // Technically, this is a repository, but Spring wraps a repository with a proxy that provides
 // some capabilities we don't have any interest in that make it harder to debug the code.
 @Component
-public interface EndpointStatusRepository {
+public interface EndpointStatusRepository<T extends IEndpointStatus> {
 	public static final String[] INCLUDE_ALL = new String[0];
 	
-	List<? extends IEndpointStatus> findAll();
-	IEndpointStatus findById(String id);
-	IEndpointStatus saveAndFlush(IEndpointStatus status);
+	List<T> findAll();
+	T findById(String id);
+	T saveAndFlush(IEndpointStatus status);
 	boolean removeById(String id);
 
-	List<? extends IEndpointStatus> find(int maxQuarterHours, String[] include);
+	List<T> find(int maxQuarterHours, String[] include);
 	boolean refresh();
 	void resetCircuitBreakers();
-	IEndpointStatus newEndpointStatus();
-	IEndpointStatus newEndpointStatus(IDestination dest);
+	T newEndpointStatus();
+	T newEndpointStatus(IDestination dest);
 }

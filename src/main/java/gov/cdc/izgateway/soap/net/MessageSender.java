@@ -117,8 +117,8 @@ public class MessageSender {
 			}
 
 			@Override
-			public void updateStatus(IEndpointStatus s,
-					boolean wasCircuitBreakerThrown, Throwable reason) {
+			public void updateStatus(IEndpointStatus s, IDestination dest,
+					boolean wasCircuitBreakerThrown, Fault reason) {
 				// Do nothing in testing version
 			}
 			@Override
@@ -185,7 +185,7 @@ public class MessageSender {
 				SubmitSingleMessageResponse toBeReturned = new SubmitSingleMessageResponse(responseFromClient, submitSingleMessage.getSchema(), true);
 				toBeReturned.updateAction(true);  // Now a Hub Response
 				RequestContext.getTransactionData().setRetries(retryCount);
-				updateStatus(status, dest, true, null);
+				getStatusChecker().updateStatus(status, dest, true, null);
 				return toBeReturned;
 			} catch (Fault f) {
 				retryCount++;
@@ -200,7 +200,7 @@ public class MessageSender {
 		if (!f.isRetryable() || f.getCause() instanceof XMLStreamException) {
 			// This is not a retry-able failure.
 			RequestContext.getTransactionData().setRetries(retryCount);
-			updateStatus(status, dest, false, f);
+			getStatusChecker().updateStatus(status, dest, false, f);
 			throw f;
 		}
 		
@@ -209,7 +209,7 @@ public class MessageSender {
 			// Throw the circuit breaker for this endpoint
 			RequestContext.getTransactionData().setProcessError(f);
 			RequestContext.getTransactionData().setRetries(retryCount);
-			updateStatus(status, dest, false, f);
+			getStatusChecker().updateStatus(status, dest, false, f);
 			throw f;
 		}
 	}
@@ -228,31 +228,6 @@ public class MessageSender {
 		}
 	}
 
-	/**
-	 * Update status after successful or failed message send. This keeps status fresh and avoids
-	 * unnecessary status checks.
-	 * @param status	Current status
-	 * @param dest		Destination (needed on failure states to look for a reset of the circuit breaker)
-	 * @param success	true if the request worked, false if the circuit break should be thrown.
-	 * @param f 
-	 */
-	private void updateStatus(IEndpointStatus status, IDestination dest, boolean success, Fault f) {
-		boolean wasCircuitBreakerThrown = status.isCircuitBreakerThrown();
-		if (success) {
-			status.connected();
-			if (wasCircuitBreakerThrown) {
-				getStatusChecker().logCircuitBreakerReset(status);
-			}
-		} else {
-			status.setStatus(IEndpointStatus.CIRCUIT_BREAKER_THROWN);
-			if (!wasCircuitBreakerThrown) {
-				getStatusChecker().logCircuitBreakerThrown(status, f);
-			}
-			getStatusChecker().lookForReset(dest);
-		}
-		statusService.save(status);
-	}
-	
 	/**
 	 * Check the status of a destination on an inbound request
 	 * @param dest	The destination to check.

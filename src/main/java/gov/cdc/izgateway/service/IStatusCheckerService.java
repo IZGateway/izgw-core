@@ -2,6 +2,7 @@ package gov.cdc.izgateway.service;
 
 import gov.cdc.izgateway.model.IDestination;
 import gov.cdc.izgateway.model.IEndpointStatus;
+import gov.cdc.izgateway.soap.fault.Fault;
 
 /**
  * The StatusCheckerService is responsible for checking and updating the status of a destination.
@@ -24,11 +25,12 @@ public interface IStatusCheckerService {
 	/**
 	 * Update the status of the endpoint
 	 * @param s	The endpoint status record.
+	 * @param dest 
 	 * @param wasCircuitBreakerThrown	If the circuit breaker was previously thrown.
-	 * @param reason	The reason for updating status.
+	 * @param reason The reason for updating status.
 	 */
-	void updateStatus(IEndpointStatus s, boolean wasCircuitBreakerThrown, Throwable reason);
-	
+	void updateStatus(IEndpointStatus s, IDestination dest, boolean wasCircuitBreakerThrown, Fault reason);
+
 	/**
 	 * Determine if an endpoint is exempt from status checking (some internal destinations are
 	 * not connectable by design [for testing purposes], and others are always running so long 
@@ -52,4 +54,5 @@ public interface IStatusCheckerService {
 	 * @param why The reason for the status
 	 */
 	void logCircuitBreakerThrown(IEndpointStatus status, Throwable why);
+
 }

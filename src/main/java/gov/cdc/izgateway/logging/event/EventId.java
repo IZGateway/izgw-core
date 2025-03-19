@@ -12,8 +12,17 @@ public class EventId extends AtomicLong { // NOSONAR Singleton pattern intended
 	// These values need to be initialized in this order.
     private static final String PREFIX = computeEventIdPrefix();
     private static final LongUnaryOperator NEXT_UPDATE_OP = value -> ((value < Long.MAX_VALUE) ? ++value : 1);
+    /**
+     * The default instance of an eventId to obtain new values from.
+     */
     public static final EventId INSTANCE = new EventId();
+    /**
+     * The default instance of an eventId for the Status Checker main thread.
+     */
     public static final String DEFAULT_TX_ID = INSTANCE.getNext();
+    /**
+     * The keyword used to get the eventId from the MDC
+     */
     public static final String EVENTID_KEY = "eventId";
 	private static boolean obfuscate = true;	// Set to false to use server ip addresses when available as first part of eventId
 

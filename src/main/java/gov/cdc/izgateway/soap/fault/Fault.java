@@ -63,4 +63,11 @@ public class Fault extends Exception implements FaultSupport {
 	public boolean isRetryable() {
 		return messageSupport.getRetry().isRetryable();
 	}
+	
+	/**
+	 * @return true if repeated failures should cause circuit breaker to be thrown
+	 */
+	public boolean shouldBreakCircuit() {
+		return false;
+	}
 }

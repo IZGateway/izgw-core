@@ -107,6 +107,12 @@ public class HubClientFault extends Fault implements HasDestinationUri {
 							+ "misconfiguration in the destination IIS.",
 					RetryStrategy.CONTACT_SUPPORT, Collections.emptyList()) };
 	
+	private static final List<String> retryableErrors = Arrays.asList("203", "204", "205", "206", "207");
+	@Override
+	public boolean isRetryable() {
+		return retryableErrors.contains(getCode());
+	}
+
 	private static final Map<Integer, MessageSupport> statusToMessageMap = new HashMap<>();
 	static {
 		for (MessageSupport m : MESSAGE_TEMPLATES) {

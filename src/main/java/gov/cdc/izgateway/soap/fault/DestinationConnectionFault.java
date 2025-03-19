@@ -387,11 +387,19 @@ public class DestinationConnectionFault extends Fault implements HasDestinationU
 		return destination == null ? null : destination.getDestUri();
 	}
 	/**
-	 * @return true is the fault was due to a thrown circuit breaker or maintenance. Used in retry logic.
+	 * @return true if the fault was NOT due to a thrown circuit breaker or maintenance. Used in retry logic.
 	 */
 	@Override
 	public boolean isRetryable() {
-		return super.isRetryable() && !"18".equals(getCode()) && !"19".equals(getCode()); 
+		return super.isRetryable() && shouldBreakCircuit(); 
+	}
+	
+	/**
+	 * @return true if the fault is one which should throw the circuit breaker
+	 */
+	@Override
+	public boolean shouldBreakCircuit() {
+		return !"18".equals(getCode()) && !"19".equals(getCode());
 	}
 	
 }

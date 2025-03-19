@@ -113,6 +113,11 @@ public class HubClientFault extends Fault implements HasDestinationUri {
 		return retryableErrors.contains(getCode());
 	}
 
+	@Override
+	public boolean shouldBreakCircuit() {
+		return isRetryable();
+	}
+	
 	private static final Map<Integer, MessageSupport> statusToMessageMap = new HashMap<>();
 	static {
 		for (MessageSupport m : MESSAGE_TEMPLATES) {

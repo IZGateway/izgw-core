@@ -117,8 +117,7 @@ public class MessageSender {
 			}
 
 			@Override
-			public void updateStatus(IEndpointStatus s, IDestination dest,
-					boolean wasCircuitBreakerThrown, Fault reason) {
+			public void updateStatus(IEndpointStatus s, IDestination dest, Fault reason) {
 				// Do nothing in testing version
 			}
 			@Override
@@ -185,7 +184,7 @@ public class MessageSender {
 				SubmitSingleMessageResponse toBeReturned = new SubmitSingleMessageResponse(responseFromClient, submitSingleMessage.getSchema(), true);
 				toBeReturned.updateAction(true);  // Now a Hub Response
 				RequestContext.getTransactionData().setRetries(retryCount);
-				getStatusChecker().updateStatus(status, dest, true, null);
+				getStatusChecker().updateStatus(status, dest, null);
 				return toBeReturned;
 			} catch (Fault f) {
 				retryCount++;
@@ -200,7 +199,7 @@ public class MessageSender {
 		if (!f.isRetryable() || f.getCause() instanceof XMLStreamException) {
 			// This is not a retry-able failure.
 			RequestContext.getTransactionData().setRetries(retryCount);
-			getStatusChecker().updateStatus(status, dest, false, f);
+			getStatusChecker().updateStatus(status, dest, f);
 			throw f;
 		}
 		
@@ -209,7 +208,7 @@ public class MessageSender {
 			// Throw the circuit breaker for this endpoint
 			RequestContext.getTransactionData().setProcessError(f);
 			RequestContext.getTransactionData().setRetries(retryCount);
-			getStatusChecker().updateStatus(status, dest, false, f);
+			getStatusChecker().updateStatus(status, dest, f);
 			throw f;
 		}
 	}

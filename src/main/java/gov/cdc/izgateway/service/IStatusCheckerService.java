@@ -26,10 +26,9 @@ public interface IStatusCheckerService {
 	 * Update the status of the endpoint
 	 * @param s	The endpoint status record.
 	 * @param dest 
-	 * @param wasCircuitBreakerThrown	If the circuit breaker was previously thrown.
 	 * @param reason The reason for updating status.
 	 */
-	void updateStatus(IEndpointStatus s, IDestination dest, boolean wasCircuitBreakerThrown, Fault reason);
+	void updateStatus(IEndpointStatus s, IDestination dest, Fault reason);
 
 	/**
 	 * Determine if an endpoint is exempt from status checking (some internal destinations are

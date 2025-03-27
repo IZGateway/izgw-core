@@ -344,10 +344,11 @@ public abstract class SoapControllerBase {
 			wsdl = ObjectUtils.defaultIfNull(wsdl, wsdl2);
 			if (wsdl == null && StringUtils.isEmpty(xsd)) {
 				throw new UnsupportedOperationFault("At least one of the WSDL or xsd parameters must be present", null);
-			} else if (xsd != null && XSD_FILES.contains(xsd)) {
+			} else if (xsd != null && !XSD_FILES.contains(xsd)) {
 				throw new UnsupportedOperationFault("Schema " + xsd + " unknown", null);
 			}
-			String resourceName = wsdl != null ? "/soap/wsdl/" + getWsdl() : ("/soap/schema" + xsd);
+			
+			String resourceName = wsdl != null ? "/soap/wsdl/" + getWsdl() : ("/soap/schema/" + xsd);
 			return logEndOfRequest(() -> getResource(resourceName));
 		} catch (Fault ex) {
 			fault = ex;

@@ -14,6 +14,8 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
 
 import static org.mockito.Mockito.*;
 
@@ -34,13 +36,13 @@ public class SecretHeaderFilterTests {
     @BeforeEach
     void setUp() {
         // Initialize the filter with test values
-        filter = new SecretHeaderFilter(true, "x-alb-secret", "secret-value");
+        filter = new SecretHeaderFilter(true, "x-alb-secret", "secret-value", new ArrayList<String>(List.of("/rest/health")));
     }
 
     @Test
     void testFilterDisabled() throws IOException, ServletException {
         // Initialize the filter with disabled state
-        filter = new SecretHeaderFilter(false, "", "");
+        filter = new SecretHeaderFilter(false, "", "", new ArrayList<>());
 
         filter.doFilter(request, response, filterChain);
 
@@ -51,11 +53,12 @@ public class SecretHeaderFilterTests {
     @Test
     void testFilterEnabledWithoutKeyOrValue() {
         // Expect IllegalStateException when filter is enabled but key or value is missing
-        assertThrows(IllegalStateException.class, () -> new SecretHeaderFilter(true, "", ""));
+        assertThrows(IllegalStateException.class, () -> new SecretHeaderFilter(true, "", "", new ArrayList<>()));
     }
 
     @Test
     void testRequestWithoutHeader() throws IOException, ServletException {
+        when(request.getRequestURI()).thenReturn("/sample/uri");
         when(request.getHeader("x-alb-secret")).thenReturn(null);
 
         filter.doFilter(request, response, filterChain);
@@ -66,6 +69,7 @@ public class SecretHeaderFilterTests {
 
     @Test
     void testRequestWithInvalidHeader() throws IOException, ServletException {
+        when(request.getRequestURI()).thenReturn("/sample/uri");
         when(request.getHeader("x-alb-secret")).thenReturn("invalid-value");
 
         filter.doFilter(request, response, filterChain);
@@ -76,6 +80,7 @@ public class SecretHeaderFilterTests {
 
     @Test
     void testRequestWithValidHeader() throws IOException, ServletException {
+        when(request.getRequestURI()).thenReturn("/sample/uri");
         when(request.getHeader("x-alb-secret")).thenReturn("secret-value");
 
         filter.doFilter(request, response, filterChain);
@@ -83,4 +88,5 @@ public class SecretHeaderFilterTests {
         verify(filterChain).doFilter(request, response);
         verify(response, never()).setStatus(anyInt());
     }
+
 }

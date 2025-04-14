@@ -12,7 +12,9 @@ import org.springframework.core.Ordered;
 import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Component;
 import gov.cdc.izgateway.security.AccessControlValve;
+
 import java.io.IOException;
+import java.util.List;
 
 /**
  * SecretHeaderFilter is a servlet filter that checks for a specific header in incoming requests.
@@ -22,20 +24,23 @@ import java.io.IOException;
  */
 @Slf4j
 @Component
-@Order(Ordered.LOWEST_PRECEDENCE)
+@Order()
 public class SecretHeaderFilter implements Filter {
     private final boolean headerFilterEnabled;
     private final String headerFilterKey;
     private final String headerFilterValue;
+    private final List<String> bypassPaths;
 
     public SecretHeaderFilter(
             @Value("${hub.security.secret-header-filter.enabled:false}") boolean headerFilterEnabled,
             @Value("${hub.security.secret-header-filter.key:}") String headerFilterKey,
-            @Value("${hub.security.secret-header-filter.value:}") String headerFilterValue
+            @Value("${hub.security.secret-header-filter.value:}") String headerFilterValue,
+            @Value("${hub.security.secret-header-filter.bypass-paths:/rest/health}") List<String> bypassPaths
     ) {
         this.headerFilterEnabled = headerFilterEnabled;
         this.headerFilterKey = headerFilterKey;
         this.headerFilterValue = headerFilterValue;
+        this.bypassPaths = bypassPaths;
 
         if (this.headerFilterEnabled) {
             if (StringUtils.isEmpty(this.headerFilterKey) || StringUtils.isEmpty(this.headerFilterValue)) {
@@ -48,7 +53,7 @@ public class SecretHeaderFilter implements Filter {
 
     @Override
     public void doFilter(ServletRequest servletRequest, ServletResponse servletResponse, FilterChain filterChain) throws IOException, ServletException {
-        if (!headerFilterEnabled || AccessControlValve.isLocalHost(servletRequest.getRemoteAddr())) {
+        if (bypassThisFilter(servletRequest)) {
             filterChain.doFilter(servletRequest, servletResponse);
             return;
         }
@@ -66,5 +71,14 @@ public class SecretHeaderFilter implements Filter {
 
         // Continue the filter chain
         filterChain.doFilter(servletRequest, servletResponse);
+    }
+
+    private boolean bypassThisFilter(ServletRequest servletRequest) {
+        if (!headerFilterEnabled || AccessControlValve.isLocalHost(servletRequest.getRemoteAddr())) {
+            return true;
+        }
+
+        String requestURI = ((HttpServletRequest) servletRequest).getRequestURI();
+        return bypassPaths.stream().anyMatch(requestURI::equalsIgnoreCase);
     }
 }

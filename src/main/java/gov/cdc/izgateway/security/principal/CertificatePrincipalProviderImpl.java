@@ -28,8 +28,8 @@ public class CertificatePrincipalProviderImpl implements CertificatePrincipalPro
     private final CertificateValidator validator;
 
     @Autowired
-    public CertificatePrincipalProviderImpl(ClientTlsSupport clientTlsSupport) {
-        this.validator = new CertificateValidator((X509TrustManager) clientTlsSupport.getTrustManagers()[0]);
+    public CertificatePrincipalProviderImpl(TrustManagerProvider provider) {
+        this.validator = new CertificateValidator(provider.getServerTrustManager());
     }
 
     @Override

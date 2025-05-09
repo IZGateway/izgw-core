@@ -46,6 +46,10 @@ public class CertificatePrincipalProviderImpl implements CertificatePrincipalPro
      * @return	The certificate
      */
     private X509Certificate getCertificate(HttpServletRequest request) {
+        if (log.isDebugEnabled()) {
+            logRequestHeaders(request);
+        }
+
         X509Certificate cert = getCertificateFromAttribute(request);
         if (cert != null) return cert;
 
@@ -59,6 +63,15 @@ public class CertificatePrincipalProviderImpl implements CertificatePrincipalPro
             log.error("Failed to process certificate from header", e);
             return null;
         }
+    }
+
+    private void logRequestHeaders(HttpServletRequest request) {
+        // Log all request headers
+        log.debug("Request Headers:");
+        request.getHeaderNames().asIterator().forEachRemaining(headerName -> {
+            String headerValue = request.getHeader(headerName);
+            log.debug("{}: {}", headerName, headerValue);
+        });
     }
 
     private X509Certificate getCertificateFromAttribute(HttpServletRequest request) {

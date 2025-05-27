@@ -17,5 +17,7 @@ public interface IMessageHeaderService {
 	String getSourceType(String... idList);
 
 	IMessageHeader saveAndFlush(IMessageHeader h);
+	
+	void delete(String id);
 
 }

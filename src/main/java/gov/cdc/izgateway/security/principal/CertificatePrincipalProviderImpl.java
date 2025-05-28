@@ -47,13 +47,20 @@ public class CertificatePrincipalProviderImpl implements CertificatePrincipalPro
      */
     private X509Certificate getCertificate(HttpServletRequest request) {
         X509Certificate cert = getCertificateFromAttribute(request);
-        if (cert != null) return cert;
+        if (cert != null) {
+        	log.info("Certificate found in {}", Globals.CERTIFICATES_ATTR);
+        	return cert;
+        }
 
         String certHeader = request.getHeader(certHeaderKey);
-        if (StringUtils.isBlank(certHeader)) return null;
+        if (StringUtils.isBlank(certHeader)) {
+        	log.info("No Certificate found in {}", certHeaderKey);
+        	return null;
+        }
 
         try {
             cert = CertificateProcessor.processCertificateFromHeader(certHeader);
+        	log.info("Certificate found in {}", certHeaderKey);
             return validator.isValid(cert) ? cert : null;
         } catch (CertificateException e) {
             log.error("Failed to process certificate from header", e);

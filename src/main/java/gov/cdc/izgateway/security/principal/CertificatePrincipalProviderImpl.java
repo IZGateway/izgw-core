@@ -55,7 +55,7 @@ public class CertificatePrincipalProviderImpl implements CertificatePrincipalPro
         String certHeader = request.getHeader(certHeaderKey);
         if (StringUtils.isBlank(certHeader)) {
         	log.debug("No Certificate found in {}", certHeaderKey);
-        	log.debug("Headers recieved: {}", request.getHeaderNames());
+        	log.debug("Headers recieved: {}", StringUtils.join(request.getHeaderNames().asIterator(), ", "));
         	return null;
         }
 

@@ -125,8 +125,7 @@ public abstract class AbstractJwtPrincipalProvider implements JwtPrincipalProvid
             );
 
         } catch (InvalidJwtTokenException e) {
-        	// Should not generate so many warnings in logs for a usual case
-            log.debug("Invalid JWT token: {}", e.getMessage()); 
+        	// Logged when originally thrown, no need to log again
             return null;
         } catch (Exception e) {
             log.warn("Issue processing JWT token: {}", e.getMessage());

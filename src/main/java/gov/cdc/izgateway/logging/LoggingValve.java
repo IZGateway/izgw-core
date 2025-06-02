@@ -1,14 +1,21 @@
 package gov.cdc.izgateway.logging;
 
+import gov.cdc.izgateway.common.HealthService;
 import gov.cdc.izgateway.logging.event.EventCreator;
 import gov.cdc.izgateway.logging.event.TransactionData;
+import gov.cdc.izgateway.logging.event.EventCreator.Event;
+import gov.cdc.izgateway.logging.info.MessageInfo;
 import gov.cdc.izgateway.logging.info.SourceInfo;
 import gov.cdc.izgateway.logging.markers.Markers2;
 import gov.cdc.izgateway.security.service.PrincipalService;
 import jakarta.servlet.ServletException;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
+import jakarta.servlet.http.HttpSession;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.catalina.connector.Request;
 import org.apache.catalina.connector.Response;
+import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.Ordered;
 import org.springframework.core.annotation.Order;
@@ -34,15 +41,6 @@ import java.util.concurrent.TimeUnit;
 @Component("valveLogging")
 @Order(Ordered.HIGHEST_PRECEDENCE)
 public class LoggingValve extends LoggingValveBase implements EventCreator {
-	public static final String EVENT_ID = "eventId";
-    public static final String SESSION_ID = "sessionId";
-    public static final String METHOD = "method";
-    public static final String IP_ADDRESS = "ipAddress";
-	public static final String REQUEST_URI = "requestUri";
-	public static final String COMMON_NAME = "commonName";
-	public static final List<String> MDC_EVENTS = 
-		Collections.unmodifiableList(Arrays.asList(EVENT_ID, SESSION_ID, METHOD, IP_ADDRESS, REQUEST_URI, COMMON_NAME));
-	
 	private static final String REST_ADS = "/rest/ads";
 	@SuppressWarnings("unused")
 	private ScheduledFuture<?> adsMonitor =
@@ -57,17 +55,47 @@ public class LoggingValve extends LoggingValveBase implements EventCreator {
     @Override
     protected void handleSpecificInvoke(Request request, Response response, SourceInfo source) throws IOException, ServletException {
         boolean monitored = false;
-        String who = String.format("by %s from %s", source.getCommonName(), source.getIpAddress());
-        if ("POST".equals(request.getMethod()) && request.getRequestURI().startsWith(REST_ADS)) {
-        	
-            log.info(Markers2.append("Source", source), "New ADS request ({}) started {}",
-            		request.getCoyoteRequest().getContentLengthLong(), who);
-            adsRequests.put(request, who);
-            monitored = true;
-        }
 
         try {
+            String who = String.format("by %s from %s", source.getCommonName(), source.getIpAddress());
+            if ("POST".equals(request.getMethod()) && request.getRequestURI().startsWith(REST_ADS)) {
+                log.info(Markers2.append("Source", source), "New ADS request ({}) started {}",
+                		request.getCoyoteRequest().getContentLengthLong(), who);
+                adsRequests.put(request, who);
+                monitored = true;
+            }
+            
             this.getNext().invoke(request, response);
+            
+            TransactionData t = RequestContext.getTransactionData();
+            
+            if (RequestContext.getTransactionData() != null && !RequestContext.isLoggingDisabled()) {
+                HealthService.incrementVolumes(t.getHasProcessError());
+            }
+
+            switch (response.getStatus()) {
+            case HttpServletResponse.SC_INTERNAL_SERVER_ERROR, HttpServletResponse.SC_OK, HttpServletResponse.SC_CREATED, HttpServletResponse.SC_NO_CONTENT:
+                // These are all normal responses
+                break;
+            case HttpServletResponse.SC_UNAUTHORIZED, HttpServletResponse.SC_SERVICE_UNAVAILABLE:
+                // In these two cases, someone tried to access IZGW
+                // via a URL they shouldn't have.  There was never
+                // a transaction to begin with.
+                RequestContext.disableTransactionDataLogging();
+                break;
+            default:
+                if (request.getRequestURI().startsWith("/IISHubService") || request.getRequestURI().startsWith("/dev/")) {
+                    // Any HTTP URI like this denotes a problem with how the request was formulated.
+                    log.error("Unexpected HTTP Error {} from SOAP Request", response.getStatus());
+                }
+                // Do nothing.
+                break;
+            }
+            MessageInfo messageInfo = t.getServerResponse().getWs_response_message();
+            if (messageInfo != null) {
+                messageInfo.setHttpHeaders(getHeaders(response));
+            }
+
         } finally {
             if (monitored) {
                 adsRequests.remove(request);
@@ -113,6 +141,36 @@ public class LoggingValve extends LoggingValveBase implements EventCreator {
 
 	protected boolean isLogged(String requestURI) {
     	return requestURI.startsWith(REST_ADS) || requestURI.startsWith("/IISHubService") || requestURI.startsWith("/dev/");
+	}
+
+	@Override
+	protected TransactionData createTransactionData(Request req) {
+        HttpSession sess = req.getSession();
+
+        // When IZ Gateway calls itself (e.g., for Mock access), we don't want to treat this as a new event, instead,
+        // we want to retain the existing event ID to track them all together.
+        Event e = getEvent(sess);
+        if (e == null) {
+            log.debug("{} did not get event id for : {}", req.getRequestURI(), sess.getId());
+        }
+        req.setAttribute(EVENT_ID, e.getId());
+        
+        // Initialize Service type.
+        boolean isGateway = StringUtils.contains(req.getRequestURI(), "/IISHubService") || StringUtils.contains(req.getRequestURI(), "/rest/");
+
+        TransactionData t = new TransactionData(e == null ? null : e.getId());
+        t.setServiceType(isGateway ? "Gateway" : "Mock");
+        SourceInfo source = t.getSource();
+        source.setType("Unknown");
+        source.setFacilityId("Unknown");
+
+        return t;
+        
+	}
+
+	@Override
+	protected void clearContext() {
+		// Do Nothing.
 	}
 
 }

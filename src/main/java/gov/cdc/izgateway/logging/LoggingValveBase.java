@@ -7,6 +7,7 @@ import gov.cdc.izgateway.logging.event.TransactionData;
 import gov.cdc.izgateway.logging.info.MessageInfo;
 import gov.cdc.izgateway.logging.info.SourceInfo;
 import gov.cdc.izgateway.logging.markers.Markers2;
+import gov.cdc.izgateway.security.IzgPrincipal;
 import gov.cdc.izgateway.security.service.PrincipalService;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletResponse;
@@ -27,14 +28,26 @@ import java.util.*;
 import java.util.Map.Entry;
 import java.util.function.Predicate;
 
+/**
+ * The base valve for configuring logging.
+ * 
+ * @author Audacious Inquiry
+ */
 @Slf4j
 public abstract class LoggingValveBase extends ValveBase implements EventCreator {
+	/** The MDC key for the event identifier */
 	public static final String EVENT_ID = "eventId";
+	/** The MDC key for the session identifier */
     public static final String SESSION_ID = "sessionId";
+	/** The MDC key for the request method identifier */
     public static final String METHOD = "method";
+	/** The MDC key for the IP address of the sender */
     public static final String IP_ADDRESS = "ipAddress";
+	/** The MDC key for the request URI */
 	public static final String REQUEST_URI = "requestUri";
+	/** The MDC key for the common name of the associated certificate */
 	public static final String COMMON_NAME = "commonName";
+	/** The MDC Events to save and restore when overriding them */
 	public static final List<String> MDC_EVENTS = 
 		Collections.unmodifiableList(Arrays.asList(EVENT_ID, SESSION_ID, METHOD, IP_ADDRESS, REQUEST_URI, COMMON_NAME));
 
@@ -42,6 +55,8 @@ public abstract class LoggingValveBase extends ValveBase implements EventCreator
 
     // Keep mappings for at most one minute.
     private static final int MAX_AGE = 60 * 1000;
+    // HTTP Headers for IP Address, Host and Protocol values
+	private static final String X_FORWARDED_FOR = "x-forwarded-for";
 
     private Map<String, LoggingValveEvent> map = new LinkedHashMap<>();
     
@@ -78,81 +93,51 @@ public abstract class LoggingValveBase extends ValveBase implements EventCreator
     }
 
     @Override
-    public void invoke(Request req, Response resp) throws IOException, ServletException {
-
-        RequestContext.setPrincipal(principalService.getPrincipal(req));
-
-        HttpSession sess = req.getSession();
-        // When IZ Gateway calls itself (e.g., for Mock access), we don't want to treat this as a new event, instead,
-        // we want to retain the existing event ID to track them all together.
-        Event e = getEvent(sess);
-        if (e == null) {
-            log.debug("{} did not get event id for : {}", req.getRequestURI(), sess.getId());
-        }
-
+    public final void invoke(Request req, Response resp) throws IOException, ServletException {
         fixHeaders(req);
 
         // If no event was created for this session, go ahead and create a new one.
-        TransactionData t = new TransactionData(e == null ? null : e.getId());
-        // Initialize Service type.
-        boolean isGateway = StringUtils.contains(req.getRequestURI(), "/IISHubService") || StringUtils.contains(req.getRequestURI(), "/rest/");
-        t.setServiceType(isGateway ? "Gateway" : "Mock");
+        TransactionData t = createTransactionData(req);
 
         SourceInfo source = setSourceInfoValues(req, t);
-        setMdcValues(req, sess, t, req.getRequestURI(), source);
-        // Also put it into the request so that other threads handling work on behalf
-        // of it can get to it.
-        req.setAttribute(EventId.EVENTID_KEY, t.getEventId());
-        // Put the event id in the response header for traceability.
+        setMdcValues(req, t, req.getRequestURI(), source);
+
+        // Set RequestContext values.
+        IzgPrincipal p = principalService.getPrincipal(req);
+        RequestContext.setPrincipal(p);
         RequestContext.setTransactionData(t);
         RequestContext.setHttpHeaders(getHeaders(req));
         RequestContext.setResponse(resp);
+        
+        // Update the principal in source
+        t.getSource().setPrincipal(p);
+        
         if (!isLogged(req.getRequestURI())) {
             RequestContext.disableTransactionDataLogging();
         }
 
-
         try {
             handleSpecificInvoke(req, resp, source);
-
-            switch (resp.getStatus()) {
-                case HttpServletResponse.SC_INTERNAL_SERVER_ERROR, HttpServletResponse.SC_OK, HttpServletResponse.SC_CREATED, HttpServletResponse.SC_NO_CONTENT:
-                    // These are all normal responses
-                    break;
-                case HttpServletResponse.SC_UNAUTHORIZED, HttpServletResponse.SC_SERVICE_UNAVAILABLE:
-                    // In these two cases, someone tried to access IZGW
-                    // via a URL they shouldn't have.  There was never
-                    // a transaction to begin with.
-                    RequestContext.disableTransactionDataLogging();
-                    break;
-                default:
-                    if (req.getRequestURI().startsWith("/IISHubService") || req.getRequestURI().startsWith("/dev/")) {
-                        // Any HTTP URI like this denotes a problem with how the request was formulated.
-                        log.error("Unexpected HTTP Error {} from SOAP Request", resp.getStatus());
-                    }
-                    // Do nothing.
-                    break;
-            }
         } catch (Exception ex) {
-            log.error(Markers2.append(ex), "Uncaught Exception during invocation");
+            log.error(Markers2.append(ex), "Uncaught Exception during invocation", ex);
         } catch (Error err) {  // NOSONAR OK to Catch Error here
-            log.error(Markers2.append(err), "Error during invocation");
+            log.error(Markers2.append(err), "Error during invocation", err);
         } finally {
             // Log first, then clean up MDC!
             if (RequestContext.getTransactionData() != null && !RequestContext.isLoggingDisabled()) {
-                MessageInfo messageInfo = t.getServerResponse().getWs_response_message();
-                if (messageInfo != null) {
-                    messageInfo.setHttpHeaders(getHeaders(resp));
-                }
                 t.logIt();
-                HealthService.incrementVolumes(t.getHasProcessError());
             }
             RequestContext.clear();
             clearMdcValues();
+            clearContext();
         }
     }
 
-    protected abstract void handleSpecificInvoke(Request request, Response response, SourceInfo source) throws IOException, ServletException ;
+    protected abstract void clearContext();
+
+	protected abstract TransactionData createTransactionData(Request req);
+
+	protected abstract void handleSpecificInvoke(Request request, Response response, SourceInfo source) throws IOException, ServletException ;
 
 	protected abstract boolean isLogged(String requestURI);
 
@@ -227,10 +212,10 @@ public abstract class LoggingValveBase extends ValveBase implements EventCreator
 		}
 	}
 
-	protected void setMdcValues(Request req, HttpSession sess, TransactionData t, String requestURI, SourceInfo source) {
+	protected void setMdcValues(Request req, TransactionData t, String requestURI, SourceInfo source) {
 		// Put the id into thread local storage so that threaded events can get to it
         MDC.put(EventId.EVENTID_KEY, t.getEventId());
-        MDC.put(SESSION_ID, sess.getId());
+        MDC.put(SESSION_ID, req.getSession().getId());
         MDC.put(REQUEST_URI, requestURI);
         MDC.put(METHOD, req.getMethod());
         MDC.put(IP_ADDRESS, req.getRemoteAddr());
@@ -252,11 +237,15 @@ public abstract class LoggingValveBase extends ValveBase implements EventCreator
         SourceInfo source = t.getSource();
         source.setCipherSuite((String) req.getAttribute(Globals.CIPHER_SUITE_ATTR));
         source.setHost(req.getRemoteHost());
-        source.setIpAddress(req.getRemoteAddr());
-        source.setType("Unknown");
-        source.setFacilityId("Unknown");
-        source.setPrincipal(RequestContext.getPrincipal());
-
+        source.setIpAddress(
+        	StringUtils.substringBefore(
+    			StringUtils.defaultIfEmpty(
+    				req.getHeader(X_FORWARDED_FOR), 
+    				req.getRemoteAddr()
+    			),
+    			","
+        	).trim()
+        );
         return source;
     }
 

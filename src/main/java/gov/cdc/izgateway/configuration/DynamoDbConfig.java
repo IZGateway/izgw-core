@@ -5,7 +5,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnExpression;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
@@ -23,10 +22,10 @@ import java.util.ServiceConfigurationError;
 
 /**
  * DynamoDB configuration for IZ Gateway applications.
- * 
+ * <p>
  * This configuration creates the necessary DynamoDB clients for accessing DynamoDB repositories.
  * It can be customized via application properties and supports both local and AWS DynamoDB instances.
- * 
+ * <p>
  * Configuration properties:
  * - amazon.dynamodb.endpoint: Optional endpoint override for local DynamoDB
  * - amazon.dynamodb.table: Optional table name, default is izgw-hub

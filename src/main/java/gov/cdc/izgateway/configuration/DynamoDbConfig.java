@@ -1,6 +1,7 @@
 package gov.cdc.izgateway.configuration;
 
 import gov.cdc.izgateway.common.HealthService;
+import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Value;
@@ -35,6 +36,7 @@ import java.util.ServiceConfigurationError;
 @Configuration
 @ConditionalOnClass({DynamoDbClient.class, DynamoDbEnhancedClient.class})
 @Slf4j
+@Getter
 public class DynamoDbConfig {
 
     @Value("${amazon.dynamodb.endpoint:}")

@@ -104,14 +104,14 @@ public class AccessControlValve extends ValveBase {
         if (!notAdminHeader && isLocalHost(req.getRemoteHost())) {
         	theRoles.add(Roles.ADMIN);
     		// Access via localhost implies role = ADMIN.
-    		log.debug("Access granted to protected URL {} address by {} at {}", path, user, host);
+    		log.trace("Access granted to protected URL {} address by {} at {}", path, user, host);
         	return true;
         }
         
         Boolean check = accessControls.checkAccess(user, req.getMethod(), path); 
         // True response means OK to access.
         if (Boolean.TRUE.equals(check)) {
-        	log.debug("Access granted to protected URL {} address by {} at {}", path, user, host);
+        	log.trace("Access granted to protected URL {} address by {} at {}", path, user, host);
         	updateRoles(user, theRoles);
         	return true;
         }
@@ -124,7 +124,7 @@ public class AccessControlValve extends ValveBase {
         } 
         
         if (isSwagger(path, user)) {
-        	log.debug("Access granted to swagger documentation {} address by {} at {}", path, user, host);
+        	log.trace("Access granted to swagger documentation {} address by {} at {}", path, user, host);
         	updateRoles(user, theRoles);
         	return true;
         } 

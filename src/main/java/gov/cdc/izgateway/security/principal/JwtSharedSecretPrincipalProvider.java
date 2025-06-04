@@ -8,6 +8,8 @@ import org.springframework.lang.Nullable;
 import org.springframework.security.oauth2.jwt.*;
 import org.springframework.stereotype.Component;
 
+import java.util.Base64;
+
 import javax.crypto.spec.SecretKeySpec;
 
 @Slf4j

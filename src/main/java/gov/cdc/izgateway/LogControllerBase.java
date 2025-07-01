@@ -1,9 +1,6 @@
 package gov.cdc.izgateway;
 
 import ch.qos.logback.classic.spi.ILoggingEvent;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.module.SimpleModule;
-import gov.cdc.izgateway.logging.LogstashMessageSerializer;
 import gov.cdc.izgateway.logging.MemoryAppender;
 import gov.cdc.izgateway.logging.RequestContext;
 import gov.cdc.izgateway.logging.event.LogEvent;
@@ -11,24 +8,10 @@ import gov.cdc.izgateway.security.AccessControlRegistry;
 import gov.cdc.izgateway.security.Roles;
 import gov.cdc.izgateway.soap.fault.SecurityFault;
 import gov.cdc.izgateway.utils.ListConverter;
-import io.swagger.v3.oas.annotations.Operation;
-import io.swagger.v3.oas.annotations.Parameter;
-import io.swagger.v3.oas.annotations.media.ArraySchema;
-import io.swagger.v3.oas.annotations.media.Content;
-import io.swagger.v3.oas.annotations.media.Schema;
-import io.swagger.v3.oas.annotations.responses.ApiResponse;
-import jakarta.annotation.security.RolesAllowed;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.InitializingBean;
-import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.Configuration;
-import org.springframework.http.HttpStatus;
-import org.springframework.web.bind.annotation.DeleteMapping;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.ResponseStatus;
 
 import java.util.Collections;
 import java.util.List;
@@ -59,9 +42,9 @@ public class LogControllerBase implements InitializingBean {
 	// TODO: Presently, blacklisted users are allowed to access the logs request, b/c blacklisting only
 	// applies to the SOAP Stack.  Once we apply it to the full HTTP stack, we will have to provide
 	// SECURE mechanism to clearing the state.
-	protected List<LogEvent> getLogs(String search, HttpServletResponse resp) {
+	protected List<LogEvent> getLogs(String search) {
 
-		List<ILoggingEvent> events = null;
+		List<ILoggingEvent> events;
 		if (logData == null) {
 			events = Collections.emptyList();
 		} else if (StringUtils.isBlank(search)) {

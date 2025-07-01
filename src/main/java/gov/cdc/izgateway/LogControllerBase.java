@@ -30,8 +30,7 @@ public class LogControllerBase implements InitializingBean {
 
 	private MemoryAppender logData = null;
 
-	public LogControllerBase(AccessControlRegistry registry) {
-		registry.register(this);
+	protected LogControllerBase() {
 	}
 
 	@Override

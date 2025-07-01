@@ -44,17 +44,6 @@ import java.util.List;
 // SECURE mechanism for clearing the blacklisted state of the testing user.  It cannot be said
 // to have been applied to the full stack until this loophole is resolved.
 public class LogControllerBase implements InitializingBean {
-	@Configuration(proxyBeanMethods = false)
-	public static class LogControllerConfig {
-	    @Bean
-	    public ObjectMapper getObjectMapper() {
-	        ObjectMapper mapper = new ObjectMapper();
-	        SimpleModule simpleModule = new SimpleModule();
-	        simpleModule.addSerializer(ILoggingEvent.class, new LogstashMessageSerializer());
-	        mapper.registerModule(simpleModule);
-	        return mapper;
-		}
-	}
 
 	private MemoryAppender logData = null;
 
@@ -70,18 +59,7 @@ public class LogControllerBase implements InitializingBean {
 	// TODO: Presently, blacklisted users are allowed to access the logs request, b/c blacklisting only
 	// applies to the SOAP Stack.  Once we apply it to the full HTTP stack, we will have to provide
 	// SECURE mechanism to clearing the state.
-	@Operation(summary = "Get the most recent log records",
-			description = "Search for the log records matching the search parameter or all records if there is no search value")
-	@ApiResponse(responseCode = "200", description = "Success", 
-    	content = { 
-    		@Content(mediaType = "application/json", array = @ArraySchema(schema = @Schema(implementation = LogEvent.class))) 
-    	}
-	)
-	@GetMapping("/logs")
-	public List<LogEvent> getLogs(
-			@Parameter(description = "The search string")
-			@RequestParam(required = false) String search, 
-			HttpServletResponse resp) {
+	protected List<LogEvent> getLogs(String search, HttpServletResponse resp) {
 
 		List<ILoggingEvent> events = null;
 		if (logData == null) {
@@ -95,14 +73,7 @@ public class LogControllerBase implements InitializingBean {
 		return new ListConverter<>(events, LogEvent::new);
 	}
 
-	@Operation(summary = "Clear log records")
-	@ApiResponse(responseCode = "204", description = "Reset the logs", content = @Content)
-	@DeleteMapping("/logs")
-	@ResponseStatus(HttpStatus.NO_CONTENT)
-    @RolesAllowed({ Roles.ADMIN, Roles.OPERATIONS, Roles.BLACKLIST })
-	public void deleteLogs(HttpServletRequest servletReq,
-			@Parameter(description="If true, reset the specified endpoint, clearing maintenance")
-			@RequestParam(required = false) String clear) throws SecurityFault {
+	public void deleteLogs(HttpServletRequest servletReq, String clear) throws SecurityFault {
         if (!RequestContext.getRoles().contains(Roles.ADMIN) && !RequestContext.getRoles().contains(Roles.OPERATIONS)) {
             throw SecurityFault
                     .generalSecurity("Delete Log Attempt By Role",

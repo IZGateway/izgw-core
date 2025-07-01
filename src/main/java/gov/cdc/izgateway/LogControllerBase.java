@@ -63,7 +63,7 @@ public class LogControllerBase implements InitializingBean {
 	}
 
 	@Override
-	public void afterPropertiesSet() throws Exception {
+	public void afterPropertiesSet() {
 		logData = MemoryAppender.getInstance("memory");
 	}
 
@@ -79,7 +79,7 @@ public class LogControllerBase implements InitializingBean {
 	)
 	@GetMapping("/logs")
 	public List<LogEvent> getLogs(
-			@Parameter(description = "The search string", required = false)
+			@Parameter(description = "The search string")
 			@RequestParam(required = false) String search, 
 			HttpServletResponse resp) {
 
@@ -101,7 +101,7 @@ public class LogControllerBase implements InitializingBean {
 	@ResponseStatus(HttpStatus.NO_CONTENT)
     @RolesAllowed({ Roles.ADMIN, Roles.OPERATIONS, Roles.BLACKLIST })
 	public void deleteLogs(HttpServletRequest servletReq,
-			@Parameter(required = false, description="If true, reset the specified endpoint, clearing maintenance")
+			@Parameter(description="If true, reset the specified endpoint, clearing maintenance")
 			@RequestParam(required = false) String clear) throws SecurityFault {
         if (!RequestContext.getRoles().contains(Roles.ADMIN) && !RequestContext.getRoles().contains(Roles.OPERATIONS)) {
             throw SecurityFault

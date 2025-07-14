@@ -515,7 +515,7 @@ public class TransactionData {
         int segIndex = 0;
         int found = 0;
         int fieldLoc = 4;
-        if (msgType.contains("QBP")) {
+        if (StringUtils.contains(msgType, "QBP")) {
         	for (segIndex = 1; segIndex < segments.length; segIndex ++) {
         		if (segments[segIndex].startsWith("QPD")) {
         			found = segIndex;

@@ -514,6 +514,7 @@ public class TransactionData {
     	for (int segIndex = 1; segIndex < segments.length; segIndex ++) {
     		if ((segments[segIndex].startsWith("QPD") && !testField(segments, mshParts, segIndex, 4)) ||
     			(segments[segIndex].startsWith("PID") && !testField(segments, mshParts, segIndex, 5))
+    		) {
 				return false;
     		} 
     	}

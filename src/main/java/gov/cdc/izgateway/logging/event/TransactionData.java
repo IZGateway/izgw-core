@@ -511,34 +511,20 @@ public class TransactionData {
     	}
         String[] segments = message.split("[\r\n]");
         String[] mshParts = segments[0].split("\\|");
-        String msgType = getFirstFieldComponent(mshParts, HL7Message.MESSAGE_TYPE - 1);
-        int segIndex = 0;
-        int found = 0;
-        int fieldLoc = 4;
-        if (StringUtils.contains(msgType, "QBP")) {
-        	for (segIndex = 1; segIndex < segments.length; segIndex ++) {
-        		if (segments[segIndex].startsWith("QPD")) {
-        			found = segIndex;
-        			fieldLoc = 4;
-        			break;
-        		}
-        	}
-        } else {
-        	for (segIndex = 1; segIndex < segments.length; segIndex ++) {
-        		if (segments[segIndex].startsWith("PID")) {
-        			found = segIndex;
-        			fieldLoc = 5;
-        			break;
-        		}
-        	}
-        }
-        if (found == 0) {
-        	// NO PID or QPD segment, matches test patterns for MOCK, or for Error cases.
-        	return true;
-        }
-        String[] fields = segments[found].split("\\|");
-        return fields.length > fieldLoc && isKnownTestPatient(mshParts, fields[fieldLoc]);
+    	for (int segIndex = 1; segIndex < segments.length; segIndex ++) {
+    		if (segments[segIndex].startsWith("QPD") && !testField(segments, mshParts, segIndex, 4)) {
+				return false;
+    		} else if (segments[segIndex].startsWith("PID") && !testField(segments, mshParts, segIndex, 5)) {
+				return false;
+    		}
+    	}
+    	return true;
     }
+
+	private boolean testField(String[] segments, String[] mshParts, int found, int fieldLoc) {
+		String[] fields = segments[found].split("\\|");
+        return fields.length > fieldLoc && isKnownTestPatient(mshParts, fields[fieldLoc]);
+	}
     
     /**
      * Determines if this is a patient matching a KNOWN test pattern. 

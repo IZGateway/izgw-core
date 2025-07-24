@@ -24,7 +24,6 @@ import lombok.Setter;
  */
 @Data
 @EqualsAndHashCode(callSuper=false)
-@SuppressWarnings("serial")
 @JsonPropertyOrder({"destId", "destType", "destTypeId", "destUri", "destVersion", "status", "statusAt", "statusBy", "detail", "diagnostics", "retryStrategy"})
 public abstract class  AbstractEndpointStatus implements IEndpointStatus {
 
@@ -67,7 +66,7 @@ public abstract class  AbstractEndpointStatus implements IEndpointStatus {
 	 * Create a new AbstractEndpointStatus from a destination
 	 * @param dest the destination
 	 */
-	public AbstractEndpointStatus(IDestination dest) {
+	protected AbstractEndpointStatus(IDestination dest) {
 		if (dest == null) {
 			throw new IllegalArgumentException("dest must not be null");
 		}
@@ -85,7 +84,7 @@ public abstract class  AbstractEndpointStatus implements IEndpointStatus {
 	 * Create a new AbstractEndpointStatus from an existing status
 	 * @param that the existing EndpointStatus
 	 */
-	public AbstractEndpointStatus(IEndpointStatus that) {
+	protected AbstractEndpointStatus(IEndpointStatus that) {
 		statusId = that.getStatusId();
 		destId = that.getDestId();
 		destType = that.getDestTypeId();

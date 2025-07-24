@@ -128,6 +128,10 @@ public interface IEndpointStatus extends IEndpoint {
 	 * Status value used when the endpoint is under maintenance
 	 */
 	String UNDER_MAINTENANCE = "Under Maintenance";
+	/**
+	 * Status value used when status of the endpoint is unkown
+	 */
+	String UNKNOWN = "Unknown";
 
 	/**
 	 * @return Make a copy of this status entry

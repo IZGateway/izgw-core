@@ -201,4 +201,8 @@ public abstract class  AbstractEndpointStatus implements IEndpointStatus {
 		this.statusBy = SystemUtils.getHostname();
 		this.status = status;
 	}
+
+	public String getPrimaryId() {
+		return String.format("%tFT%tH", getStatusAt(), getStatusAt());
+	}
 }

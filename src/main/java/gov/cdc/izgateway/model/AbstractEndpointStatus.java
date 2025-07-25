@@ -201,6 +201,10 @@ public abstract class  AbstractEndpointStatus implements IEndpointStatus {
 		this.status = status;
 	}
 
+	/**
+	 * Implements getPrimaryId() methods for DynamoDB Persistence
+	 * @return The primary identifier
+	 */
 	public String getPrimaryId() {
 		return String.format("%tFT%tH", getStatusAt(), getStatusAt());
 	}

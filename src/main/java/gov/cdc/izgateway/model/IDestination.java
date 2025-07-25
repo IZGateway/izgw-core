@@ -140,5 +140,32 @@ public interface IDestination extends IEndpoint, HasDestinationUri {
 	}
 	
 	String getDestinationUri();
+	
+	/**
+	 * Get an example destination with the specified id (used for swagger)
+	 * @param iDestination The destination to turn into an example
+	 * @param destId	The destId value to report in the example
+	 * @return	An example destination object
+	 */
+	public static IDestination getExample(IDestination iDestination, String destId) {
+		iDestination.getId().setDestId(destId);
+		iDestination.setDestUri("https://example.com/dev/IISService");
+		iDestination.setDestVersion("2011");
+		iDestination.setUsername("username");
+		iDestination.setPassword("password");
+		iDestination.setJurisdictionId(1);
+		iDestination.setMaintReason(null);
+		iDestination.setMaintStart(null);
+		iDestination.setMaintEnd(null);
+		iDestination.setFacilityId(null);
+		iDestination.setMsh3("IZGW");
+		iDestination.setMsh4("IZGW");
+		iDestination.setMsh5("IZGW");
+		iDestination.setMsh6("IZGW");
+		iDestination.setMsh22("IZGW");
+		iDestination.setRxa11("IZGW");
+		return iDestination;
+	}
+
 
 }

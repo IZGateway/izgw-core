@@ -295,4 +295,12 @@ public abstract class AbstractDestination implements IEndpoint, Serializable, Ha
 		return this;
 	}
 
+	@Override
+	public void setId(IDestinationId id) {
+		if (id instanceof DestinationId did) {
+			this.id = did;
+		} else {
+			this.id = new DestinationId(id);
+		}
+	}
 }

@@ -17,7 +17,9 @@ import gov.cdc.izgateway.utils.SystemUtils;
 import io.swagger.v3.oas.annotations.StringToClassMapItem;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.persistence.Column;
+import jakarta.persistence.Embeddable;
 import jakarta.persistence.EmbeddedId;
+import jakarta.persistence.MappedSuperclass;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -26,6 +28,7 @@ import lombok.NoArgsConstructor;
  * AbstractDestination implements most of the necessary functionality for a Destination entity
  * @author Audacious Inquiry
  */
+@MappedSuperclass
 @SuppressWarnings("serial")
 @Data
 @JsonPropertyOrder({ "destId", "destType", "destUri", "destVersion", "facilityId", "msh3", "msh4", "msh5", "msh6",
@@ -45,11 +48,14 @@ public abstract class AbstractDestination implements IEndpoint, Serializable, Ha
 		@StringToClassMapItem(key="md_c", value=AbstractDestination.class),
 		@StringToClassMapItem(key="wy", value=AbstractDestination.class)
 	})
+	@Embeddable
 	@Data
 	@AllArgsConstructor
 	@NoArgsConstructor
 	public static class DestinationId implements Serializable, IDestinationId {
+		@Column(name="dest_id")
 		private String destId;
+		@Column(name="dest_type")
 		private int destType;
 
 		/**

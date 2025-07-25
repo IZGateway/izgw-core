@@ -33,7 +33,7 @@ import lombok.NoArgsConstructor;
 @Data
 @JsonPropertyOrder({ "destId", "destType", "destUri", "destVersion", "facilityId", "msh3", "msh4", "msh5", "msh6",
 	"msh22", "rxa11" })
-public abstract class AbstractDestination implements IEndpoint, Serializable, HasDestinationUri, IDestination {
+public abstract class AbstractDestination implements IEndpoint, Serializable, IDestination {
 	/**
 	 * A destination id.
 	 * A composite of the destination endpoint identifier, and the environment id (a.k.a., destination type). 

@@ -171,14 +171,14 @@ public abstract class AbstractDestination implements IEndpoint, Serializable, Ha
 	/**
 	 * Default constructor
 	 */
-	public AbstractDestination() {
+	protected AbstractDestination() {
 	}
 	
 	/**
 	 * Create a named destination for the current environment
 	 * @param destId	The destination id
 	 */
-	public AbstractDestination(String destId) {
+	protected AbstractDestination(String destId) {
 		id.setDestId(destId);
 		id.setDestType(SystemUtils.getDestType());
 	}
@@ -187,7 +187,7 @@ public abstract class AbstractDestination implements IEndpoint, Serializable, Ha
 	 * Create a destination with the given id
 	 * @param that	The destination id
 	 */
-	public AbstractDestination(IDestination that) {
+	protected AbstractDestination(IDestination that) {
 		this.id = new DestinationId(that.getId());	// Always make a copy
 		this.destUri = that.getDestUri();
 		this.destVersion = that.getDestVersion();

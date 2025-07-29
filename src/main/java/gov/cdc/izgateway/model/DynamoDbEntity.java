@@ -1,5 +1,7 @@
 package gov.cdc.izgateway.model;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+
 import software.amazon.awssdk.enhanced.dynamodb.mapper.annotations.DynamoDbAttribute;
 import software.amazon.awssdk.enhanced.dynamodb.mapper.annotations.DynamoDbBean;
 import software.amazon.awssdk.enhanced.dynamodb.mapper.annotations.DynamoDbPartitionKey;
@@ -26,6 +28,7 @@ public interface DynamoDbEntity {
 	 * The partition key is the simple type name of the object + the entity specific sort key.
 	 * @return The partition key for this object.
 	 */
+	@JsonIgnore
 	@DynamoDbPartitionKey
 	@DynamoDbAttribute(ENTITY_TYPE)
 	default String getEntityType() {
@@ -37,6 +40,7 @@ public interface DynamoDbEntity {
 	 * The sort key is derived from the primary id for the object.
 	 * @return The sort key for this object.
 	 */
+	@JsonIgnore
 	@DynamoDbSortKey
 	@DynamoDbAttribute(SORT_KEY)
 	default String getSortKey() {
@@ -48,6 +52,7 @@ public interface DynamoDbEntity {
 	 * This will be used as the sort key.
 	 * @return The primary id for this object.
 	 */
+	@JsonIgnore
 	public String getPrimaryId();
 	
 	/**

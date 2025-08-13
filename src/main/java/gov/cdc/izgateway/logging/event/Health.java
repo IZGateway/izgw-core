@@ -91,11 +91,11 @@ public class Health {
 	private String database;
 	
 	@JsonProperty
-	@Schema(description="This Host's DNS Address", example="3.232.82.52")
+	@Schema(description="This Host's DNS Address", example="3.232.82.52") // NOSONAR This is an example address
 	private String[] ingressDnsAddress;
 	
 	@JsonProperty
-	@Schema(description="This Host's Egress IP Address", example="54.87.148.103")
+	@Schema(description="This Host's Egress IP Address", example="54.87.148.103") // NOSONAR This is an example address
 	private String egressDnsAddress;
 	
     public Health() {

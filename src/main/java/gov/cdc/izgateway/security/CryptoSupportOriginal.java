@@ -29,8 +29,7 @@ import java.util.Optional;
  * 
  * @author Audacious Inquiry
  */
-public class CryptoSupport {
-    private static final String PHIZ_CRYPTO_ENCRYPTION_KEY_SECRET_NAME = "PHIZ_CRYPTO_ENCRYPTION_KEY_SECRET_NAME";
+public class CryptoSupportOriginal {
 	/** Length in bytes of the Initialization Vector */
 	private static final int IV_LENGTH = 16;
 	/** Length in bytes of the Authentication Tag */

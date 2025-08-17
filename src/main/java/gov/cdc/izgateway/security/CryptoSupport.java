@@ -42,41 +42,46 @@ public class CryptoSupport {
     /** A secure random number generator */
     private static final SecureRandom secureRandom = getSecureRandom();
     // Key is now loaded from AWS Secrets Manager if available
-    private static final byte[] keyBytes = loadKeyBytes();
+    private static volatile byte[] keyBytes;
 
     /**
      * Encrypts the given plain text using AES-GCM with a random IV.
      * 
      * @param plainText	the text to encrypt
      * @return	the encrypted text, base64-encoded and prefixed with "=="
-     * @throws Exception	if an error occurs during encryption
+     * @throws CryptoException	if an error occurs during encryption
      */
-    public static String encrypt(String plainText) throws Exception {
+    public static String encrypt(String plainText) throws CryptoException {
         if (plainText == null || plainText.isEmpty() || plainText.startsWith("==")) {
             return plainText;
         }
 
-        byte[] iv = new byte[IV_LENGTH];
-        secureRandom.nextBytes(iv);
+        try {
+            byte[] iv = new byte[IV_LENGTH];
+            secureRandom.nextBytes(iv);
 
-        SecretKeySpec key = new SecretKeySpec(keyBytes, "AES");
-		Cipher cipher = Cipher.getInstance(CIPHER_ALGORITHM, "BCFIPS");
-		cipher.init(Cipher.ENCRYPT_MODE, key, new GCMParameterSpec(TAG_LENGTH*8, iv));
+            SecretKeySpec key = new SecretKeySpec(getKeyBytes(), "AES");
+            Cipher cipher = Cipher.getInstance(CIPHER_ALGORITHM, "BCFIPS");
+            cipher.init(Cipher.ENCRYPT_MODE, key, new GCMParameterSpec(TAG_LENGTH*8, iv));
 
-        byte[] input = plainText.getBytes(StandardCharsets.UTF_8);
-        byte[] encrypted = cipher.doFinal(input, 0, input.length);
+            byte[] input = plainText.getBytes(StandardCharsets.UTF_8);
+            byte[] encrypted = cipher.doFinal(input, 0, input.length);
 
-        // Prepend IV to the ciphertext
-        byte[] result = Arrays.concatenate(iv, encrypted);
+            // Prepend IV to the ciphertext
+            byte[] result = Arrays.concatenate(iv, encrypted);
 
-        return "==" + Base64.toBase64String(result);
+            return "==" + Base64.toBase64String(result);
+
+        } catch(Exception e) {
+        	throw new CryptoException("Failed to encrypt.", e);
+        }
     }
 
     /**
      * Decrypts the given encrypted text using AES-GCM.
      * @param encryptedText	the text to decrypt, base64-encoded and prefixed with "=="
      * @return	the decrypted plain text
-     * @throws Exception	if an error occurs during decryption
+     * @throws CryptoException	if an error occurs during decryption
      */
     public static String decrypt(String encryptedText) throws CryptoException {
     	
@@ -89,12 +94,11 @@ public class CryptoSupport {
             byte[] iv = Arrays.copyOfRange(data, 0, IV_LENGTH);
             byte[] encrypted = Arrays.copyOfRange(data, IV_LENGTH, data.length);
 
-            SecretKeySpec key = new SecretKeySpec(keyBytes, "AES");
+            SecretKeySpec key = new SecretKeySpec(getKeyBytes(), "AES");
 
             Cipher cipher = Cipher.getInstance(CIPHER_ALGORITHM, "BCFIPS");
-            cipher.init(Cipher.DECRYPT_MODE, key, new GCMParameterSpec(128, iv));
+            cipher.init(Cipher.DECRYPT_MODE, key, new GCMParameterSpec(TAG_LENGTH*8, iv));
             byte[] decrypted = cipher.doFinal(encrypted, 0, encrypted.length);
-            String tempString = new String(decrypted, StandardCharsets.UTF_8);
             return new String(decrypted, StandardCharsets.UTF_8);
         } catch (Exception e) {
             throw new CryptoException("Failed to decrypt.", e);
@@ -147,36 +151,55 @@ public class CryptoSupport {
 		System.out.println("Original: " + originalText);   // NOSONAR
 		System.out.println("Encrypted: " + encryptedText); // NOSONAR
 		System.out.println("Decrypted: " + decryptedText); // NOSONAR
-		encryptedText = "==UWRjW60RQkddEmaEDh0bAKTdCFbMi/zem5T1o55mXJ/pSjgTRM9ByCdPR/Yn";
+		encryptedText = "==FI0+iBynP/FWea18NeeZ0XY43cNtlgPb3V6zvwRKP99G9Lyr/SQo9yY59kLO";
 		decryptedText = decrypt(encryptedText);
 		System.out.println("Decrypted: " + decryptedText); // NOSONAR
     }
-    
+
+    private static byte[] getKeyBytes() throws CryptoException {
+        if (keyBytes == null) {
+            synchronized (CryptoSupport.class) {
+                if (keyBytes == null) {
+                    keyBytes = loadKeyBytes();
+                }
+            }
+        }
+        return keyBytes;
+    }
     /**
      * Loads the AES key from AWS Secrets Manager if configured, otherwise uses the default.
      * The secret name can be set via the environment variable 'ENCRYPTION_KEY_SECRET_NAME'.
-     * The secret value should be a base64-encoded 32-byte key.
+     * The secret value should be a 32-byte string.
      */
-    private static byte[] loadKeyBytes() throws SdkClientException {
-        String secretName = "izgw-dev-password-encryption-key";
+    private static byte[] loadKeyBytes() throws CryptoException {
+        String secretName = getEncryptionKeySecretName();
         if (StringUtils.isEmpty(secretName)) {
-            throw new IllegalArgumentException("ENCRYPTION_KEY_SECRET_NAME environment variable is not set.");
+            throw new IllegalArgumentException(PHIZ_CRYPTO_ENCRYPTION_KEY_SECRET_NAME + " environment variable is not set.");
         }
 
-        Region region = Region.of(Optional.ofNullable(System.getenv("AWS_REGION")).orElse("us-east-1"));
-        SecretsManagerClient client = SecretsManagerClient.builder().region(region).build();
-        GetSecretValueRequest getSecretValueRequest = GetSecretValueRequest.builder().secretId(secretName).build();
-        GetSecretValueResponse getSecretValueResponse = client.getSecretValue(getSecretValueRequest);
-        String secret = getSecretValueResponse.secretString();
-        if (!StringUtils.isEmpty(secret)) {
-            byte[] decoded = secret.getBytes();
-            if (decoded.length == KEY_LENGTH) {
-                return decoded;
-            } else {
-                throw new IllegalArgumentException("Secret key length is invalid. Expected 32 bytes.");
+        try {
+            Region region = Region.of(Optional.ofNullable(System.getenv("AWS_REGION")).orElse("us-east-1"));
+            try (SecretsManagerClient client = SecretsManagerClient.builder().region(region).build()) {
+                GetSecretValueRequest getSecretValueRequest = GetSecretValueRequest.builder().secretId(secretName).build();
+                GetSecretValueResponse getSecretValueResponse = client.getSecretValue(getSecretValueRequest);
+                String secret = getSecretValueResponse.secretString();
+                if (!StringUtils.isEmpty(secret)) {
+                    byte[] decoded = secret.getBytes(StandardCharsets.UTF_8);
+                    if (decoded.length == KEY_LENGTH) {
+                        return decoded;
+                    } else {
+                        throw new IllegalArgumentException("Secret key length is invalid. Expected 32 bytes, got " + decoded.length + " bytes.");
+                    }
+                } else {
+                    throw new IllegalArgumentException("Secret value is empty.");
+                }
             }
-        } else {
-            throw new IllegalArgumentException("Secret value is empty.");
+        } catch (SdkClientException e) {
+            throw new CryptoException("Failed to load encryption key from AWS Secrets Manager", e);
         }
+    }
+
+    private static String getEncryptionKeySecretName() {
+        return System.getenv().getOrDefault(PHIZ_CRYPTO_ENCRYPTION_KEY_SECRET_NAME, "izgw-dev-password-encryption-key");
     }
 }

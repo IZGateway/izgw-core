@@ -1,5 +1,6 @@
 package gov.cdc.izgateway.security;
 
+import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.bouncycastle.crypto.CryptoServicesRegistrar;
 import org.bouncycastle.crypto.EntropySourceProvider;
@@ -30,6 +31,7 @@ import java.util.stream.Collectors;
  * 
  * @author Audacious Inquiry
  */
+@Slf4j
 public class CryptoSupport {
     private static final String PHIZ_CRYPTO_ENCRYPTION_KEY_SECRET_NAME = "PHIZ_CRYPTO_ENCRYPTION_KEY_SECRET_NAME";
 	/** Length in bytes of the Initialization Vector */
@@ -45,19 +47,26 @@ public class CryptoSupport {
     // Key is now loaded from AWS Secrets Manager if available
     private static final Set<ByteArrayWrapper> keyHistory = new LinkedHashSet<>();
 
+    private static KeyProvider keyProvider = new AwsSecretsManagerKeyProvider(); // Default
+
+    // Add setter for dependency injection (package-private for testing)
+    static void setKeyProvider(KeyProvider provider) {
+        keyProvider = provider;
+    }
+
     public static String encrypt(String plainText) throws CryptoException {
         for (byte[] key : getAllKeys()) {
             try {
                 return encrypt(plainText, key);
             } catch (CryptoException e) {
                 // Log and continue to next key
-                System.err.println("Encryption failed with key");
+                log.error("Encryption failed with key");
             }
         }
 
         // Attempt to get the key from AWS Secrets Manager
         try {
-            byte[] keyBytes = loadKeyBytes();
+            byte[] keyBytes = keyProvider.loadKey();
             if (!keyExists(keyBytes)) {
                 addKeyToHistory(keyBytes);
                 return encrypt(plainText, keyBytes);
@@ -112,13 +121,13 @@ public class CryptoSupport {
                 return decrypt(encryptedText, key);
             } catch (CryptoException e) {
                 // Log and continue to next key
-                System.err.println("Decryption failed with key");
+                log.error("Decryption failed with a key from history, trying next if available.", e);
             }
         }
 
         // Attempt to get the key from AWS Secrets Manager
         try {
-            byte[] keyBytes = loadKeyBytes();
+            byte[] keyBytes = keyProvider.loadKey();
             if (!keyExists(keyBytes)) {
                 addKeyToHistory(keyBytes);
                 return decrypt(encryptedText, keyBytes);
@@ -197,45 +206,12 @@ public class CryptoSupport {
 		String encryptedText = encrypt(originalText);
 		String decryptedText = decrypt(encryptedText);
 
-		System.out.println("Original: " + originalText);   // NOSONAR
-		System.out.println("Encrypted: " + encryptedText); // NOSONAR
-		System.out.println("Decrypted: " + decryptedText); // NOSONAR
+        log.info("Original: {}", originalText);   // NOSONAR
+        log.info("Encrypted: {}", encryptedText); // NOSONAR
+        log.info("Decrypted: {}", decryptedText); // NOSONAR
 		encryptedText = "==FI0+iBynP/FWea18NeeZ0XY43cNtlgPb3V6zvwRKP99G9Lyr/SQo9yY59kLO";
 		decryptedText = decrypt(encryptedText);
-		System.out.println("Decrypted: " + decryptedText); // NOSONAR
-    }
-
-    /**
-     * Loads the AES key from AWS Secrets Manager if configured, otherwise uses the default.
-     * The secret name can be set via the environment variable 'ENCRYPTION_KEY_SECRET_NAME'.
-     * The secret value should be a 32-byte string.
-     */
-    private static byte[] loadKeyBytes() throws CryptoException {
-        String secretName = getEncryptionKeySecretName();
-        if (StringUtils.isEmpty(secretName)) {
-            throw new IllegalArgumentException(PHIZ_CRYPTO_ENCRYPTION_KEY_SECRET_NAME + " environment variable is not set.");
-        }
-
-        try {
-            Region region = Region.of(Optional.ofNullable(System.getenv("AWS_REGION")).orElse("us-east-1"));
-            try (SecretsManagerClient client = SecretsManagerClient.builder().region(region).build()) {
-                GetSecretValueRequest getSecretValueRequest = GetSecretValueRequest.builder().secretId(secretName).build();
-                GetSecretValueResponse getSecretValueResponse = client.getSecretValue(getSecretValueRequest);
-                String secret = getSecretValueResponse.secretString();
-                if (!StringUtils.isEmpty(secret)) {
-                    byte[] decoded = secret.getBytes(StandardCharsets.UTF_8);
-                    if (decoded.length == KEY_LENGTH) {
-                        return decoded;
-                    } else {
-                        throw new IllegalArgumentException("Secret key length is invalid. Expected 32 bytes, got " + decoded.length + " bytes.");
-                    }
-                } else {
-                    throw new IllegalArgumentException("Secret value is empty.");
-                }
-            }
-        } catch (SdkClientException e) {
-            throw new CryptoException("Failed to load encryption key from AWS Secrets Manager", e);
-        }
+        log.info("Decrypted: {}", decryptedText); // NOSONAR
     }
 
     private static String getEncryptionKeySecretName() {

@@ -116,7 +116,7 @@ public class CryptoSupport {
                 return decrypt(encryptedText, key);
             } catch (CryptoException e) {
                 // Log and continue to next key
-                log.info("Decryption failed with a key from history, trying next if available.", e);
+                log.debug("Decryption failed with a key from history, trying next if available.", e);
             }
         }
 

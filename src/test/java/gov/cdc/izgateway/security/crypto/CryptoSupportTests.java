@@ -5,7 +5,7 @@ import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-class CryptoSupportTest {
+class CryptoSupportTests {
 
     private static final String TEST_PLAINTEXT = "Hello, World!";
     private TestKeyProvider testKeyProvider;

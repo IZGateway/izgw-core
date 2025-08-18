@@ -22,7 +22,8 @@ import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 import java.security.SecureRandom;
 import java.security.Security;
-import java.util.Optional;
+import java.util.*;
+import java.util.stream.Collectors;
 
 /**
  * Cryptographic support for encryption and decryption of sensitive data.
@@ -42,7 +43,31 @@ public class CryptoSupport {
     /** A secure random number generator */
     private static final SecureRandom secureRandom = getSecureRandom();
     // Key is now loaded from AWS Secrets Manager if available
-    private static volatile byte[] keyBytes;
+    private static final Set<ByteArrayWrapper> keyHistory = new LinkedHashSet<>();
+
+    public static String encrypt(String plainText) throws CryptoException {
+        for (byte[] key : getAllKeys()) {
+            try {
+                return encrypt(plainText, key);
+            } catch (CryptoException e) {
+                // Log and continue to next key
+                System.err.println("Encryption failed with key");
+            }
+        }
+
+        // Attempt to get the key from AWS Secrets Manager
+        try {
+            byte[] keyBytes = loadKeyBytes();
+            if (!keyExists(keyBytes)) {
+                addKeyToHistory(keyBytes);
+                return encrypt(plainText, keyBytes);
+            } else {
+                throw new CryptoException("Encryption failed with all available keys.");
+            }
+        } catch (CryptoException e) {
+            throw new CryptoException("Failed to encrypt with all available keys.", e);
+        }
+    }
 
     /**
      * Encrypts the given plain text using AES-GCM with a random IV.
@@ -51,7 +76,7 @@ public class CryptoSupport {
      * @return	the encrypted text, base64-encoded and prefixed with "=="
      * @throws CryptoException	if an error occurs during encryption
      */
-    public static String encrypt(String plainText) throws CryptoException {
+    private static String encrypt(String plainText, byte[] keyBytes) throws CryptoException {
         if (plainText == null || plainText.isEmpty() || plainText.startsWith("==")) {
             return plainText;
         }
@@ -60,7 +85,7 @@ public class CryptoSupport {
             byte[] iv = new byte[IV_LENGTH];
             secureRandom.nextBytes(iv);
 
-            SecretKeySpec key = new SecretKeySpec(getKeyBytes(), "AES");
+            SecretKeySpec key = new SecretKeySpec(keyBytes, "AES");
             Cipher cipher = Cipher.getInstance(CIPHER_ALGORITHM, "BCFIPS");
             cipher.init(Cipher.ENCRYPT_MODE, key, new GCMParameterSpec(TAG_LENGTH*8, iv));
 
@@ -77,24 +102,48 @@ public class CryptoSupport {
         }
     }
 
+    public static String decrypt(String encryptedText) throws CryptoException {
+        if (encryptedText == null || !encryptedText.startsWith("==")) {
+            return encryptedText;
+        }
+
+        for (byte[] key : getAllKeys()) {
+            try {
+                return decrypt(encryptedText, key);
+            } catch (CryptoException e) {
+                // Log and continue to next key
+                System.err.println("Decryption failed with key");
+            }
+        }
+
+        // Attempt to get the key from AWS Secrets Manager
+        try {
+            byte[] keyBytes = loadKeyBytes();
+            if (!keyExists(keyBytes)) {
+                addKeyToHistory(keyBytes);
+                return decrypt(encryptedText, keyBytes);
+            } else {
+                throw new CryptoException("Decryption failed with all available keys.");
+            }
+        } catch (CryptoException e) {
+            throw new CryptoException("Failed to decrypt with all available keys.", e);
+        }
+    }
+
     /**
      * Decrypts the given encrypted text using AES-GCM.
      * @param encryptedText	the text to decrypt, base64-encoded and prefixed with "=="
      * @return	the decrypted plain text
      * @throws CryptoException	if an error occurs during decryption
      */
-    public static String decrypt(String encryptedText) throws CryptoException {
-    	
-        if (encryptedText == null || !encryptedText.startsWith("==")) {
-            return encryptedText;
-        }
+    private static String decrypt(String encryptedText, byte[] keyBytes) throws CryptoException {
 
         try {
             byte[] data = Base64.decode(encryptedText.substring(2));
             byte[] iv = Arrays.copyOfRange(data, 0, IV_LENGTH);
             byte[] encrypted = Arrays.copyOfRange(data, IV_LENGTH, data.length);
 
-            SecretKeySpec key = new SecretKeySpec(getKeyBytes(), "AES");
+            SecretKeySpec key = new SecretKeySpec(keyBytes, "AES");
 
             Cipher cipher = Cipher.getInstance(CIPHER_ALGORITHM, "BCFIPS");
             cipher.init(Cipher.DECRYPT_MODE, key, new GCMParameterSpec(TAG_LENGTH*8, iv));
@@ -156,16 +205,6 @@ public class CryptoSupport {
 		System.out.println("Decrypted: " + decryptedText); // NOSONAR
     }
 
-    private static byte[] getKeyBytes() throws CryptoException {
-        if (keyBytes == null) {
-            synchronized (CryptoSupport.class) {
-                if (keyBytes == null) {
-                    keyBytes = loadKeyBytes();
-                }
-            }
-        }
-        return keyBytes;
-    }
     /**
      * Loads the AES key from AWS Secrets Manager if configured, otherwise uses the default.
      * The secret name can be set via the environment variable 'ENCRYPTION_KEY_SECRET_NAME'.
@@ -201,5 +240,62 @@ public class CryptoSupport {
 
     private static String getEncryptionKeySecretName() {
         return System.getenv().getOrDefault(PHIZ_CRYPTO_ENCRYPTION_KEY_SECRET_NAME, "izgw-dev-password-encryption-key");
+    }
+
+
+    // Add a key
+    private static void addKeyToHistory(byte[] keyBytes) {
+        synchronized (CryptoSupport.class) {
+            keyHistory.add(new ByteArrayWrapper(keyBytes));
+            // Optional: limit size to prevent memory issues
+            if (keyHistory.size() > 10) {
+                Iterator<ByteArrayWrapper> iterator = keyHistory.iterator();
+                iterator.next();
+                iterator.remove();
+            }
+        }
+    }
+
+    // Check if key exists
+    private static boolean keyExists(byte[] keyBytes) {
+        synchronized (CryptoSupport.class) {
+            return keyHistory.contains(new ByteArrayWrapper(keyBytes));
+        }
+    }
+
+    // Get all keys
+    private static List<byte[]> getAllKeys() {
+        synchronized (CryptoSupport.class) {
+            return keyHistory.stream()
+                    .map(ByteArrayWrapper::getData)
+                    .collect(Collectors.toList());
+        }
+    }
+
+    private static class ByteArrayWrapper {
+        private final byte[] data;
+        private final int hashCode;
+
+        public ByteArrayWrapper(byte[] data) {
+            this.data = data.clone(); // Defensive copy
+            this.hashCode = Arrays.hashCode(data);
+        }
+
+        public byte[] getData() {
+            return data.clone(); // Defensive copy
+        }
+
+        @Override
+        public boolean equals(Object obj) {
+            if (this == obj) return true;
+            if (obj == null || getClass() != obj.getClass()) return false;
+            ByteArrayWrapper that = (ByteArrayWrapper) obj;
+            return java.util.Arrays.equals(data, that.data);
+        }
+
+        @Override
+        public int hashCode() {
+            return hashCode;
+        }
     }
 }

@@ -1,6 +1,7 @@
-package gov.cdc.izgateway.security;
+package gov.cdc.izgateway.security.crypto;
 
 import org.apache.commons.lang3.StringUtils;
+import org.bouncycastle.util.Arrays;
 import software.amazon.awssdk.core.exception.SdkClientException;
 import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.secretsmanager.SecretsManagerClient;
@@ -8,9 +9,10 @@ import software.amazon.awssdk.services.secretsmanager.model.GetSecretValueReques
 import software.amazon.awssdk.services.secretsmanager.model.GetSecretValueResponse;
 
 import java.nio.charset.StandardCharsets;
-import java.util.Optional;
+import java.util.*;
+import java.util.stream.Collectors;
 
-public class AwsSecretsManagerKeyProvider implements KeyProvider {
+public class AwsSecretsManagerKeyProvider extends KeyProviderBase implements KeyProvider {
     private static final String PHIZ_CRYPTO_ENCRYPTION_KEY_SECRET_NAME = "PHIZ_CRYPTO_ENCRYPTION_KEY_SECRET_NAME";
 
     @Override
@@ -45,4 +47,5 @@ public class AwsSecretsManagerKeyProvider implements KeyProvider {
     private String getEncryptionKeySecretName() {
         return System.getenv().getOrDefault(PHIZ_CRYPTO_ENCRYPTION_KEY_SECRET_NAME, "izgw-dev-password-encryption-key");
     }
+
 }

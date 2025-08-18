@@ -1,22 +1,7 @@
-package gov.cdc.izgateway.security;
+package gov.cdc.izgateway.security.crypto;
 
-import com.nimbusds.jose.JWSAlgorithm;
-import com.nimbusds.jose.JWSHeader;
-import com.nimbusds.jose.JWSSigner;
-import com.nimbusds.jose.crypto.MACSigner;
-import com.nimbusds.jwt.JWTClaimsSet;
-import com.nimbusds.jwt.SignedJWT;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.springframework.security.oauth2.core.OAuth2TokenValidatorResult;
-import org.springframework.security.oauth2.jwt.BadJwtException;
-import org.springframework.security.oauth2.jwt.Jwt;
-import org.springframework.security.oauth2.jwt.JwtValidationException;
-import org.springframework.security.oauth2.jwt.NimbusJwtDecoder;
-
-import javax.crypto.spec.SecretKeySpec;
-import java.time.Instant;
-import java.util.Date;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.mock;
@@ -37,7 +22,7 @@ class CryptoSupportTest {
 
     @Test
     void testEncryptDecrypt() throws CryptoException {
-        String encrypted = CryptoSupport.encrypt(TEST_PLAINTEXT);
+        String encrypted = CryptoSupport.encrypt(TEST_PLAINTEXT, testKeyProvider.loadKey());
         String decrypted = CryptoSupport.decrypt(encrypted);
 
         System.out.println("Encrypted: " + encrypted);
@@ -47,7 +32,7 @@ class CryptoSupportTest {
 
     @Test
     void testEncryptDecryptWithKeyRotation() throws CryptoException {
-        String encrypted = CryptoSupport.encrypt(TEST_PLAINTEXT);
+        String encrypted = CryptoSupport.encrypt(TEST_PLAINTEXT, testKeyProvider.loadKey());
         String decrypted = CryptoSupport.decrypt(encrypted);
 
         System.out.println("Encrypted: " + encrypted);
@@ -56,7 +41,12 @@ class CryptoSupportTest {
 
         // Rotate the key
         testKeyProvider.rotateKey();
-        String encrypted2 = CryptoSupport.encrypt(TEST_PLAINTEXT);
+        byte[] newKey = testKeyProvider.loadKey();
+        if (!testKeyProvider.keyExists(newKey)) {
+            testKeyProvider.addKeyToHistory(newKey);
+        }
+
+        String encrypted2 = CryptoSupport.encrypt(TEST_PLAINTEXT, testKeyProvider.loadKey());
         String decrypted2 = CryptoSupport.decrypt(encrypted2);
 
         System.out.println("Encrypted2: " + encrypted2);

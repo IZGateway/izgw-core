@@ -1,4 +1,4 @@
-package gov.cdc.izgateway.security;
+package gov.cdc.izgateway.security.crypto;
 
 /**
  * Exception thrown when crypto operations fail.

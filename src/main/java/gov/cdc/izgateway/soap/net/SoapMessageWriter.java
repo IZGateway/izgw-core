@@ -5,8 +5,8 @@ import java.util.function.Function;
 import javax.xml.stream.XMLStreamException;
 import javax.xml.stream.XMLStreamWriter;
 
-import gov.cdc.izgateway.security.CryptoException;
-import gov.cdc.izgateway.security.CryptoSupport;
+import gov.cdc.izgateway.security.crypto.CryptoException;
+import gov.cdc.izgateway.security.crypto.CryptoSupport;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.tuple.Pair;
 import org.slf4j.MDC;

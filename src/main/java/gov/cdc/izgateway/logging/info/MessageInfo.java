@@ -5,7 +5,7 @@ import java.util.Map;
 
 import javax.xml.stream.XMLStreamException;
 
-import gov.cdc.izgateway.security.CryptoException;
+import gov.cdc.izgateway.security.crypto.CryptoException;
 import lombok.AccessLevel;
 import lombok.Data;
 import lombok.Getter;

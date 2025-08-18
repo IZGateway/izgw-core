@@ -1,7 +1,6 @@
-package gov.cdc.izgateway.security;
+package gov.cdc.izgateway.security.crypto;
 
 import lombok.extern.slf4j.Slf4j;
-import org.apache.commons.lang3.StringUtils;
 import org.bouncycastle.crypto.CryptoServicesRegistrar;
 import org.bouncycastle.crypto.EntropySourceProvider;
 import org.bouncycastle.crypto.fips.FipsDRBG;
@@ -10,11 +9,6 @@ import org.bouncycastle.jcajce.provider.BouncyCastleFipsProvider;
 import org.bouncycastle.jsse.provider.BouncyCastleJsseProvider;
 import org.bouncycastle.util.Arrays;
 import org.bouncycastle.util.encoders.Base64;
-import software.amazon.awssdk.core.exception.SdkClientException;
-import software.amazon.awssdk.regions.Region;
-import software.amazon.awssdk.services.secretsmanager.SecretsManagerClient;
-import software.amazon.awssdk.services.secretsmanager.model.GetSecretValueRequest;
-import software.amazon.awssdk.services.secretsmanager.model.GetSecretValueResponse;
 
 import javax.crypto.Cipher;
 import javax.crypto.spec.GCMParameterSpec;
@@ -23,8 +17,6 @@ import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 import java.security.SecureRandom;
 import java.security.Security;
-import java.util.*;
-import java.util.stream.Collectors;
 
 /**
  * Cryptographic support for encryption and decryption of sensitive data.
@@ -44,8 +36,6 @@ public class CryptoSupport {
     private static final String CIPHER_ALGORITHM = "AES/GCM/NoPadding";
     /** A secure random number generator */
     private static final SecureRandom secureRandom = getSecureRandom();
-    // Key is now loaded from AWS Secrets Manager if available
-    private static final Set<ByteArrayWrapper> keyHistory = new LinkedHashSet<>();
 
     private static KeyProvider keyProvider = new AwsSecretsManagerKeyProvider(); // Default
 
@@ -54,29 +44,29 @@ public class CryptoSupport {
         keyProvider = provider;
     }
 
-    public static String encrypt(String plainText) throws CryptoException {
-        for (byte[] key : getAllKeys()) {
-            try {
-                return encrypt(plainText, key);
-            } catch (CryptoException e) {
-                // Log and continue to next key
-                log.error("Encryption failed with key");
-            }
-        }
-
-        // Attempt to get the key from AWS Secrets Manager
-        try {
-            byte[] keyBytes = keyProvider.loadKey();
-            if (!keyExists(keyBytes)) {
-                addKeyToHistory(keyBytes);
-                return encrypt(plainText, keyBytes);
-            } else {
-                throw new CryptoException("Encryption failed with all available keys.");
-            }
-        } catch (CryptoException e) {
-            throw new CryptoException("Failed to encrypt with all available keys.", e);
-        }
-    }
+//    public static String encrypt(String plainText) throws CryptoException {
+//        for (byte[] key : keyProvider.getAllKeys()) {
+//            try {
+//                return encrypt(plainText, key);
+//            } catch (CryptoException e) {
+//                // Log and continue to next key
+//                log.error("Encryption failed with key");
+//            }
+//        }
+//
+//        // Attempt to get the key from AWS Secrets Manager
+//        try {
+//            byte[] keyBytes = keyProvider.loadKey();
+//            if (!keyProvider.keyExists(keyBytes)) {
+//                keyProvider.addKeyToHistory(keyBytes);
+//                return encrypt(plainText, keyBytes);
+//            } else {
+//                throw new CryptoException("Encryption failed with all available keys.");
+//            }
+//        } catch (CryptoException e) {
+//            throw new CryptoException("Failed to encrypt with all available keys.", e);
+//        }
+//    }
 
     /**
      * Encrypts the given plain text using AES-GCM with a random IV.
@@ -85,7 +75,7 @@ public class CryptoSupport {
      * @return	the encrypted text, base64-encoded and prefixed with "=="
      * @throws CryptoException	if an error occurs during encryption
      */
-    private static String encrypt(String plainText, byte[] keyBytes) throws CryptoException {
+    public static String encrypt(String plainText, byte[] keyBytes) throws CryptoException {
         if (plainText == null || plainText.isEmpty() || plainText.startsWith("==")) {
             return plainText;
         }
@@ -116,20 +106,20 @@ public class CryptoSupport {
             return encryptedText;
         }
 
-        for (byte[] key : getAllKeys()) {
+        for (byte[] key : keyProvider.getAllKeys()) {
             try {
                 return decrypt(encryptedText, key);
             } catch (CryptoException e) {
                 // Log and continue to next key
-                log.error("Decryption failed with a key from history, trying next if available.", e);
+                log.info("Decryption failed with a key from history, trying next if available.", e);
             }
         }
 
         // Attempt to get the key from AWS Secrets Manager
         try {
             byte[] keyBytes = keyProvider.loadKey();
-            if (!keyExists(keyBytes)) {
-                addKeyToHistory(keyBytes);
+            if (!keyProvider.keyExists(keyBytes)) {
+                keyProvider.addKeyToHistory(keyBytes);
                 return decrypt(encryptedText, keyBytes);
             } else {
                 throw new CryptoException("Decryption failed with all available keys.");
@@ -195,83 +185,30 @@ public class CryptoSupport {
 		Security.insertProviderAt(new BouncyCastleJsseProvider(), 2);
 	}
     
-    /**
-     * Small verification main
-     * @param args
-     * @throws Exception
-     */
-    public static void main(String ... args) throws Exception {
-    	initialize();
-		String originalText = "Hello, World!";
-		String encryptedText = encrypt(originalText);
-		String decryptedText = decrypt(encryptedText);
-
-        log.info("Original: {}", originalText);   // NOSONAR
-        log.info("Encrypted: {}", encryptedText); // NOSONAR
-        log.info("Decrypted: {}", decryptedText); // NOSONAR
-		encryptedText = "==FI0+iBynP/FWea18NeeZ0XY43cNtlgPb3V6zvwRKP99G9Lyr/SQo9yY59kLO";
-		decryptedText = decrypt(encryptedText);
-        log.info("Decrypted: {}", decryptedText); // NOSONAR
-    }
+//    /**
+//     * Small verification main
+//     * @param args
+//     * @throws Exception
+//     */
+//    public static void main(String ... args) throws Exception {
+//    	initialize();
+//		String originalText = "Hello, World!";
+//		String encryptedText = encrypt(originalText);
+//		String decryptedText = decrypt(encryptedText);
+//
+//        log.info("Original: {}", originalText);   // NOSONAR
+//        log.info("Encrypted: {}", encryptedText); // NOSONAR
+//        log.info("Decrypted: {}", decryptedText); // NOSONAR
+//		encryptedText = "==FI0+iBynP/FWea18NeeZ0XY43cNtlgPb3V6zvwRKP99G9Lyr/SQo9yY59kLO";
+//		decryptedText = decrypt(encryptedText);
+//        log.info("Decrypted: {}", decryptedText); // NOSONAR
+//    }
 
     private static String getEncryptionKeySecretName() {
         return System.getenv().getOrDefault(PHIZ_CRYPTO_ENCRYPTION_KEY_SECRET_NAME, "izgw-dev-password-encryption-key");
     }
 
 
-    // Add a key
-    private static void addKeyToHistory(byte[] keyBytes) {
-        synchronized (CryptoSupport.class) {
-            keyHistory.add(new ByteArrayWrapper(keyBytes));
-            // Optional: limit size to prevent memory issues
-            if (keyHistory.size() > 10) {
-                Iterator<ByteArrayWrapper> iterator = keyHistory.iterator();
-                iterator.next();
-                iterator.remove();
-            }
-        }
-    }
 
-    // Check if key exists
-    private static boolean keyExists(byte[] keyBytes) {
-        synchronized (CryptoSupport.class) {
-            return keyHistory.contains(new ByteArrayWrapper(keyBytes));
-        }
-    }
 
-    // Get all keys
-    private static List<byte[]> getAllKeys() {
-        synchronized (CryptoSupport.class) {
-            return keyHistory.stream()
-                    .map(ByteArrayWrapper::getData)
-                    .collect(Collectors.toList());
-        }
-    }
-
-    private static class ByteArrayWrapper {
-        private final byte[] data;
-        private final int hashCode;
-
-        public ByteArrayWrapper(byte[] data) {
-            this.data = data.clone(); // Defensive copy
-            this.hashCode = Arrays.hashCode(data);
-        }
-
-        public byte[] getData() {
-            return data.clone(); // Defensive copy
-        }
-
-        @Override
-        public boolean equals(Object obj) {
-            if (this == obj) return true;
-            if (obj == null || getClass() != obj.getClass()) return false;
-            ByteArrayWrapper that = (ByteArrayWrapper) obj;
-            return java.util.Arrays.equals(data, that.data);
-        }
-
-        @Override
-        public int hashCode() {
-            return hashCode;
-        }
-    }
 }

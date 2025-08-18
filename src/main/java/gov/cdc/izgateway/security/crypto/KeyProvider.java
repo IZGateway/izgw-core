@@ -13,7 +13,7 @@ import java.util.List;
  * @author CDC IZ Gateway Team
  * @since 1.0
  */
-public interface KeyProvider {
+interface KeyProvider {
 
     /**
      * Loads the current active encryption key.

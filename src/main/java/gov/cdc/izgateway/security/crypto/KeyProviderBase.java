@@ -4,7 +4,7 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
 
-public class KeyProviderBase {
+class KeyProviderBase {
     private final Set<ByteArrayWrapper> keyHistory = new LinkedHashSet<>();
 
     public List<byte[]> getAllKeys() {

@@ -19,11 +19,11 @@ import java.nio.charset.StandardCharsets;
  * @author CDC IZ Gateway Team
  * @since 1.0
  */
-public class TestKeyProvider extends KeyProviderBase implements KeyProvider {
+class TestKeyProvider extends KeyProviderBase implements KeyProvider {
     private static int callCount = 0;
     private static final String BASE_KEY = "MySecretKeyForTestingPurposes12";
 
-    public static void rotateKey() {
+    static void rotateKey() {
         // This method can be used to reset the call count if needed
         callCount++;
     }

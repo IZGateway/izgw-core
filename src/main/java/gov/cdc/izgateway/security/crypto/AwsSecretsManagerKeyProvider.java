@@ -20,7 +20,7 @@ import java.util.*;
  * <p>
  * Configuration is handled through environment variables:
  * <ul>
- *   <li>{@code PHIZ_CRYPTO_ENCRYPTION_KEY_SECRET_NAME} - The name of the secret in AWS Secrets Manager</li>
+ *   <li>{@code IZGW_CRYPTO_SECRET_KEY_NAME} - The name of the secret in AWS Secrets Manager</li>
  *   <li>{@code AWS_REGION} - The AWS region where the secret is stored (defaults to us-east-1)</li>
  * </ul>
  * </p>
@@ -28,8 +28,8 @@ import java.util.*;
  * @author CDC IZ Gateway Team
  * @since 1.0
  */
-public class AwsSecretsManagerKeyProvider extends KeyProviderBase implements KeyProvider {
-    private static final String PHIZ_CRYPTO_ENCRYPTION_KEY_SECRET_NAME = "PHIZ_CRYPTO_ENCRYPTION_KEY_SECRET_NAME";
+class AwsSecretsManagerKeyProvider extends KeyProviderBase implements KeyProvider {
+    private static final String IZGW_CRYPTO_SECRET_KEY_NAME = "IZGW_CRYPTO_SECRET_KEY_NAME";
 
     /**
      * Loads the encryption key from AWS Secrets Manager.
@@ -43,12 +43,11 @@ public class AwsSecretsManagerKeyProvider extends KeyProviderBase implements Key
     public byte[] loadKey() throws CryptoException {
         String secretName = getEncryptionKeySecretName();
         if (StringUtils.isEmpty(secretName)) {
-            throw new IllegalArgumentException(PHIZ_CRYPTO_ENCRYPTION_KEY_SECRET_NAME + " environment variable is not set.");
+            throw new IllegalArgumentException(IZGW_CRYPTO_SECRET_KEY_NAME + " environment variable is not set.");
         }
 
         try {
-            Region region = Region.of(Optional.ofNullable(System.getenv("AWS_REGION")).orElse("us-east-1"));
-            try (SecretsManagerClient client = SecretsManagerClient.builder().region(region).build()) {
+            try (SecretsManagerClient client = SecretsManagerClient.builder().build()) {
                 GetSecretValueRequest getSecretValueRequest = GetSecretValueRequest.builder().secretId(secretName).build();
                 GetSecretValueResponse getSecretValueResponse = client.getSecretValue(getSecretValueRequest);
                 String secret = getSecretValueResponse.secretString();
@@ -69,7 +68,7 @@ public class AwsSecretsManagerKeyProvider extends KeyProviderBase implements Key
     }
 
     private String getEncryptionKeySecretName() {
-        return System.getenv().getOrDefault(PHIZ_CRYPTO_ENCRYPTION_KEY_SECRET_NAME, "izgw-dev-password-encryption-key");
+        return System.getenv().getOrDefault(IZGW_CRYPTO_SECRET_KEY_NAME, "izgw-dev-password-encryption-key");
     }
 
 }

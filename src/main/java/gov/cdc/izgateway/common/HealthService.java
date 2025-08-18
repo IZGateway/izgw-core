@@ -45,4 +45,21 @@ public class HealthService {
 			health.setDatabase(health.getDatabase() + ", " + url);
 		}
 	}
+	
+	/**
+	 * Set the egress DNS address for this server
+	 * @param address	The egress DNS address
+	 */
+	public static void setEgressDnsAddress(String address) {
+		health.setEgressDnsAddress(address);
+	}
+	
+	/**
+	 * Set the ingress DNS address for this server
+	 * @param address	The ingress DNS address
+	 */
+	public static void setIngressDnsAddress(String[] address) {
+		health.setIngressDnsAddress(address);
+	}
+	
 }

@@ -4,17 +4,16 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.Mockito.mock;
 
 class CryptoSupportTest {
 
     private static final String TEST_PLAINTEXT = "Hello, World!";
-    private KeyProvider originalProvider;
-    private static TestKeyProvider testKeyProvider;
+    private TestKeyProvider testKeyProvider;
 
     @BeforeEach
     void setUp() {
         CryptoSupport.initialize();
+
         // Inject test key provider
         testKeyProvider = new TestKeyProvider();
         CryptoSupport.setKeyProvider(testKeyProvider);
@@ -22,42 +21,42 @@ class CryptoSupportTest {
 
     @Test
     void testEncryptDecrypt() throws CryptoException {
-        String encrypted = CryptoSupport.encrypt(TEST_PLAINTEXT, testKeyProvider.loadKey());
+        byte[] key = testKeyProvider.loadKey();
+        String encrypted = CryptoSupport.encrypt(TEST_PLAINTEXT, key);
         String decrypted = CryptoSupport.decrypt(encrypted);
 
-        System.out.println("Encrypted: " + encrypted);
-        System.out.println("Decrypted: " + decrypted);
-        assertEquals(decrypted, TEST_PLAINTEXT);
+        assertEquals(TEST_PLAINTEXT, decrypted, "Decrypted text should match original");
     }
 
     @Test
     void testEncryptDecryptWithKeyRotation() throws CryptoException {
-        String encrypted = CryptoSupport.encrypt(TEST_PLAINTEXT, testKeyProvider.loadKey());
+        // Encrypt with initial key
+        byte[] originalKey = testKeyProvider.loadKey();
+        String encrypted = CryptoSupport.encrypt(TEST_PLAINTEXT, originalKey);
         String decrypted = CryptoSupport.decrypt(encrypted);
-
-        System.out.println("Encrypted: " + encrypted);
-        System.out.println("Decrypted: " + decrypted);
-        assertEquals(decrypted, TEST_PLAINTEXT);
+        assertEquals(TEST_PLAINTEXT, decrypted, "Initial decryption should work");
 
         // Rotate the key
         testKeyProvider.rotateKey();
         byte[] newKey = testKeyProvider.loadKey();
-        if (!testKeyProvider.keyExists(newKey)) {
-            testKeyProvider.addKeyToHistory(newKey);
-        }
+        assertFalse(java.util.Arrays.equals(originalKey, newKey), "New key should differ from original");
 
-        String encrypted2 = CryptoSupport.encrypt(TEST_PLAINTEXT, testKeyProvider.loadKey());
-        String decrypted2 = CryptoSupport.decrypt(encrypted2);
+        // Encrypt with new key
+        String encryptedWithNewKey = CryptoSupport.encrypt(TEST_PLAINTEXT, newKey);
+        String decryptedWithNewKey = CryptoSupport.decrypt(encryptedWithNewKey);
+        assertEquals(TEST_PLAINTEXT, decryptedWithNewKey, "Decryption with new key should work");
 
-        System.out.println("Encrypted2: " + encrypted2);
-        System.out.println("Decrypted2: " + decrypted2);
-        assertEquals(decrypted2, TEST_PLAINTEXT);
-
-        // Attempt to decrypt with the old key
+        // Verify old encrypted data can still be decrypted (key history)
         String decryptedOld = CryptoSupport.decrypt(encrypted);
-        assertEquals(decryptedOld, TEST_PLAINTEXT);
+        assertEquals(TEST_PLAINTEXT, decryptedOld, "Old encrypted data should still be decryptable");
+    }
+
+    @Test
+    void testEncryptWithEmptyInput() throws CryptoException {
+        byte[] key = testKeyProvider.loadKey();
+        String encrypted = CryptoSupport.encrypt("", key);
+        String decrypted = CryptoSupport.decrypt(encrypted);
+        assertEquals("", decrypted, "Empty string should encrypt and decrypt correctly");
     }
 
 }
-
-

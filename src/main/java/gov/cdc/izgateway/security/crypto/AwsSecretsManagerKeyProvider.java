@@ -1,7 +1,6 @@
 package gov.cdc.izgateway.security.crypto;
 
 import org.apache.commons.lang3.StringUtils;
-import org.bouncycastle.util.Arrays;
 import software.amazon.awssdk.core.exception.SdkClientException;
 import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.secretsmanager.SecretsManagerClient;
@@ -10,11 +9,36 @@ import software.amazon.awssdk.services.secretsmanager.model.GetSecretValueRespon
 
 import java.nio.charset.StandardCharsets;
 import java.util.*;
-import java.util.stream.Collectors;
 
+/**
+ * AWS Secrets Manager implementation of the KeyProvider interface.
+ * <p>
+ * This provider retrieves encryption keys from AWS Secrets Manager service.
+ * The secret is expected to be stored as a UTF-8 encoded string representing
+ * a 32-byte encryption key suitable for AES-256 encryption.
+ * </p>
+ * <p>
+ * Configuration is handled through environment variables:
+ * <ul>
+ *   <li>{@code PHIZ_CRYPTO_ENCRYPTION_KEY_SECRET_NAME} - The name of the secret in AWS Secrets Manager</li>
+ *   <li>{@code AWS_REGION} - The AWS region where the secret is stored (defaults to us-east-1)</li>
+ * </ul>
+ * </p>
+ *
+ * @author CDC IZ Gateway Team
+ * @since 1.0
+ */
 public class AwsSecretsManagerKeyProvider extends KeyProviderBase implements KeyProvider {
     private static final String PHIZ_CRYPTO_ENCRYPTION_KEY_SECRET_NAME = "PHIZ_CRYPTO_ENCRYPTION_KEY_SECRET_NAME";
 
+    /**
+     * Loads the encryption key from AWS Secrets Manager.
+     *
+     * @return a 32-byte array containing the encryption key
+     * @throws IllegalArgumentException if the secret name environment variable is not set,
+     *                                  the secret value is empty, or the key length is not 32 bytes
+     * @throws CryptoException if there's an error communicating with AWS Secrets Manager
+     */
     @Override
     public byte[] loadKey() throws CryptoException {
         String secretName = getEncryptionKeySecretName();

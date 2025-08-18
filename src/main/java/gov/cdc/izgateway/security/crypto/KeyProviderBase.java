@@ -3,7 +3,6 @@ package gov.cdc.izgateway.security.crypto;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
-import java.util.stream.Collectors;
 
 public class KeyProviderBase {
     private final Set<ByteArrayWrapper> keyHistory = new LinkedHashSet<>();
@@ -12,7 +11,7 @@ public class KeyProviderBase {
         synchronized (TestKeyProvider.class) {
             return keyHistory.stream()
                     .map(ByteArrayWrapper::getData)
-                    .collect(Collectors.toList());
+                    .toList();
         }
     }
 

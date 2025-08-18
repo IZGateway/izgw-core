@@ -25,13 +25,10 @@ import java.security.Security;
  */
 @Slf4j
 public class CryptoSupport {
-    private static final String PHIZ_CRYPTO_ENCRYPTION_KEY_SECRET_NAME = "PHIZ_CRYPTO_ENCRYPTION_KEY_SECRET_NAME";
 	/** Length in bytes of the Initialization Vector */
 	private static final int IV_LENGTH = 16;
 	/** Length in bytes of the Authentication Tag */
 	private static final int TAG_LENGTH = 16;
-	/** Length in bytes of the Key */
-    private static final int KEY_LENGTH = 32;
 	/** The Cipher Algorithm to Use */
     private static final String CIPHER_ALGORITHM = "AES/GCM/NoPadding";
     /** A secure random number generator */
@@ -39,34 +36,21 @@ public class CryptoSupport {
 
     private static KeyProvider keyProvider = new AwsSecretsManagerKeyProvider(); // Default
 
-    // Add setter for dependency injection (package-private for testing)
+    private CryptoSupport() {
+        // Prevent instantiation
+    }
+    /**
+     * Sets the key provider for dependency injection.
+     * <p>
+     * This method is package-private and primarily intended for testing purposes
+     * to inject mock or test key providers.
+     * </p>
+     *
+     * @param provider the key provider to use for loading encryption keys
+     */
     static void setKeyProvider(KeyProvider provider) {
         keyProvider = provider;
     }
-
-//    public static String encrypt(String plainText) throws CryptoException {
-//        for (byte[] key : keyProvider.getAllKeys()) {
-//            try {
-//                return encrypt(plainText, key);
-//            } catch (CryptoException e) {
-//                // Log and continue to next key
-//                log.error("Encryption failed with key");
-//            }
-//        }
-//
-//        // Attempt to get the key from AWS Secrets Manager
-//        try {
-//            byte[] keyBytes = keyProvider.loadKey();
-//            if (!keyProvider.keyExists(keyBytes)) {
-//                keyProvider.addKeyToHistory(keyBytes);
-//                return encrypt(plainText, keyBytes);
-//            } else {
-//                throw new CryptoException("Encryption failed with all available keys.");
-//            }
-//        } catch (CryptoException e) {
-//            throw new CryptoException("Failed to encrypt with all available keys.", e);
-//        }
-//    }
 
     /**
      * Encrypts the given plain text using AES-GCM with a random IV.
@@ -101,6 +85,27 @@ public class CryptoSupport {
         }
     }
 
+    /**
+     * Decrypts encrypted text using key rotation fallback strategy.
+     * <p>
+     * This method attempts to decrypt the input using multiple keys to support
+     * key rotation scenarios. It first tries all keys from the provider's history,
+     * then attempts to load a fresh key if decryption fails.
+     * </p>
+     * <p>
+     * <strong>Decryption Strategy:</strong>
+     * <ol>
+     *   <li>Try decryption with each key from the key history</li>
+     *   <li>If all history keys fail, load the current key from the provider</li>
+     *   <li>Add the current key to history if not already present</li>
+     *   <li>Attempt final decryption with the current key</li>
+     * </ol>
+     * </p>
+     *
+     * @param encryptedText the encrypted text to decrypt (must be prefixed with "==")
+     * @return the decrypted plain text
+     * @throws CryptoException if decryption fails with all available keys
+     */
     public static String decrypt(String encryptedText) throws CryptoException {
         if (encryptedText == null || !encryptedText.startsWith("==")) {
             return encryptedText;
@@ -115,7 +120,6 @@ public class CryptoSupport {
             }
         }
 
-        // Attempt to get the key from AWS Secrets Manager
         try {
             byte[] keyBytes = keyProvider.loadKey();
             if (!keyProvider.keyExists(keyBytes)) {
@@ -184,31 +188,4 @@ public class CryptoSupport {
 		Security.insertProviderAt(new BouncyCastleFipsProvider(), 1);
 		Security.insertProviderAt(new BouncyCastleJsseProvider(), 2);
 	}
-    
-//    /**
-//     * Small verification main
-//     * @param args
-//     * @throws Exception
-//     */
-//    public static void main(String ... args) throws Exception {
-//    	initialize();
-//		String originalText = "Hello, World!";
-//		String encryptedText = encrypt(originalText);
-//		String decryptedText = decrypt(encryptedText);
-//
-//        log.info("Original: {}", originalText);   // NOSONAR
-//        log.info("Encrypted: {}", encryptedText); // NOSONAR
-//        log.info("Decrypted: {}", decryptedText); // NOSONAR
-//		encryptedText = "==FI0+iBynP/FWea18NeeZ0XY43cNtlgPb3V6zvwRKP99G9Lyr/SQo9yY59kLO";
-//		decryptedText = decrypt(encryptedText);
-//        log.info("Decrypted: {}", decryptedText); // NOSONAR
-//    }
-
-    private static String getEncryptionKeySecretName() {
-        return System.getenv().getOrDefault(PHIZ_CRYPTO_ENCRYPTION_KEY_SECRET_NAME, "izgw-dev-password-encryption-key");
-    }
-
-
-
-
 }

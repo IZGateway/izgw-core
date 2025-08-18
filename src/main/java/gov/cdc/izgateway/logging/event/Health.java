@@ -90,6 +90,14 @@ public class Health {
 	@Schema(description="The database in use")
 	private String database;
 	
+	@JsonProperty
+	@Schema(description="This Host's DNS Address", example="3.232.82.52") // NOSONAR This is an example address
+	private String[] ingressDnsAddress;
+	
+	@JsonProperty
+	@Schema(description="This Host's Egress IP Address", example="54.87.148.103") // NOSONAR This is an example address
+	private String egressDnsAddress;
+	
     public Health() {
         started = new Date(ManagementFactory.getRuntimeMXBean().getStartTime());
         environment = SystemUtils.getDestTypeAsString();
@@ -118,6 +126,9 @@ public class Health {
         this.successVolume = that.successVolume;
         this.hostname = that.hostname;
         this.database = that.database;
+        
+        this.ingressDnsAddress = that.ingressDnsAddress;
+        this.egressDnsAddress = that.egressDnsAddress;
     }
 
     public Health copy() {

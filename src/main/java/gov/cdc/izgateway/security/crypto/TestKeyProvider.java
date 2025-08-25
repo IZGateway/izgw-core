@@ -1,5 +1,7 @@
 package gov.cdc.izgateway.security.crypto;
 
+import org.bouncycastle.util.encoders.Hex;
+
 import java.nio.charset.StandardCharsets;
 
 /**
@@ -21,7 +23,7 @@ import java.nio.charset.StandardCharsets;
  */
 class TestKeyProvider extends KeyProviderBase implements KeyProvider {
     private static int callCount = 0;
-    private static final String BASE_KEY = "MySecretKeyForTestingPurposes12";
+    private static final String BASE_KEY = "a1b2c3d4e5f6789012345678901234567890abcdefabcdef123456789012345";
 
     static void rotateKey() {
         // This method can be used to reset the call count if needed
@@ -30,10 +32,11 @@ class TestKeyProvider extends KeyProviderBase implements KeyProvider {
 
     @Override
     public byte[] loadKey() throws CryptoException {
-        int suffix = (callCount % 3) + 1;
+        int suffix = (callCount % 3);
 
         String key = BASE_KEY + suffix;
-        return key.getBytes(StandardCharsets.UTF_8);
+
+        return Hex.decode(key);
     }
 
 }

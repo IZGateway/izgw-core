@@ -1,6 +1,7 @@
 package gov.cdc.izgateway.security.crypto;
 
 import org.apache.commons.lang3.StringUtils;
+import org.bouncycastle.util.encoders.Hex;
 import software.amazon.awssdk.core.exception.SdkClientException;
 import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.secretsmanager.SecretsManagerClient;
@@ -52,7 +53,7 @@ class AwsSecretsManagerKeyProvider extends KeyProviderBase implements KeyProvide
                 GetSecretValueResponse getSecretValueResponse = client.getSecretValue(getSecretValueRequest);
                 String secret = getSecretValueResponse.secretString();
                 if (!StringUtils.isEmpty(secret)) {
-                    byte[] decoded = secret.getBytes(StandardCharsets.UTF_8);
+                    byte[] decoded = Hex.decode(secret.trim());
                     if (decoded.length == 32) {
                         return decoded;
                     } else {

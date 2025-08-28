@@ -18,7 +18,7 @@
   -->
   <version>2.3.0-izgw-core-SNAPSHOT</version>
   <packaging>jar</packaging>
-  <name>IZ Gateway Core 2.2.2</name>
+  <name>IZ Gateway Core</name>
   <description>IZ Gateway Core contains the core code for the IZ Gateway Hub and Transformation services</description>
   <distributionManagement>
     <repository>

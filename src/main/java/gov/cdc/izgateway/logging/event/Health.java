@@ -150,10 +150,18 @@ public class Health {
         this.region = that.region;
     }
 
+    /**
+     * @return a copy of this Health object.
+     */
     public Health copy() {
         return new Health(this);
     }
     
+    /**
+	 * Set the health status of the server.
+	 * 
+	 * @param healthy true if the server is healthy, false otherwise
+	 */
     public void setHealthy(boolean healthy) {
     	this.healthy = healthy;
     	if (healthy) {
@@ -176,23 +184,30 @@ public class Health {
         return lastException == null ? null : lastException.getMessage();
     }
 
-    @JsonIgnore
-	public Throwable getLastExceptionInternal() {
-		return lastException;
-	}
-
+	/**
+	 * @return the atomic request Volume value
+	 */
 	public long getRequestVolume() {
 		return requestVolume.get();
 	}
 
+	/**
+	 * @return the atomic success Volume value
+	 */
 	public long getSuccessVolume() {
 		return successVolume.get();
 	}
 
+	/**
+	 * bump the atomic request volume counter
+	 */
 	public void incrementRequestVolume() {
 		requestVolume.incrementAndGet();
 	}
 
+	/**
+	 * bump the atomic success volume counter
+	 */
 	public void incrementSuccessVolume() {
 		successVolume.incrementAndGet();
 	}

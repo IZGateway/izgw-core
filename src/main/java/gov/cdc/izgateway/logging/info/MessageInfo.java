@@ -5,6 +5,7 @@ import java.util.Map;
 
 import javax.xml.stream.XMLStreamException;
 
+import gov.cdc.izgateway.security.crypto.CryptoException;
 import lombok.AccessLevel;
 import lombok.Data;
 import lombok.Getter;
@@ -84,7 +85,7 @@ public class MessageInfo {
 		FixedByteArrayOutputStream fos = new FixedByteArrayOutputStream();
 		try {
 			new SoapMessageWriter(payload, IndentingXMLStreamWriter.createInstance(fos), filtering).write();
-		} catch (XMLStreamException e) {
+		} catch (XMLStreamException | CryptoException e) {
 			// Swallow this, we only want the first part anyway.
 		}
 		payloadString = fos.toString();

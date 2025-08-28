@@ -100,10 +100,8 @@ public class Health {
 	
 	@JsonProperty
 	@Schema(description="This Host's Region", example="us-east-1")
-	private String region;
-	
-	
-    public Health() {
+
+  public Health() {
         started = new Date(ManagementFactory.getRuntimeMXBean().getStartTime());
         environment = SystemUtils.getDestTypeAsString();
         statusAt = new Date();

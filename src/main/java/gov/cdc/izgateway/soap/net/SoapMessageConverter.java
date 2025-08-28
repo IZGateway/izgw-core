@@ -7,6 +7,8 @@ import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.List;
+
+import gov.cdc.izgateway.security.crypto.CryptoException;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.http.HttpHeaders;
@@ -169,7 +171,7 @@ public class SoapMessageConverter implements HttpMessageConverter<SoapMessage> {
 	public void write(SoapMessage message, OutputStream body) {
 		try {
 			new SoapMessageWriter(message, IndentingXMLStreamWriter.createInstance(body)).write();
-		} catch (XMLStreamException e) {
+		} catch (XMLStreamException | CryptoException e) {
 			throw new HttpMessageNotWritableException(e.getMessage(), e);
 		}
 	}

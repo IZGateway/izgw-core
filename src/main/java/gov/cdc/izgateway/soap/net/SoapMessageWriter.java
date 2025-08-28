@@ -5,6 +5,8 @@ import java.util.function.Function;
 import javax.xml.stream.XMLStreamException;
 import javax.xml.stream.XMLStreamWriter;
 
+import gov.cdc.izgateway.security.crypto.CryptoException;
+import gov.cdc.izgateway.security.crypto.CryptoSupport;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.tuple.Pair;
 import org.slf4j.MDC;
@@ -101,7 +103,7 @@ public class SoapMessageWriter {
 		w.writeEndElement();
 	}
 
-	public void write() throws XMLStreamException {
+	public void write() throws XMLStreamException, CryptoException {
 		w.writeStartElement(SoapMessage.SOAP_PREFIX, "Envelope", SoapMessage.SOAP_NS);
 		w.writeNamespace(SoapMessage.SOAP_PREFIX, SoapMessage.SOAP_NS);
 		w.writeNamespace(SoapMessage.IIS_PREFIX, getIisSchema(m));
@@ -252,10 +254,10 @@ public class SoapMessageWriter {
 			w.writeNamespace(SoapMessage.IIS_PREFIX, getIisSchema(m));
 		}
 	}
-	public void writeBodyContent() throws XMLStreamException {
+	public void writeBodyContent() throws XMLStreamException, CryptoException {
 		if (m instanceof HasCredentials credentialed) {
 			writeOptionalTextElement("Username", hidden(credentialed.getUsername()));
-			writeOptionalTextElement("Password", hidden(credentialed.getPassword()));
+			writeOptionalTextElement("Password", hidden(CryptoSupport.decrypt(credentialed.getPassword())));
 			if (m instanceof HasFacilityID hfid) {
 				writeOptionalTextElement("FacilityID", hfid.getFacilityID());
 			}

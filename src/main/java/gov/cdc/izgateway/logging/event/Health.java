@@ -17,6 +17,12 @@ import lombok.Getter;
 import java.lang.management.ManagementFactory;
 import java.util.Date;
 
+/**
+ * The Health class represents the health status of the server.
+ * 
+ * @author Audacious Inquiry
+ *
+ */
 @JsonPropertyOrder({ 
 	"isHealthy", "statusAt", "lastChangeReason",
 	"started", "startupTime",
@@ -103,6 +109,9 @@ public class Health {
 	private String region;
 	
 	
+    /**
+     * Construct a new Health object with default values.
+     */
     public Health() {
         started = new Date(ManagementFactory.getRuntimeMXBean().getStartTime());
         environment = SystemUtils.getDestTypeAsString();
@@ -111,6 +120,9 @@ public class Health {
         region = System.getenv("AWS_REGION");
     }
 
+    /**
+     * Make a copy of an existing Health object.
+     */
     private Health(Health that) {
         this.healthy = that.healthy;
         this.statusAt = new Date();

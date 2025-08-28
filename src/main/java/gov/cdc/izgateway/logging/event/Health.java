@@ -98,11 +98,17 @@ public class Health {
 	@Schema(description="This Host's Egress IP Address", example="54.87.148.103") // NOSONAR This is an example address
 	private String egressDnsAddress;
 	
+	@JsonProperty
+	@Schema(description="This Host's Region", example="us-east-1")
+	private String region;
+	
+	
     public Health() {
         started = new Date(ManagementFactory.getRuntimeMXBean().getStartTime());
         environment = SystemUtils.getDestTypeAsString();
         statusAt = new Date();
         hostname = SystemUtils.getHostname();
+        region = System.getenv("AWS_REGION");
     }
 
     private Health(Health that) {
@@ -129,6 +135,7 @@ public class Health {
         
         this.ingressDnsAddress = that.ingressDnsAddress;
         this.egressDnsAddress = that.egressDnsAddress;
+        this.region = that.region;
     }
 
     public Health copy() {

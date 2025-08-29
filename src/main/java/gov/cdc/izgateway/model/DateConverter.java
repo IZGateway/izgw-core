@@ -4,7 +4,7 @@ import java.util.Date;
 
 import org.apache.commons.lang3.time.FastDateFormat;
 
-import gov.cdc.izgateway.common.Constants;
+import lombok.extern.slf4j.Slf4j;
 import software.amazon.awssdk.enhanced.dynamodb.AttributeConverter;
 import software.amazon.awssdk.enhanced.dynamodb.AttributeValueType;
 import software.amazon.awssdk.enhanced.dynamodb.EnhancedType;
@@ -15,8 +15,12 @@ import software.amazon.awssdk.services.dynamodb.model.AttributeValue;
  * A converter for the java.util.Date time which converts dates to and from
  * strings in the a ISO 8601 timestamp format using the UTC timezone.
  */
+@Slf4j
 public class DateConverter implements AttributeConverter<Date> { // NOSONAR, singleton OK here.
-	private static FastDateFormat ft = FastDateFormat.getInstance(Constants.TIMESTAMP_FORMAT);
+	// This is the correct ISO 8601 format with timezone offset that supports Z at the end
+	// as is used by JavaScript Date.toISOString()
+	private static FastDateFormat ft = FastDateFormat.getInstance("yyyy-MM-dd'T'HH:mm:ss.SSSXX");
+	
 	private static final DateConverter INSTANCE = new DateConverter();
 	
 	@Override
@@ -26,9 +30,12 @@ public class DateConverter implements AttributeConverter<Date> { // NOSONAR, sin
 
 	@Override
 	public Date transformTo(AttributeValue input) {
+		String s = input.s();
 		try {
-			return ft.parse(input.s());
+			return ft.parse(s);
 		} catch (ParseException e) {
+			// Log this so we find it, but return null so that things mostly work as expected
+			log.error("Error parsing date string {}", input.s(), e);
 			return null;
 		}
 	}

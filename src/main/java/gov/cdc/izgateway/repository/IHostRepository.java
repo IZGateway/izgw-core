@@ -15,9 +15,9 @@ public interface IHostRepository {
 	 */
 	List<String> findAll();
 	/**
-	 * Get a map of hosts and their ingress addresses that have reported in the last few minutes.
-	 * @return A map of host names to a list of ingress addresses
+	 * Get a map of hosts and their regions that have reported in the last few minutes.
+	 * @return A map of host names to their regions
 	 */
-	Map<String, List<String>> getHostsAndIngressAddresses();
+	Map<String, String> getHostsAndRegion();
 
 }

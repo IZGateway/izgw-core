@@ -22,6 +22,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.converter.HttpMessageNotReadableException;
+import org.springframework.http.converter.HttpMessageNotWritableException;
 import org.springframework.stereotype.Component;
 
 import gov.cdc.izgateway.configuration.AppProperties;
@@ -39,6 +40,7 @@ import gov.cdc.izgateway.model.IDestination;
 import gov.cdc.izgateway.model.IEndpointStatus;
 import gov.cdc.izgateway.security.ClientTlsSupport;
 import gov.cdc.izgateway.security.Roles;
+import gov.cdc.izgateway.security.crypto.CryptoException;
 import gov.cdc.izgateway.service.IStatusCheckerService;
 import gov.cdc.izgateway.service.impl.EndpointStatusService;
 
@@ -334,6 +336,11 @@ public class MessageSender {
 			messageInfo.setHttpHeaders(con.getHeaderFields());
 			RequestContext.getTransactionData().getClientResponse().setWs_response_message(messageInfo);
 			return result;
+		} catch (HttpMessageNotWritableException ex) {
+			if (ex.getCause() instanceof CryptoException f) {
+				throw SecurityFault.decryptionFailure(dest, f);
+			}
+			throw DestinationConnectionFault.writeError(dest, ex.getCause());
 		} catch (ConnectException ex) {
 			throw DestinationConnectionFault.connectError(dest, ex, System.currentTimeMillis() - started);
 		} catch (SocketTimeoutException ex) {

@@ -320,7 +320,7 @@ public class DestinationConnectionFault extends Fault implements HasDestinationU
      * @param ex The root cause of the exception
      * @return	A new DestinationConnectionFault
      */
-	public static DestinationConnectionFault writeError(IDestination routing, IOException ex) {
+	public static DestinationConnectionFault writeError(IDestination routing, Throwable ex) {
 		if (ex instanceof TlsException) {
 			return new DestinationConnectionFault(12, routing, ex.getMessage(), ex);
 		}

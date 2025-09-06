@@ -1,6 +1,7 @@
 package gov.cdc.izgateway.soap.fault;
 
 import gov.cdc.izgateway.logging.info.EndPointInfo;
+import gov.cdc.izgateway.model.IDestination;
 import gov.cdc.izgateway.model.RetryStrategy;
 import lombok.Getter;
 
@@ -24,6 +25,9 @@ public class SecurityFault extends Fault {
     		new MessageSupport(FAULT_NAME, "62", "User Blacklisted", "IZ Gateway received a message containing content suggesting the source of the message has been compromised", 
     				"A message was sent containing code that appears to be trying to infect the receiver or downstream recipients. This source has been blocked and cannot send or receive messages "
     				+ "to or from IZ Gateway until it has been cleared by support.", RetryStrategy.CONTACT_SUPPORT),
+    		new MessageSupport(FAULT_NAME, "63", "Decryption Failure", "Failure decrypting password for destination.", 
+					"The password used to connect to the specified destination could not be decrypted.", 
+					RetryStrategy.CONTACT_SUPPORT)
     	};
     static {
     	MessageSupport.registerMessageSupport(MESSAGE_TEMPLATES[0]);
@@ -65,4 +69,16 @@ public class SecurityFault extends Fault {
     public static SecurityFault userBlacklisted(EndPointInfo endpoint) {
         return new SecurityFault(MESSAGE_TEMPLATES[2].copy().setDetail(endpoint.getCommonName()), null, endpoint);
 	}
+    
+    /**
+     * Report a failure to decrypt a destination password
+     * @param dest	The destination whose password could not be decrypted
+     * @param cause	The cause of the failure
+     * @return	A new security fault ready to be thrown
+     */
+    public static SecurityFault decryptionFailure(IDestination dest, Throwable cause) {
+		return new SecurityFault(MESSAGE_TEMPLATES[3].copy()
+				.setDetail(String.format("Decryption failure on %s (%s)", dest.getId().getDestId(), dest.getDestUri())), 
+				cause, null);
+    }
 }

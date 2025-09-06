@@ -50,6 +50,7 @@ class AwsSecretsManagerKeyProvider extends KeyProviderBase implements KeyProvide
                 if (entry.getValue().contains("AWSCURRENT")) {
                     currentVersionId = entry.getKey();
                 } else if (entry.getValue().contains("AWSPREVIOUS")) {
+                	// We must load the previous key in case CC is not yet finished rolling out the new key
                     previousVersionId = entry.getKey();
                 }
             }

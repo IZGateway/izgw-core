@@ -3,12 +3,10 @@ package gov.cdc.izgateway.security.crypto;
 import org.apache.commons.lang3.StringUtils;
 import org.bouncycastle.util.encoders.Hex;
 import software.amazon.awssdk.core.exception.SdkClientException;
-import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.secretsmanager.SecretsManagerClient;
 import software.amazon.awssdk.services.secretsmanager.model.GetSecretValueRequest;
 import software.amazon.awssdk.services.secretsmanager.model.GetSecretValueResponse;
 
-import java.nio.charset.StandardCharsets;
 import java.util.*;
 
 /**
@@ -33,6 +31,52 @@ class AwsSecretsManagerKeyProvider extends KeyProviderBase implements KeyProvide
     private static final String IZGW_CRYPTO_SECRET_KEY_NAME = "IZGW_CRYPTO_SECRET_KEY_NAME";
 
     /**
+     * Constructor that loads the current and previous keys into the key history using AWS Secret tags.
+     */
+    AwsSecretsManagerKeyProvider() {
+        String secretName = getEncryptionKeySecretName();
+        if (StringUtils.isEmpty(secretName)) {
+            return;
+        }
+        try (SecretsManagerClient client = SecretsManagerClient.builder().build()) {
+            // Get secret description (includes tags and version ids)
+            var describeRequest = software.amazon.awssdk.services.secretsmanager.model.DescribeSecretRequest.builder()
+                    .secretId(secretName).build();
+            var describeResponse = client.describeSecret(describeRequest);
+            Map<String, List<String>> versionStages = describeResponse.versionIdsToStages();
+            String currentVersionId = null;
+            String previousVersionId = null;
+            for (Map.Entry<String, List<String>> entry : versionStages.entrySet()) {
+                if (entry.getValue().contains("AWSCURRENT")) {
+                    currentVersionId = entry.getKey();
+                } else if (entry.getValue().contains("AWSPREVIOUS")) {
+                    previousVersionId = entry.getKey();
+                }
+            }
+            if (currentVersionId != null) {
+                byte[] currentKey = loadKeyVersion(client, secretName, currentVersionId);
+                if (currentKey != null) addKeyToHistory(currentKey);
+            }
+            if (previousVersionId != null) {
+                byte[] previousKey = loadKeyVersion(client, secretName, previousVersionId);
+                if (previousKey != null) addKeyToHistory(previousKey);
+            }
+        } catch (SdkClientException e) {
+			throw new ServiceConfigurationError("Failed to load encryption key from AWS Secrets Manager", e);
+		}
+    }
+
+    private byte[] loadKeyVersion(SecretsManagerClient client, String secretName, String versionId) {
+        try {
+        	GetSecretValueRequest req = GetSecretValueRequest.builder().secretId(secretName).versionId(versionId).build();
+        	GetSecretValueResponse resp = client.getSecretValue(req);
+            String secret = resp.secretString();
+			return checkSecret(secret);
+        } catch (Exception ignored) {}
+        return null;
+    }
+
+    /**
      * Loads the encryption key from AWS Secrets Manager.
      *
      * @return a 32-byte array containing the encryption key
@@ -47,26 +91,23 @@ class AwsSecretsManagerKeyProvider extends KeyProviderBase implements KeyProvide
             throw new IllegalArgumentException(IZGW_CRYPTO_SECRET_KEY_NAME + " environment variable is not set.");
         }
 
-        try {
-            try (SecretsManagerClient client = SecretsManagerClient.builder().build()) {
-                GetSecretValueRequest getSecretValueRequest = GetSecretValueRequest.builder().secretId(secretName).build();
-                GetSecretValueResponse getSecretValueResponse = client.getSecretValue(getSecretValueRequest);
-                String secret = getSecretValueResponse.secretString();
-                if (!StringUtils.isEmpty(secret)) {
-                    byte[] decoded = Hex.decode(secret.trim());
-                    if (decoded.length == 32) {
-                        return decoded;
-                    } else {
-                        throw new IllegalArgumentException("Secret key length is invalid. Expected 32 bytes, got " + decoded.length + " bytes.");
-                    }
-                } else {
-                    throw new IllegalArgumentException("Secret value is empty.");
-                }
-            }
+        try (SecretsManagerClient client = SecretsManagerClient.builder().build()) {
+        	return loadKeyVersion(client, secretName, null);
         } catch (SdkClientException e) {
             throw new CryptoException("Failed to load encryption key from AWS Secrets Manager", e);
         }
     }
+
+	private byte[] checkSecret(String secret) {
+		if (StringUtils.isEmpty(secret)) {
+		    throw new IllegalArgumentException("Secret value is empty.");
+		}
+	    byte[] decoded = Hex.decode(secret.trim());
+	    if (decoded.length != 32) {
+	        throw new IllegalArgumentException("Secret key length is invalid. Expected 32 bytes, got " + decoded.length + " bytes.");
+	    }
+        return decoded;
+	}
 
     private String getEncryptionKeySecretName() {
         return System.getenv().getOrDefault(IZGW_CRYPTO_SECRET_KEY_NAME, "izgw-dev-password-encryption-key");

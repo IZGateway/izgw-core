@@ -34,7 +34,7 @@ public class CryptoSupport {
     /** A secure random number generator */
     private static final SecureRandom secureRandom = getSecureRandom();
 
-    private static KeyProvider keyProvider = new AwsSecretsManagerKeyProvider(); // Default
+    private static KeyProvider keyProvider = null;
 
     private CryptoSupport() {
         // Prevent instantiation
@@ -51,6 +51,14 @@ public class CryptoSupport {
     static void setKeyProvider(KeyProvider provider) {
         keyProvider = provider;
     }
+    
+    static KeyProvider getKeyProvider() {
+    	if (keyProvider == null) {
+    		// Initialize default provider
+        	keyProvider = new AwsSecretsManagerKeyProvider();
+		}
+		return keyProvider;
+	}
 
     /**
      * Encrypts the given plain text using AES-GCM with a random IV.
@@ -111,7 +119,7 @@ public class CryptoSupport {
         if (encryptedText == null || !encryptedText.startsWith("==")) {
             return encryptedText;
         }
-
+        KeyProvider keyProvider = getKeyProvider();
         for (byte[] key : keyProvider.getAllKeys()) {
             try {
                 return decrypt(encryptedText, key);

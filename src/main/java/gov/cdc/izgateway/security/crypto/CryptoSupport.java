@@ -56,6 +56,7 @@ public class CryptoSupport {
      * Encrypts the given plain text using AES-GCM with a random IV.
      * 
      * @param plainText	the text to encrypt
+     * @param keyBytes the AES encryption key (must be 32 bytes for AES-256)
      * @return	the encrypted text, base64-encoded and prefixed with "=="
      * @throws CryptoException	if an error occurs during encryption
      */
@@ -136,6 +137,7 @@ public class CryptoSupport {
     /**
      * Decrypts the given encrypted text using AES-GCM.
      * @param encryptedText	the text to decrypt, base64-encoded and prefixed with "=="
+     * @param keyBytes the AES decryption key (must be 32 bytes for AES-256)
      * @return	the decrypted plain text
      * @throws CryptoException	if an error occurs during decryption
      */

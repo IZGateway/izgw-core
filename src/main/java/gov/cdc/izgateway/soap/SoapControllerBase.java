@@ -117,9 +117,7 @@ public abstract class SoapControllerBase {
 		return null;
 	}
 
-	protected final boolean isHub() {
-		return getDestinationService() != null;
-	}
+	protected abstract boolean isHub();
 	protected abstract void checkCredentials(HasCredentials s) throws SecurityFault;
 	
 	/**
@@ -465,7 +463,7 @@ public abstract class SoapControllerBase {
 		}
 	}
 
-	protected IDestination getDestination(String destinationId) throws UnknownDestinationFault { // NOSONAR Subclass throws this fault
+	protected IDestination getDestination(String destinationId) throws Fault { // NOSONAR Subclass throws this fault
 		return getDestinationService().getExample(destinationId);
 	}
 

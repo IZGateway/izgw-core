@@ -1,9 +1,6 @@
 package gov.cdc.izgateway.soap.net;
 
-import java.io.BufferedInputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
+import java.io.*;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.List;
@@ -31,8 +28,13 @@ import javax.xml.stream.XMLInputFactory;
 import javax.xml.stream.XMLStreamException;
 import javax.xml.stream.XMLStreamReader;
 import javax.xml.transform.stax.StAXSource;
+import org.springframework.web.context.request.RequestContextHolder;
+import org.springframework.web.context.request.ServletRequestAttributes;
+import jakarta.servlet.http.HttpServletRequest;
 
 public class SoapMessageConverter implements HttpMessageConverter<SoapMessage> {
+    private static final String HUB_ACTION = "urn:cdc:iisb:hub:2014:IISHubPortType:SubmitSingleMessageRequest";
+
     private static List<MediaType> mediaTypes = Arrays.asList(MediaType.APPLICATION_XML, MediaType.TEXT_XML, MediaType.TEXT_PLAIN, new MediaType("application", "soap+xml"));
 
 	// Retain up to 8K of the input message for error handling.
@@ -77,6 +79,7 @@ public class SoapMessageConverter implements HttpMessageConverter<SoapMessage> {
 		staxSource.setSupportedMediaTypes(mediaTypes);
 		this.type = type;
 	}
+
 	/**
 	 * See if the MediaType is json format.
 	 * @param mediaType	The media type to check
@@ -102,12 +105,39 @@ public class SoapMessageConverter implements HttpMessageConverter<SoapMessage> {
 		return staxSource.getSupportedMediaTypes();
 	}
 
-	@Override
-	public SoapMessage read(Class<? extends SoapMessage> clazz, HttpInputMessage message)
-			throws IOException, HttpMessageNotReadableException {
-		return read(message, null);
-	}
-	
+//	public SoapMessage read(Class<? extends SoapMessage> clazz, HttpInputMessage message)
+//			throws IOException, HttpMessageNotReadableException {
+//		return read(message, null);
+//	}
+
+    @Override
+    public SoapMessage read(Class<? extends SoapMessage> clazz, org.springframework.http.HttpInputMessage inputMessage)
+            throws IOException, HttpMessageNotReadableException {
+
+        // Read the content to check for WSA action
+        byte[] content = org.springframework.util.StreamUtils.copyToByteArray(inputMessage.getBody());
+        String soapContent = new String(content, StandardCharsets.UTF_8);
+
+        // Check for specific WSA action and set hub accordingly
+        boolean hasHubAction = soapContent.contains("urn:cdc:iisb:hub:2014:IISHubPortType:SubmitSingleMessageRequest");
+        setHub(hasHubAction); // false for specific action, true for others
+
+        // Create new input message with the original content
+        HttpInputMessage wrappedMessage = new org.springframework.http.HttpInputMessage() {
+            @Override
+            public InputStream getBody() throws IOException {
+                return new ByteArrayInputStream(content);
+            }
+
+            @Override
+            public org.springframework.http.HttpHeaders getHeaders() {
+                return inputMessage.getHeaders();
+            }
+        };
+
+        return read(wrappedMessage, null);
+    }
+
 	public SoapMessage read(HttpInputMessage message, EndPointInfo endpoint)
 			throws IOException, HttpMessageNotReadableException {
 		BufferedInputStream b = IOUtils.buffer(message.getBody());
@@ -131,7 +161,7 @@ public class SoapMessageConverter implements HttpMessageConverter<SoapMessage> {
 			throw new SoapConversionException(e.getMessage(), e, inputMessage);
 		}
 	}
-	
+
 	private XMLStreamReader getReader(StAXSource source) throws XMLStreamException {
 		return XML_INPUT_FACTORY.createFilteredReader(
 			source.getXMLStreamReader(),

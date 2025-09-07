@@ -152,7 +152,7 @@ public class SoapMessageConverter implements HttpMessageConverter<SoapMessage> {
 
 			XMLStreamReader xmlReader = getReader(source);
 			SoapMessageReader r = new SoapMessageReader(xmlReader, getReadType(), null);
-			r.setHub(isHub());
+			// PAUL TO FIX r.setHub(isHub());
 			r.setEndpoint(endpoint);
 			SoapMessage m = r.read();  // NOSONAR, enables debugging
 			return m;
@@ -189,7 +189,7 @@ public class SoapMessageConverter implements HttpMessageConverter<SoapMessage> {
 	private String getContentType(SoapMessage message,
 			MediaType contentType) {
 		StringBuilder ct = new StringBuilder("application/soap+xml");
-		message.updateAction(isHub());
+		// PAUL TO FIX message.updateAction(isHub());
 		String action = message.getWsaHeaders().getAction();
 		ct.append("; charset=UTF-8");
 		if (StringUtils.isNotEmpty(action)) {

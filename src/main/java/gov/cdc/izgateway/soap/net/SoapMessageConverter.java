@@ -1,6 +1,11 @@
 package gov.cdc.izgateway.soap.net;
 
-import java.io.*;
+import java.io.BufferedInputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.io.ByteArrayInputStream;
+
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.List;
@@ -28,9 +33,6 @@ import javax.xml.stream.XMLInputFactory;
 import javax.xml.stream.XMLStreamException;
 import javax.xml.stream.XMLStreamReader;
 import javax.xml.transform.stax.StAXSource;
-import org.springframework.web.context.request.RequestContextHolder;
-import org.springframework.web.context.request.ServletRequestAttributes;
-import jakarta.servlet.http.HttpServletRequest;
 
 public class SoapMessageConverter implements HttpMessageConverter<SoapMessage> {
     private static final String HUB_ACTION = "urn:cdc:iisb:hub:2014:IISHubPortType:SubmitSingleMessageRequest";
@@ -105,13 +107,8 @@ public class SoapMessageConverter implements HttpMessageConverter<SoapMessage> {
 		return staxSource.getSupportedMediaTypes();
 	}
 
-//	public SoapMessage read(Class<? extends SoapMessage> clazz, HttpInputMessage message)
-//			throws IOException, HttpMessageNotReadableException {
-//		return read(message, null);
-//	}
-
     @Override
-    public SoapMessage read(Class<? extends SoapMessage> clazz, org.springframework.http.HttpInputMessage inputMessage)
+    public SoapMessage read(Class<? extends SoapMessage> clazz, HttpInputMessage inputMessage)
             throws IOException, HttpMessageNotReadableException {
 
         // Read the content to check for WSA action
@@ -119,11 +116,11 @@ public class SoapMessageConverter implements HttpMessageConverter<SoapMessage> {
         String soapContent = new String(content, StandardCharsets.UTF_8);
 
         // Check for specific WSA action and set hub accordingly
-        boolean hasHubAction = soapContent.contains("urn:cdc:iisb:hub:2014:IISHubPortType:SubmitSingleMessageRequest");
-        setHub(hasHubAction); // false for specific action, true for others
+        boolean hasHubAction = soapContent.contains(HUB_ACTION);
+        setHub(hasHubAction);
 
-        // Create new input message with the original content
-        HttpInputMessage wrappedMessage = new org.springframework.http.HttpInputMessage() {
+        // Create new input message with the original content, needed because the original stream has been consumed
+        HttpInputMessage wrappedMessage = new HttpInputMessage() {
             @Override
             public InputStream getBody() throws IOException {
                 return new ByteArrayInputStream(content);
@@ -152,7 +149,7 @@ public class SoapMessageConverter implements HttpMessageConverter<SoapMessage> {
 
 			XMLStreamReader xmlReader = getReader(source);
 			SoapMessageReader r = new SoapMessageReader(xmlReader, getReadType(), null);
-			// PAUL TO FIX r.setHub(isHub());
+			r.setHub(isHub());
 			r.setEndpoint(endpoint);
 			SoapMessage m = r.read();  // NOSONAR, enables debugging
 			return m;
@@ -189,7 +186,7 @@ public class SoapMessageConverter implements HttpMessageConverter<SoapMessage> {
 	private String getContentType(SoapMessage message,
 			MediaType contentType) {
 		StringBuilder ct = new StringBuilder("application/soap+xml");
-		// PAUL TO FIX message.updateAction(isHub());
+        // Discuss with the team - this is causing issues with mocks: message.updateAction(isHub());
 		String action = message.getWsaHeaders().getAction();
 		ct.append("; charset=UTF-8");
 		if (StringUtils.isNotEmpty(action)) {

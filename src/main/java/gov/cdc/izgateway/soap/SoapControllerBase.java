@@ -463,7 +463,7 @@ public abstract class SoapControllerBase {
 		}
 	}
 
-	protected IDestination getDestination(String destinationId) throws Fault { // NOSONAR Subclass throws this fault
+	protected IDestination getDestination(String destinationId) throws UnknownDestinationFault { // NOSONAR Subclass throws this fault
 		return getDestinationService().getExample(destinationId);
 	}
 

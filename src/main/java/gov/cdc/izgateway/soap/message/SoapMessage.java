@@ -201,7 +201,7 @@ public class SoapMessage implements Serializable {
 		if (IIS2011_NS.equals(schema)) {
 			return false;
 		}
-		if (this instanceof FaultMessage fm && fm.isHubFault() && !IIS2014_NS.equals(schema)) {
+		if (this instanceof FaultMessage fm && fm.isHubFault()) {
 			return false;
 		}
 		return hubHeader.isEmpty() || IIS2014_NS.equals(schema);

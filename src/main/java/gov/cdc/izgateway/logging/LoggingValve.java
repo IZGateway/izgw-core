@@ -138,7 +138,7 @@ public class LoggingValve extends LoggingValveBase implements EventCreator {
 	}
 
 	protected boolean isLogged(String requestURI) {
-    	return requestURI.startsWith(REST_ADS) || requestURI.startsWith("/IISHubService") || requestURI.startsWith("/dev/");
+    	return requestURI.startsWith(REST_ADS) || requestURI.startsWith("/IISHubService") || requestURI.startsWith("/IISCDCService") || requestURI.startsWith("/dev/");
 	}
 
 	@Override

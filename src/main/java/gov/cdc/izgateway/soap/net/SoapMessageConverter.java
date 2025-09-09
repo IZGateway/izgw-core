@@ -4,7 +4,6 @@ import java.io.BufferedInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
-import java.io.ByteArrayInputStream;
 
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
@@ -35,8 +34,6 @@ import javax.xml.stream.XMLStreamReader;
 import javax.xml.transform.stax.StAXSource;
 
 public class SoapMessageConverter implements HttpMessageConverter<SoapMessage> {
-    private static final String HUB_ACTION = "urn:cdc:iisb:hub:2014:IISHubPortType:SubmitSingleMessageRequest";
-
     private static List<MediaType> mediaTypes = Arrays.asList(MediaType.APPLICATION_XML, MediaType.TEXT_XML, MediaType.TEXT_PLAIN, new MediaType("application", "soap+xml"));
 
 	// Retain up to 8K of the input message for error handling.
@@ -108,9 +105,9 @@ public class SoapMessageConverter implements HttpMessageConverter<SoapMessage> {
 	}
 
     @Override
-    public SoapMessage read(Class<? extends SoapMessage> clazz, HttpInputMessage inputMessage)
+    public SoapMessage read(Class<? extends SoapMessage> clazz, HttpInputMessage message)
             throws IOException, HttpMessageNotReadableException {
-        return read(inputMessage, null);
+        return read(message, null);
     }
 
 	public SoapMessage read(HttpInputMessage message, EndPointInfo endpoint)

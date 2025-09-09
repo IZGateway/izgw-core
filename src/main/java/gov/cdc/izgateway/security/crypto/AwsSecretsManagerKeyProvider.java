@@ -19,7 +19,7 @@ import java.util.*;
  * <p>
  * Configuration is handled through environment variables:
  * <ul>
- *   <li>{@code IZGW_CRYPTO_SECRET_KEY_NAME} - The name of the secret in AWS Secrets Manager</li>
+ *   <li>{@code DB_ENCRYPTION_KEYNAME} - The name of the secret in AWS Secrets Manager</li>
  *   <li>{@code AWS_REGION} - The AWS region where the secret is stored (defaults to us-east-1)</li>
  * </ul>
  * </p>
@@ -28,7 +28,7 @@ import java.util.*;
  * @since 1.0
  */
 class AwsSecretsManagerKeyProvider extends KeyProviderBase implements KeyProvider {
-    private static final String IZGW_CRYPTO_SECRET_KEY_NAME = "IZGW_CRYPTO_SECRET_KEY_NAME";
+    private static final String DB_ENCRYPTION_KEYNAME = "DB_ENCRYPTION_KEYNAME";
 
     /**
      * Constructor that loads the current and previous keys into the key history using AWS Secret tags.
@@ -89,7 +89,7 @@ class AwsSecretsManagerKeyProvider extends KeyProviderBase implements KeyProvide
     public byte[] loadKey() throws CryptoException {
         String secretName = getEncryptionKeySecretName();
         if (StringUtils.isEmpty(secretName)) {
-            throw new IllegalArgumentException(IZGW_CRYPTO_SECRET_KEY_NAME + " environment variable is not set.");
+            throw new IllegalArgumentException(DB_ENCRYPTION_KEYNAME + " environment variable is not set.");
         }
 
         try (SecretsManagerClient client = SecretsManagerClient.builder().build()) {
@@ -111,7 +111,7 @@ class AwsSecretsManagerKeyProvider extends KeyProviderBase implements KeyProvide
 	}
 
     private String getEncryptionKeySecretName() {
-        return System.getenv().getOrDefault(IZGW_CRYPTO_SECRET_KEY_NAME, "izgw-dev-password-encryption-key");
+        return System.getenv().getOrDefault(DB_ENCRYPTION_KEYNAME, "izgw-dev-password-encryption-key");
     }
 
 }

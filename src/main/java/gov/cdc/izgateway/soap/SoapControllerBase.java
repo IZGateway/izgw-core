@@ -117,7 +117,7 @@ public abstract class SoapControllerBase {
 		return null;
 	}
 
-	protected abstract boolean isHub();
+	protected abstract boolean isHubWsdl();
 	protected abstract void checkCredentials(HasCredentials s) throws SecurityFault;
 	
 	/**
@@ -153,7 +153,7 @@ public abstract class SoapControllerBase {
 		TransactionData tData = RequestContext.getTransactionData();
 		String message;
 		if (soapMessage != null) {
-			soapMessage.updateAction(isHub());
+			soapMessage.updateAction(isHubWsdl());
 			if (soapMessage instanceof SubmitSingleMessageRequest s) {
 				tData.setMessageType(MessageType.SUBMIT_SINGLE_MESSAGE);
 				message = s.getHl7Message();
@@ -578,7 +578,7 @@ public abstract class SoapControllerBase {
 	protected ResponseEntity<FaultMessage> handleFault(Fault fault) {
 		logFault(fault);
 		FaultMessage faultMessage = new FaultMessage(fault, messageNamespace);
-		faultMessage.updateAction(isHub());
+		faultMessage.updateAction(isHubWsdl());
 		logResponseMessage(faultMessage);
 		return new ResponseEntity<>(faultMessage, HttpStatus.INTERNAL_SERVER_ERROR);
 	}

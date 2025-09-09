@@ -110,29 +110,7 @@ public class SoapMessageConverter implements HttpMessageConverter<SoapMessage> {
     @Override
     public SoapMessage read(Class<? extends SoapMessage> clazz, HttpInputMessage inputMessage)
             throws IOException, HttpMessageNotReadableException {
-
-        // Read the content to check for WSA action
-        byte[] content = org.springframework.util.StreamUtils.copyToByteArray(inputMessage.getBody());
-        String soapContent = new String(content, StandardCharsets.UTF_8);
-
-        // Check for specific WSA action and set hub accordingly
-        boolean hasHubAction = soapContent.contains(HUB_ACTION);
-        setHub(hasHubAction);
-
-        // Create new input message with the original content, needed because the original stream has been consumed
-        HttpInputMessage wrappedMessage = new HttpInputMessage() {
-            @Override
-            public InputStream getBody() throws IOException {
-                return new ByteArrayInputStream(content);
-            }
-
-            @Override
-            public org.springframework.http.HttpHeaders getHeaders() {
-                return inputMessage.getHeaders();
-            }
-        };
-
-        return read(wrappedMessage, null);
+        return read(inputMessage, null);
     }
 
 	public SoapMessage read(HttpInputMessage message, EndPointInfo endpoint)
@@ -186,7 +164,6 @@ public class SoapMessageConverter implements HttpMessageConverter<SoapMessage> {
 	private String getContentType(SoapMessage message,
 			MediaType contentType) {
 		StringBuilder ct = new StringBuilder("application/soap+xml");
-        // Discuss with the team - this is causing issues with mocks: message.updateAction(isHub());
 		String action = message.getWsaHeaders().getAction();
 		ct.append("; charset=UTF-8");
 		if (StringUtils.isNotEmpty(action)) {

@@ -202,7 +202,7 @@ public class SoapMessageReader {
 			log.error(Markers2.append(ex), "Unexpected exception parsing SOAP Message");
 			throw new SoapParseException(ex, req == null ? null : req.getClass().getSimpleName());
 		}
-		req.updateAction(isHub());
+		req.updateAction(req.isHubMessage());
 		return req;
 	}
 

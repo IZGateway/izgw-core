@@ -290,7 +290,7 @@ public class MessageSender {
 		toBeSent.getHubHeader().clear();
 		ConnectivityTestResponse responseFromClient = sendMessage(ConnectivityTestResponse.class, dest, toBeSent);
 		ConnectivityTestResponse toBeReturned = new ConnectivityTestResponse(responseFromClient, connectivityTest.getSchema(), false);
-		toBeReturned.updateAction(true);  // Now a Hub Response
+		toBeReturned.updateAction(connectivityTest.is2014Message());  // Update action to match request
 		return toBeReturned;
 	}
 

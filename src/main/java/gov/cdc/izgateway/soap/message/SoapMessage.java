@@ -171,6 +171,7 @@ public class SoapMessage implements Serializable {
 		}
 		StringBuilder b = new StringBuilder(name);
 		if (this instanceof Response && responseNames.contains(name)) {
+            nameMap.put(name, "return");
 			return "return";
 		}
 		// Lowercase the initial character

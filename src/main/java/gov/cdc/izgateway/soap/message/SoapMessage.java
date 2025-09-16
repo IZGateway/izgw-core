@@ -169,11 +169,11 @@ public class SoapMessage implements Serializable {
 		if (newName != null) {
 			return newName;
 		}
-		StringBuilder b = new StringBuilder(name);
 		if (this instanceof Response && responseNames.contains(name)) {
             nameMap.put(name, "return");
 			return "return";
 		}
+        StringBuilder b = new StringBuilder(name);
 		// Lowercase the initial character
 		b.setCharAt(0, Character.toLowerCase(b.charAt(0)));
 		// Remove the trailing Request on the name 

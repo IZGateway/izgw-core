@@ -165,14 +165,15 @@ public class SoapMessage implements Serializable {
 	 * @return The 2011 name for the request
 	 */
 	private String to2011name(String name) {
+        if (this instanceof Response && responseNames.contains(name)) {
+            return "return";
+        }
+
 		String newName = nameMap.get(name);
 		if (newName != null) {
 			return newName;
 		}
-		if (this instanceof Response && responseNames.contains(name)) {
-            nameMap.put(name, "return");
-			return "return";
-		}
+
         StringBuilder b = new StringBuilder(name);
 		// Lowercase the initial character
 		b.setCharAt(0, Character.toLowerCase(b.charAt(0)));

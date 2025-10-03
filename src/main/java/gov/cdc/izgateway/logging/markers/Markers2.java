@@ -9,6 +9,8 @@ import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.text.CaseUtils;
 import org.springframework.core.annotation.AnnotationUtils;
 
+import gov.cdc.izgateway.common.HasDestinationUri;
+import gov.cdc.izgateway.soap.fault.Fault;
 import net.logstash.logback.marker.EmptyLogstashMarker;
 import net.logstash.logback.marker.LogstashMarker;
 import net.logstash.logback.marker.Markers;
@@ -56,6 +58,17 @@ public class Markers2 {
 				marker.add(Markers.append("exception", t.getClass().getSimpleName()));
 				marker.add(Markers.append("exceptionMessage", t.getMessage()));
 				marker.add(Markers.append("stack_trace", sw.toString()));
+				if (t instanceof Fault fault) {
+					marker.add(Markers.append("faultName", fault.getFaultName()));
+					marker.add(Markers.append("summary", fault.getSummary()));
+					marker.add(Markers.append("detail", fault.getDetail()));
+					marker.add(Markers.append("code", fault.getCode()));
+					marker.add(Markers.append("retry", fault.getRetry()));
+				}
+				if (t instanceof HasDestinationUri hduri) {
+					marker.add(Markers.append("destIId", hduri.getDestinationId()));
+					marker.add(Markers.append("uri", hduri.getDestinationUri()));
+				}
             	// If there is at least one cause
             	addCauses(marker, t);
 			} else if (o != null) {

@@ -302,7 +302,7 @@ public class ClientTlsSupport implements InitializingBean {
 			return (HttpURLConnection) location.openConnection();
 		}
 		
-		SSLSocketFactory factory = fiddle  ? new CapturingSSLSocketFactory(getSSLContext().getSocketFactory()) : getSSLContext().getSocketFactory();
+		SSLSocketFactory factory = fiddle ? new CapturingSSLSocketFactory(getSSLContext().getSocketFactory()) : getSSLContext().getSocketFactory();
 		URLConnectionUtil util = new URLConnectionUtil(factory);
 		HttpsURLConnection conx = (HttpsURLConnection) util.openConnection(location); 
 		conx.setHostnameVerifier(ClientTlsSupport::verifyHostname);

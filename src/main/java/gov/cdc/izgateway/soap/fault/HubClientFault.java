@@ -33,6 +33,7 @@ import java.util.Map;
 public class HubClientFault extends Fault implements HasDestinationUri {
 
 	private static final long serialVersionUID = 1L;
+	/** The name of the fault */
 	public static final String FAULT_NAME = "HubClientFault";
 	private static final String FAULT = "Fault";
 	private static final MessageSupport[] MESSAGE_TEMPLATES = { new MessageSupport(FAULT_NAME, "220",
@@ -162,9 +163,22 @@ public class HubClientFault extends Fault implements HasDestinationUri {
 	 * @return The hub client fault
 	 */
 	public static HubClientFault invalidMessage(Throwable rootCause, IDestination dest, int statusCode, InputStream body) {
+		return invalidMessage(rootCause, dest, statusCode, null, body);
+	}
+	/** 
+	 * Client returned something, but it didn't parse, go figure it out
+	 * @param rootCause	The root cause of the error
+	 * @param dest	The destination
+	 * @param statusCode	The status code of the response
+	 * @param path The path being accessed
+	 * 
+	 * @param body	The message body
+	 * @return The hub client fault
+	 */
+	public static HubClientFault invalidMessage(Throwable rootCause, IDestination dest, int statusCode, String path, InputStream body) {
 		String bodyString = XmlUtils.toString(body);
 		if (statusCode != 500 && statusCode != 200) {
-			return new HubClientFault(getHttpMessageSupport(statusCode), dest, rootCause, statusCode, bodyString, null);
+			return new HubClientFault(getHttpMessageSupport(statusCode, path), dest, rootCause, statusCode, bodyString, null);
 		}
 		if (statusCode == 200) {
 			// These are dangerous. The client thought it had successfully shipped something, but it wasn't valid.
@@ -226,7 +240,7 @@ public class HubClientFault extends Fault implements HasDestinationUri {
 	 * @return	The hub client fault
 	 */
 	public static HubClientFault httpError(IDestination dest, int statusCode, String error) {
-		return new HubClientFault(getHttpMessageSupport(statusCode), dest, null, statusCode, error, null);
+		return new HubClientFault(getHttpMessageSupport(statusCode, null), dest, null, statusCode, error, null);
 	}
 
 	/**
@@ -284,7 +298,7 @@ public class HubClientFault extends Fault implements HasDestinationUri {
 			return new MessageSupport(FAULT_NAME, "228", details[0]);
 		default:
 			if (statusCode2 != 500) {
-            	return getHttpMessageSupport(statusCode2);
+            	return getHttpMessageSupport(statusCode2, null);
 			}
 			return new MessageSupport(FAULT_NAME, "223", details[0]);
 		}
@@ -295,13 +309,13 @@ public class HubClientFault extends Fault implements HasDestinationUri {
 	 *
 	 * @return A MessageSupport object appropriate to the exception thrown
 	 */
-	private static MessageSupport getHttpMessageSupport(int statusCode) {
+	private static MessageSupport getHttpMessageSupport(int statusCode, String path) {
 		HttpStatus status = HttpStatus.resolve(statusCode);
 		if (status == null) {
 			return MESSAGE_TEMPLATES[MESSAGE_TEMPLATES.length - 1];
 		}
-		return statusToMessageMap.get(status.value()).setSummary(String.format("HTTP Error %d", statusCode),
-				status.getReasonPhrase());
+		return statusToMessageMap.get(status.value()).setSummary(String.format("HTTP Error %d", statusCode, path),
+				status.getReasonPhrase() + (StringUtils.isNotEmpty(path) ? " accessing " + path : ""));
 	}
 
 	private static String getFaultName(Throwable rootCause, String originalBody, String[] details) {

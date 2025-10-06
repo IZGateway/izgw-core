@@ -22,11 +22,13 @@ import javax.net.ssl.HttpsURLConnection;
 import javax.net.ssl.KeyManagerFactory;
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLSession;
+import javax.net.ssl.SSLSocketFactory;
 import javax.net.ssl.TrustManager;
 import javax.net.ssl.TrustManagerFactory;
 import javax.net.ssl.X509ExtendedTrustManager;
 
 import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang3.Strings;
 import org.apache.coyote.http11.AbstractHttp11JsseProtocol;
 import org.bouncycastle.jsse.util.URLConnectionUtil;
 import org.springframework.beans.factory.InitializingBean;
@@ -35,29 +37,42 @@ import org.springframework.stereotype.Component;
 
 import gov.cdc.izgateway.logging.markers.Markers2;
 import gov.cdc.izgateway.security.ocsp.RevocationTrustManager;
+import gov.cdc.izgateway.utils.CapturingSSLSocketFactory;
 import gov.cdc.izgateway.utils.X500Utils;
 
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 
-@Component
-@Slf4j
 /**
  * Configuration class for setting up SSL Communications with RESTful Endpoints.
  * This class loads the keystore from client.ssl.key-store using password client.ssl.key-password
- *
+ * 
+ * @author Audacious Inquiry
  */
+@Component
+@Slf4j
 public class ClientTlsSupport implements InitializingBean {
 	private static final String BCJSSE = "BCJSSE";
     private static ScheduledExecutorService tse = 
     		Executors.newSingleThreadScheduledExecutor(r -> new Thread(r, "Background-Scheduler-Trust"));
 
+    /**
+     * A class to support SSL Context Reloading in Tomcat when key/trust material changes.
+     * @author Audacious Inquiry
+     */
     public static class SslReloader {
     	private SslReloader() {}
     	private static AbstractHttp11JsseProtocol<?> protocol;
+    	/** 
+    	 * Set the protocol to be reloaded when SSL material changes.
+    	 * @param protocol	The protocol to be reloaded.
+    	 */
     	public static void setProtocol(AbstractHttp11JsseProtocol<?> protocol) {
     		SslReloader.protocol = protocol;
     	}
+    	/**
+    	 * Reload 
+    	 */
     	public static void reloadSsl() {
     		if (protocol != null) {
     			protocol.reloadSslHostConfigs();
@@ -74,7 +89,12 @@ public class ClientTlsSupport implements InitializingBean {
     private X509Certificate certificate;
 
 	private Set<Runnable> trustChangedListeners = new LinkedHashSet<>();
+	private boolean fiddle = false;	// Set to true to capture SSL traffic for debugging
 
+	/**
+	 * Create the TLS Support class.
+	 * @param config	The TLS Configuration to use.
+	 */
 	public ClientTlsSupport(@Autowired ClientTlsConfiguration config) {
 		this.config = config;
 	}
@@ -102,6 +122,9 @@ public class ClientTlsSupport implements InitializingBean {
 			TimeUnit.SECONDS);					// specified in sections
 	}
 
+    /**
+     * @return The trust managers to use for client connections.
+     */
     public TrustManager[] getTrustManagers() {
         boolean reload = checkForUpdates();
 
@@ -111,6 +134,9 @@ public class ClientTlsSupport implements InitializingBean {
         return tm;
     }
 
+	/**
+	 * @return The SSL Context to use for client connections.
+	 */
 	public SSLContext getSSLContext() {
 		boolean reload = checkForUpdates();
 		if (sslContext != null && !reload) {
@@ -187,7 +213,7 @@ public class ClientTlsSupport implements InitializingBean {
 				String alias = e.nextElement();
 
 				X509Certificate c = (X509Certificate) keystore.getCertificate(alias);
-				if (StringUtils.isNotEmpty(commonName) && StringUtils.equals(X500Utils.getCommonName(c), commonName) ||
+				if (StringUtils.isNotEmpty(commonName) && Strings.CS.equals(X500Utils.getCommonName(c), commonName) ||
 					StringUtils.isEmpty(commonName)
 				) {
 					String cn = X500Utils.getCommonName(c);
@@ -242,6 +268,9 @@ public class ClientTlsSupport implements InitializingBean {
 		trustChangedListeners.add(action);
 	}
 	
+	/**
+	 * Check if the trust material has changed, and if so, update the trust managers
+	 */
 	public void updateTrust() {
 		if (checkForUpdates()) {
 			for (Runnable trustChangedListener: trustChangedListeners) {
@@ -273,7 +302,8 @@ public class ClientTlsSupport implements InitializingBean {
 			return (HttpURLConnection) location.openConnection();
 		}
 		
-		URLConnectionUtil util = new URLConnectionUtil(getSSLContext().getSocketFactory());
+		SSLSocketFactory factory = fiddle  ? new CapturingSSLSocketFactory(getSSLContext().getSocketFactory()) : getSSLContext().getSocketFactory();
+		URLConnectionUtil util = new URLConnectionUtil(factory);
 		HttpsURLConnection conx = (HttpsURLConnection) util.openConnection(location); 
 		conx.setHostnameVerifier(ClientTlsSupport::verifyHostname);
 		return conx;

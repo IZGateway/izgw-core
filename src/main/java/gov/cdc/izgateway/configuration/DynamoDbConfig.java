@@ -53,7 +53,7 @@ public class DynamoDbConfig {
      */
     @Bean
     public DynamoDbClient dynamoDbClient() {
-        DefaultCredentialsProvider credentialsProvider = DefaultCredentialsProvider.create();
+        DefaultCredentialsProvider credentialsProvider = DefaultCredentialsProvider.builder().build();
         var builder = DynamoDbClient.builder()
                 .region(DefaultAwsRegionProviderChain.builder().build().getRegion())
                 .credentialsProvider(credentialsProvider);

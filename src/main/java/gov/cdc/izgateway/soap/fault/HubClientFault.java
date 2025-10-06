@@ -314,7 +314,7 @@ public class HubClientFault extends Fault implements HasDestinationUri {
 		if (status == null) {
 			return MESSAGE_TEMPLATES[MESSAGE_TEMPLATES.length - 1];
 		}
-		return statusToMessageMap.get(status.value()).setSummary(String.format("HTTP Error %d", statusCode, path),
+		return statusToMessageMap.get(status.value()).setSummary(String.format("HTTP Error %d", statusCode),
 				status.getReasonPhrase() + (StringUtils.isNotEmpty(path) ? " accessing " + path : ""));
 	}
 

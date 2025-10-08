@@ -407,7 +407,7 @@ public class MessageSender {
 				result = converter.read(m, endPoint);
 				if (result instanceof FaultMessage) {
 					m.reset();
-					throw HubClientFault.clientThrewFault(null, dest, statusCode, body, result);
+					throw HubClientFault.clientThrewFault(null, dest, statusCode, body, result, StringUtils.substringBefore(con.getURL().toString(), "?"));
 				} 
 				return clazz.cast(result);
 			} else {

@@ -199,12 +199,13 @@ public class HubClientFault extends Fault implements HasDestinationUri {
 	 * @param statusCode	The status code returned 
 	 * @param body	The body of the fault content
 	 * @param result	The resulting soap message
+	 * @param path 
 	 * @return	The hub client fault
 	 */
 	public static HubClientFault clientThrewFault(Throwable rootCause, IDestination dest, int statusCode,
-			InputStream body, SoapMessage result) {
+			InputStream body, SoapMessage result, String path) {
 		String bodyString = XmlUtils.toString(body);
-		return new HubClientFault(HubClientFault.getMessageSupport(rootCause, result, bodyString, statusCode, dest),
+		return new HubClientFault(HubClientFault.getMessageSupport(rootCause, result, bodyString, statusCode, dest, path),
 				dest, rootCause, statusCode, bodyString, result);
 	}
 
@@ -229,7 +230,7 @@ public class HubClientFault extends Fault implements HasDestinationUri {
 	public static HubClientFault devAction(IDestination dest) {
 		return clientThrewFault(UnsupportedOperationFault.devAction(), dest, 420,
 				new ByteArrayInputStream(FAULT_XML.getBytes(StandardCharsets.UTF_8)),
-				new SoapMessage());
+				new SoapMessage(), null);
 	}
 
 	/**
@@ -263,7 +264,7 @@ public class HubClientFault extends Fault implements HasDestinationUri {
 	 * @return A MessageSupport object appropriate to the exception thrown
 	 */
 	private static MessageSupport getMessageSupport(Throwable rootCause, SoapMessage faultMessage, String originalBody2,
-			int statusCode2, IDestination destination) {
+			int statusCode2, IDestination destination, String path) {
 		String[] details = { null };
 		String faultName = null;
 		if (faultMessage instanceof FaultMessage fm && !FAULT.equals(fm.getFaultName())) {
@@ -298,7 +299,7 @@ public class HubClientFault extends Fault implements HasDestinationUri {
 			return new MessageSupport(FAULT_NAME, "228", details[0]);
 		default:
 			if (statusCode2 != 500) {
-            	return getHttpMessageSupport(statusCode2, null);
+            	return getHttpMessageSupport(statusCode2, path);
 			}
 			return new MessageSupport(FAULT_NAME, "223", details[0]);
 		}

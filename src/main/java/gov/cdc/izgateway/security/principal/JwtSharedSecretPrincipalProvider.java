@@ -24,12 +24,12 @@ public class JwtSharedSecretPrincipalProvider extends AbstractJwtPrincipalProvid
     Boolean isValid = null;
 
     /**
-	 * Constructor
-	 * @param groupToRoleMapper The group to role mapper
-	 * @param scopeToRoleMapper The scope to role mapper
-	 * @param jwtTokenExtractor The JWT token extractor
-	 * @param sharedSecret The shared secret for validating JWTs (base64-encoded)
-	 */
+	   * Constructor
+	   * @param groupToRoleMapper The group to role mapper
+	   * @param scopeToRoleMapper The scope to role mapper
+	   * @param jwtTokenExtractor The JWT token extractor
+	   * @param sharedSecret The shared secret for validating JWTs (base64-encoded)
+	   */
     @Autowired
     public JwtSharedSecretPrincipalProvider(@Nullable GroupToRoleMapper groupToRoleMapper,
                                             @Nullable ScopeToRoleMapper scopeToRoleMapper,

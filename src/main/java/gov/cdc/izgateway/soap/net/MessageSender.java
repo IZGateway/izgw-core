@@ -8,6 +8,8 @@ import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
 import java.net.ProtocolException;
 import java.net.SocketTimeoutException;
+import java.net.URI;
+import java.net.URISyntaxException;
 import java.net.URL;
 import java.net.UnknownHostException;
 import java.nio.charset.StandardCharsets;
@@ -18,6 +20,7 @@ import java.util.concurrent.TimeUnit;
 
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang3.Strings;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
@@ -412,7 +415,8 @@ public class MessageSender {
 				return clazz.cast(result);
 			} else {
 				try (InputStream errStream = con.getErrorStream()) {
-					throw processHttpError(dest, statusCode, errStream);
+					String path = StringUtils.substringBefore(con.getURL().toString(), "?");
+					throw processHttpError(dest, statusCode, errStream, path);
 				}
 			}
 		} catch (ClassCastException ex) {
@@ -434,7 +438,7 @@ public class MessageSender {
 		throw HubClientFault.invalidMessage(savedEx, dest, statusCode, body);
 	}
 
-	private HubClientFault processHttpError(IDestination dest, int statusCode, InputStream err) {
+	private HubClientFault processHttpError(IDestination dest, int statusCode, InputStream err, String path) {
 		String error = "";
 		if (err != null) {
 			try {
@@ -444,7 +448,7 @@ public class MessageSender {
 				// proceed normally.
 			}
 		}
-		return HubClientFault.httpError(dest, statusCode, error);
+		return HubClientFault.httpError(dest, statusCode, error, path);
 	}
 
 	/**
@@ -465,18 +469,18 @@ public class MessageSender {
 		}
 		
 
-		if (StringUtils.startsWith(destUri, "http:")) {
+		if (Strings.CS.startsWith(destUri, "http:")) {
 			throw SecurityFault.generalSecurity("Destination Not Using HTTPS", destUri + " for " + dest.getDestId(), null);
 		}
 
 		try {
-			if (StringUtils.startsWith(destUri, "https:")) {
-				return new URL(destUri);
+			if (Strings.CS.startsWith(destUri, "https:")) {
+				return new URI(destUri).toURL();
 			}
-			if (StringUtils.startsWith(destUri, "/")) {
+			if (Strings.CS.startsWith(destUri, "/")) {
 				return new URL(serverConfig.getProtocol(), "localhost", serverConfig.getPort(), destUri);
 			}
-		} catch (MalformedURLException e) {
+		} catch (MalformedURLException | URISyntaxException e) {
 			throw DestinationConnectionFault.configurationError(dest,
 					errorMsg + " is not configured correctly", e);
 		}
@@ -486,7 +490,7 @@ public class MessageSender {
 
 	URL getReportedUrl(IDestination dest, URL destUrl) throws DestinationConnectionFault {
 		String destUri = dest.getDestUri();
-		if (StringUtils.startsWith(destUri, "/")) {
+		if (Strings.CS.startsWith(destUri, "/")) {
 			try {
 				return new URL(serverConfig.getBaseUrl(), destUri);
 			} catch (MalformedURLException e) {

@@ -238,10 +238,11 @@ public class HubClientFault extends Fault implements HasDestinationUri {
 	 * @param dest	The destination 
 	 * @param statusCode	The status code
 	 * @param error	The error message
+	 * @param path 
 	 * @return	The hub client fault
 	 */
-	public static HubClientFault httpError(IDestination dest, int statusCode, String error) {
-		return new HubClientFault(getHttpMessageSupport(statusCode, null), dest, null, statusCode, error, null);
+	public static HubClientFault httpError(IDestination dest, int statusCode, String error, String path) {
+		return new HubClientFault(getHttpMessageSupport(statusCode, path), dest, null, statusCode, error, null);
 	}
 
 	/**
@@ -250,7 +251,7 @@ public class HubClientFault extends Fault implements HasDestinationUri {
 	 * @return	The simulated fault
 	 */
 	public static HubClientFault devHttpAction(IDestination dest) {
-		return httpError(dest, 420, "This is a simulated fault");
+		return httpError(dest, 420, "This is a simulated fault", dest.getDestUri());
 	}
 
 	/**

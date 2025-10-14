@@ -9,6 +9,7 @@ public class DuplicatingInputStream extends InputStream {
 	private static final byte[] NORMAL = { '\033', '[', '0', 'm' };
 	private InputStream in;
 	private OutputStream out;
+	boolean enableColor = true;
 	
 	public DuplicatingInputStream(InputStream in, OutputStream out) {
 		this.in = in;
@@ -20,9 +21,9 @@ public class DuplicatingInputStream extends InputStream {
 		int c = in.read();
 		if (c >= 0) {
 			try {
-				out.write(BLUE);
+				if (enableColor) out.write(BLUE);
 				out.write((byte)c);
-				out.write(NORMAL);
+				if (enableColor) out.write(NORMAL);
 			} catch (IOException ex) {
 				// Swallow it
 			}
@@ -35,9 +36,9 @@ public class DuplicatingInputStream extends InputStream {
 		int val = in.read(b, off, len);
 		if (val > 0) {
 			try {
-				out.write(BLUE);
+				if (enableColor) out.write(BLUE);
 				out.write(b, off, val);
-				out.write(NORMAL);
+				if (enableColor) out.write(NORMAL);
 			} catch (IOException ex) {
 				// Swallow it.
 			}

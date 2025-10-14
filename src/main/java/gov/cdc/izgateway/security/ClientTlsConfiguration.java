@@ -43,6 +43,9 @@ public class ClientTlsConfiguration {
 	@Value("${server.hostname}")
 	private String serverName;
 	
+	@Value("${client.ssl.debug:false}")
+	private boolean sslDebug;
+	
 	@Autowired
 	public ClientTlsConfiguration(StoreParams params) {
 		clientKeyStore = params.clientKeystoreParams();

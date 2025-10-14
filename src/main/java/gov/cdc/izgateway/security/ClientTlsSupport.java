@@ -97,6 +97,7 @@ public class ClientTlsSupport implements InitializingBean {
 	 */
 	public ClientTlsSupport(@Autowired ClientTlsConfiguration config) {
 		this.config = config;
+		this.fiddle = config.isSslDebug();
 	}
 
 	public void afterPropertiesSet() throws IOException {

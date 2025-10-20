@@ -106,20 +106,28 @@ public class RevocationChecker {
 		long now = System.currentTimeMillis();
 		Timestamp currentTs = new Timestamp(now);
 		
-		ICertificateStatus checkedCert = certificateStatusService.findByCertificateId(ICertificateStatus.computeThumbprint(cert));
-		if (checkedCert == null) {
-			checkedCert = certificateStatusService.create(cert);
-		} else if ("NO_RESPONDER_URL_FOUND".equalsIgnoreCase(checkedCert.getLastCheckStatus())) {
-			// Uncheckable, there is no OCSP Responder for this certificate
-			log.debug("OCSP responder url not found for: {}", checkedCert.getCommonName());
+		ICertificateStatus checkedCert = null;
+		
+		try {
+			checkedCert = certificateStatusService.findByCertificateId(ICertificateStatus.computeThumbprint(cert));
+			if (checkedCert == null) {
+				checkedCert = certificateStatusService.create(cert);
+			} else if ("NO_RESPONDER_URL_FOUND".equalsIgnoreCase(checkedCert.getLastCheckStatus())) {
+				// Uncheckable, there is no OCSP Responder for this certificate
+				log.debug("OCSP responder url not found for: {}", checkedCert.getCommonName());
+				return;
+			} else if (CertificateStatusType.REVOKED.toString().equalsIgnoreCase(checkedCert.getLastCheckStatus())) {
+				// Previously revoked
+				throw new CertPathValidatorException(String.format("Certificate for %s has been revoked", checkedCert.getCommonName()));
+			} else if (checkedCert.getNextCheckTimeStamp() != null && currentTs.compareTo(checkedCert.getNextCheckTimeStamp()) < 0) {
+				// It was previous checked, and sufficient time hasn't passed
+				return;
+			}
+		} catch (Exception e) {
+			log.error(Markers2.append(e), "Error retrieving certificate status for {}", X500Utils.getCommonName(cert));
+			// DB Access failure should NOT block certificate validation
 			return;
-		} else if (CertificateStatusType.REVOKED.toString().equalsIgnoreCase(checkedCert.getLastCheckStatus())) {
-			// Previously revoked
-			throw new CertPathValidatorException(String.format("Certificate for %s has been revoked", checkedCert.getCommonName()));
-		} else if (checkedCert.getNextCheckTimeStamp() != null && currentTs.compareTo(checkedCert.getNextCheckTimeStamp()) < 0) {
-			// It was previous checked, and sufficient time hasn't passed
-			return;
-		} 
+		}
 
 		CertificateStatusType status = CertificateStatusType.UNKNOWN; 
 		try {

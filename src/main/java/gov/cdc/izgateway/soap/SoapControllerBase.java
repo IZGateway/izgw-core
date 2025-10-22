@@ -79,7 +79,7 @@ import lombok.extern.slf4j.Slf4j;
  */
 @Slf4j
 public abstract class SoapControllerBase {
-
+	private static ThreadLocal<Fault> lastLoggedFault = new ThreadLocal<>();
 	private static Map<String, String> resourceCache = new HashMap<>();
 	private static final List<String> XSD_FILES = Arrays.asList("cdc-iis.xsd", "cdc-iis-2011.xsd", "cdc-iis-hub.xsd");
 
@@ -240,6 +240,11 @@ public abstract class SoapControllerBase {
 	 * @return	The fault
 	 */
 	public static Fault logFault(Fault fault) {
+		if (lastLoggedFault.get() == fault) {
+			// Already logged this fault, avoid duplicate logging
+			return fault;
+		}
+		lastLoggedFault.set(fault);
 		if (fault instanceof HasDestinationUri dcf) {
 			log.error(Markers2.append(fault, "destinationUrl", dcf.getDestinationUri()), "{} occured during processing: {}", fault.getClass().getSimpleName(), getCauseMessage(fault));
 		} else {

@@ -100,7 +100,6 @@ public abstract class LoggingValveBase extends ValveBase implements EventCreator
         TransactionData t = createTransactionData(req);
 
         SourceInfo source = setSourceInfoValues(req, t);
-        setMdcValues(req, t, req.getRequestURI(), source);
 
         // Set RequestContext values.
         IzgPrincipal p = principalService.getPrincipal(req);
@@ -111,6 +110,8 @@ public abstract class LoggingValveBase extends ValveBase implements EventCreator
         
         // Update the principal in source
         t.getSource().setPrincipal(p);
+        // Set MDC Values must occur after principal is set in source
+        setMdcValues(req, t.getEventId(), source.getCommonName());
         
         if (!isLogged(req.getRequestURI())) {
             RequestContext.disableTransactionDataLogging();
@@ -212,24 +213,24 @@ public abstract class LoggingValveBase extends ValveBase implements EventCreator
 		}
 	}
 
-	protected void setMdcValues(Request req, TransactionData t, String requestURI, SourceInfo source) {
-		// Put the id into thread local storage so that threaded events can get to it
-        MDC.put(EventId.EVENTID_KEY, t.getEventId());
+	protected void setMdcValues(Request req, String eventId, String commonName) {
+		// Put variables into thread local storage so that threaded events can get to them
+        MDC.put(EventId.EVENTID_KEY, eventId);
+        MDC.put(COMMON_NAME, commonName);
         MDC.put(SESSION_ID, req.getSession().getId());
-        MDC.put(REQUEST_URI, requestURI);
+        MDC.put(REQUEST_URI, req.getRemoteAddr());
         MDC.put(METHOD, req.getMethod());
         MDC.put(IP_ADDRESS, req.getRemoteAddr());
-        MDC.put(COMMON_NAME, source.getCommonName());
 	}
 	
 	protected void clearMdcValues() {
         // Remove Added MDC Keys
         MDC.remove(EventId.EVENTID_KEY);
+        MDC.remove(COMMON_NAME);
         MDC.remove(SESSION_ID);
         MDC.remove(REQUEST_URI);
         MDC.remove(METHOD);
         MDC.remove(IP_ADDRESS);
-        MDC.remove(COMMON_NAME);
     }
 
     protected SourceInfo setSourceInfoValues(Request req, TransactionData t) {

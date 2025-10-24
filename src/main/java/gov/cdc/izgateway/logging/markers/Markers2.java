@@ -66,7 +66,7 @@ public class Markers2 {
 					marker.add(Markers.append("retry", fault.getRetry()));
 				}
 				if (t instanceof HasDestinationUri hduri) {
-					marker.add(Markers.append("destIId", hduri.getDestinationId()));
+					marker.add(Markers.append("destId", hduri.getDestinationId()));
 					marker.add(Markers.append("uri", hduri.getDestinationUri()));
 				}
             	// If there is at least one cause

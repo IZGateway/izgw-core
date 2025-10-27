@@ -25,24 +25,40 @@ import org.bouncycastle.tls.TlsFatalAlertReceived;
  *
  */
 public class DestinationConnectionFault extends Fault implements HasDestinationUri {
-    private static final long serialVersionUID = 1L;
+	private static final long serialVersionUID = 1L;
     /** The name of this fault */
     public static final String FAULT_NAME = "DestinationConnectionFault";
 
     private static final String IOERR_FORMAT = "There was an IO Error %s from the destination endpoint. This may indicate a problem with the networking "
     		+ "infrastructure between IZ Gateway and the endpoint.";
+    private static final String READ_TIMEOUT_CODE = "10";
+    private static final String CONNECT_TIMEOUT_CODE = "11";
+    private static final String CONNECTION_REJECTED_CODE = "12";
+    private static final String DNS_RESOLUTION_ERROR_CODE = "13";
+    private static final String URI_SYNTAX_ERROR_CODE = "14";
+    private static final String NOT_HTTPS_CODE = "15";
+    private static final String DESTINATION_CONFIGURATION_ERROR_CODE = "16";
+    private static final String PROTOCOL_EXCEPTION_CODE = "17";
+    private static final String CIRCUIT_BREAKER_THROWN_CODE = "18";
+    private static final String UNDER_MAINTENANCE_CODE = "19";
+	private static final String WRITE_ERROR_CODE = "20";
+	private static final String READ_ERROR_CODE = "21";
+	private static final String HUB_TLS_ERROR_CODE = "22";
+	private static final String IIS_TLS_ERROR_CODE = "23";
+    private static final String IO_ERROR_CODE = "24";
+    
     private static final MessageSupport[] MESSAGE_TEMPLATES = {
         new MessageSupport(
             FAULT_NAME,
-            "10",
+            READ_TIMEOUT_CODE,
             "Read Timeout", null,
             "The IZ Gateway timed out waiting for the destination IIS to respond. "
                 + "The IIS may be overwhelmed with requests. Retry the request again later.",
-            RetryStrategy.NORMAL
+            RetryStrategy.CHECK_IIS_STATUS
         ),
         new MessageSupport(
             FAULT_NAME,
-            "11",
+            CONNECT_TIMEOUT_CODE,
             "Connect Timeout", null,
             "The destination service is not responding to attempts to connect to the endpoint. "
             + "Either the destination is not listening for TCP connections at this endpoint, or the connection attempt"
@@ -52,7 +68,7 @@ public class DestinationConnectionFault extends Fault implements HasDestinationU
         ),
         new MessageSupport(
             FAULT_NAME,
-            "12",
+            CONNECTION_REJECTED_CODE,
             "Connection Rejected", null,
             "The destination service is actively rejecting attempts to connect to the endpoint. "
             + "It may be blocked by a firewall, or the port may not be correctly configured in IZ Gateway. "
@@ -61,7 +77,7 @@ public class DestinationConnectionFault extends Fault implements HasDestinationU
         ),
         new MessageSupport(
             FAULT_NAME,
-            "13",
+            DNS_RESOLUTION_ERROR_CODE,
             "DNS Resolution Error", null,
             "The TCP/IP Address of the destination IIS could not be resolved. This may be an intermittent DNS failure,"
             + "or the destination address may not be registered in DNS. "
@@ -70,35 +86,35 @@ public class DestinationConnectionFault extends Fault implements HasDestinationU
         ),
         new MessageSupport(
             FAULT_NAME,
-            "14",
+            URI_SYNTAX_ERROR_CODE,
             "URI Syntax Error", null,
             "The url configured for this endpoint is not valid.",
             RetryStrategy.CONTACT_SUPPORT
         ),
         new MessageSupport(
             FAULT_NAME,
-            "15",
+            NOT_HTTPS_CODE,
             "Not HTTPS", null,
             "The url configured for this endpoint is not using https.",
             RetryStrategy.CONTACT_SUPPORT
         ),
         new MessageSupport(
             FAULT_NAME,
-            "16",
+            DESTINATION_CONFIGURATION_ERROR_CODE,
             "Destination Configuration Error", null,
             "The configuration of this endpoint is not valid.",
             RetryStrategy.CONTACT_SUPPORT
         ),
         new MessageSupport(
             FAULT_NAME,
-            "17",
+            PROTOCOL_EXCEPTION_CODE,
             "Protocol Exception", null,
             "Unexpected protocol error.",
             RetryStrategy.CONTACT_SUPPORT
         ),
         new MessageSupport(
             FAULT_NAME,
-            "18",
+            CIRCUIT_BREAKER_THROWN_CODE,
             "Circuit Breaker Thrown", "Destination Unavailable",
             "This destination has been disabled due to too many recent failures. IZ Gateway will continue to monitor"
             + " the status of this endpoint and renable it when it becomes available again.",
@@ -106,28 +122,28 @@ public class DestinationConnectionFault extends Fault implements HasDestinationU
         ),
         new MessageSupport(
             FAULT_NAME,
-            "19",
+            UNDER_MAINTENANCE_CODE,
             "Under Maintenance", "Destination Is Under Maintenance",
             "This destination is under maintenance",
             RetryStrategy.CHECK_IIS_STATUS
         ),
         new MessageSupport(
         	FAULT_NAME,
-        	"20",
+        	WRITE_ERROR_CODE,
         	"Write Error", "Error writing message to the destination endpoint",
         	String.format(IOERR_FORMAT, "writing"),
         	RetryStrategy.NORMAL
         ),
         new MessageSupport(
         	FAULT_NAME,
-        	"21",
+        	READ_ERROR_CODE,
         	"Read Error", "Error reading message from the destination endpoint",
         	String.format(IOERR_FORMAT, "reading"),
         	RetryStrategy.NORMAL
         ),
         new MessageSupport(
         	FAULT_NAME,
-        	"22",
+        	HUB_TLS_ERROR_CODE,
         	"TLS Error At IZGW", "Error establishing secure connection",
         	"There was an error establishing a trusted connection between IZ Gateway and the destination endpoint. IZ Gateway does not trust the destination endpoint.  This can result from a problem with the endpoint"
         	+ "trust parameters including supported protocol versions, encryption suites or the destination certificate.",
@@ -135,7 +151,7 @@ public class DestinationConnectionFault extends Fault implements HasDestinationU
         ),
         new MessageSupport(
         	FAULT_NAME,
-        	"23",
+        	IIS_TLS_ERROR_CODE,
         	"TLS Error At Destination", "Error establishing secure connection at destination",
         	"There was an error establishing a trusted connection between IZ Gateway and the destination endpoint. The destination endpoint does not trust IZ Gateway.  This can result from a problem with the destination's"
         	+ "acceptance of the IZ Gateway trust parameters including supported protocol versions, encryption suites or the destination certificate.",
@@ -143,7 +159,7 @@ public class DestinationConnectionFault extends Fault implements HasDestinationU
         ),
         new MessageSupport(
         	FAULT_NAME,
-        	"24",
+        	IO_ERROR_CODE,
         	"IO Error At Destination", "Error communicating from/to destination",
         	"There was an IO Error accessing the destination endpoint. This may indicate a problem with the networking infrastructure between "
         	+ "IZ Gateway and the endpoint.",
@@ -382,6 +398,7 @@ public class DestinationConnectionFault extends Fault implements HasDestinationU
 	public String getDestinationId() {
 		return destination == null ? null : destination.getDestId();
 	}
+	
 	@Override
 	public String getDestinationUri() {
 		return destination == null ? null : destination.getDestUri();
@@ -391,7 +408,10 @@ public class DestinationConnectionFault extends Fault implements HasDestinationU
 	 */
 	@Override
 	public boolean isRetryable() {
-		return super.isRetryable() && shouldBreakCircuit(); 
+		
+		return super.isRetryable() &&	//  The message has a normal or check_iis_status retry strategy
+			!READ_TIMEOUT_CODE.equals(getCode()) &&  //	Read Timeouts should NOT be retried automatically as these are signs of overload
+			shouldBreakCircuit(); 		//	The circuit breaker is not currently thrown or under maintenance
 	}
 	
 	/**
@@ -399,7 +419,8 @@ public class DestinationConnectionFault extends Fault implements HasDestinationU
 	 */
 	@Override
 	public boolean shouldBreakCircuit() {
-		return !"18".equals(getCode()) && !"19".equals(getCode());
+		// Circuit Breaker thrown and Under Maintenance faults do not count towards circuit breaker logic
+		return !CIRCUIT_BREAKER_THROWN_CODE.equals(getCode()) && !UNDER_MAINTENANCE_CODE.equals(getCode());
 	}
 	
 }

@@ -218,7 +218,7 @@ public abstract class LoggingValveBase extends ValveBase implements EventCreator
         MDC.put(EventId.EVENTID_KEY, eventId);
         MDC.put(COMMON_NAME, commonName);
         MDC.put(SESSION_ID, req.getSession().getId());
-        MDC.put(REQUEST_URI, req.getRemoteAddr());
+        MDC.put(REQUEST_URI, req.getRequestUri());
         MDC.put(METHOD, req.getMethod());
         MDC.put(IP_ADDRESS, req.getRemoteAddr());
 	}

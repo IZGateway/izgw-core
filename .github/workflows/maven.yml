@@ -75,7 +75,7 @@ jobs:
           EOF
           
           cat << EOF > ~/.m2/settings.xml
-          <?xml version="1.0" encoding="UTF-8"?><settings><servers><server><id>github</id><username>${{ env.GITHUB_ACTOR }}</username><password>${{ secrets.IZGW_ALL_REPO_ACCESS_TOKEN }}</password></server></servers></settings>
+          <?xml version="1.0" encoding="UTF-8"?><settings><servers><server><id>github</id><username>${{ github.actor }}</username><password>${{ secrets.GITHUB_TOKEN }}</password></server></servers></settings>
           EOF
           
     - name: Sets env vars for push or pull request to release branch (default behavior)

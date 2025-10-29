@@ -78,8 +78,8 @@ jobs:
             <servers> 
               <server>
                 <id>github-bom</id>
-                <username/>
-                <password>${{ secrets.IZGW_ALL_REPO_ACCESS_TOKEN }}</password>
+                <username>${{github.actor}}</username>
+                <password>${{ secrets.GITHUB_TOKEN }}</password>
               </server>
               <server>
                 <id>github-core</id>
@@ -174,7 +174,7 @@ jobs:
         ELASTIC_API_KEY: ${{ secrets.ELASTIC_API_KEY }}
 
       run: |
-        env && mvn -X -B clean package install deploy -Dbuildno=${{github.run_number}} \
+        env && mvn -B clean package install deploy -Dbuildno=${{github.run_number}} \
             -DdoRevisionCheck=${{env.DO_REVISION_CHECK}} \
             -DskipDependencyCheck=${{env.SKIP_DEPENDENCY_CHECK}} \
             -Dimage.tag=$IMAGE_BRANCH_TAG 

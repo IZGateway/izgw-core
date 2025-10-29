@@ -449,7 +449,7 @@
                 <artifactId>maven-deploy-plugin</artifactId>
                 <version>3.1.4</version>
                 <configuration>
-                    <altDeploymentRepository>github-core:https://maven.pkg.github.com/IZGateway/izgw-core</altDeploymentRepository>
+                    <altDeploymentRepository>github-core::https://maven.pkg.github.com/IZGateway/izgw-core</altDeploymentRepository>
                 </configuration>
                 <executions>
                   <execution>

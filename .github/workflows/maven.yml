@@ -75,7 +75,7 @@ jobs:
           cat << EOF > ~/.m2/settings.xml
           <?xml version="1.0" encoding="UTF-8"?>
           <settings>
-            <servers>
+            <servers> 
               <server>
                 <id>github-bom</id>
                 <password>${{ secrets.IZGW_ALL_REPO_ACCESS_TOKEN }}</password>

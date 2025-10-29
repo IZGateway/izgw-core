@@ -18,7 +18,7 @@
 	<description>IZ Gateway Core contains the core code for the IZ Gateway Hub and Transformation services</description>
 	<distributionManagement>
 		<repository>
-			<id>github-core</id>
+			<id>github</id>
 			<name>GitHub Packages</name>
 			<url>https://maven.pkg.github.com/IZGateway/izgw-core</url>
 		</repository>

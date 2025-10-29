@@ -91,6 +91,11 @@ jobs:
                 <password>${{ secrets.GITHUB_TOKEN }}</password>
               </server>
               <server>
+                <id>github-core</id>
+                <username>${{ env.GITHUB_ACTOR }}</username>
+                <password>${{ secrets.GITHUB_TOKEN }}</password>
+              </server>
+              <server>
                 <id>github-bom</id>
                 <username>${{ env.GITHUB_ACTOR }}</username>
                 <password>${{ secrets.GITHUB_TOKEN }}</password>

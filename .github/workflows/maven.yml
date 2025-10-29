@@ -83,8 +83,8 @@ jobs:
               </server>
               <server>
                 <id>github-publish-core</id>
-                <username/>
-                <password>${{ secrets.IZGW_ALL_REPO_ACCESS_TOKEN }}</password>
+                <username>${{github.actor}}</username>
+                <password>${{ secrets.GITHUB_TOKEN }}</password>
               </server>
             </servers>
           </settings>

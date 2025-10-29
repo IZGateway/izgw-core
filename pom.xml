@@ -46,6 +46,17 @@
 				<enabled>true</enabled>
 			</snapshots>
 		</repository>
+		<repository>
+            <id>github-core</id>
+            <name>GitHub Packages</name>
+            <url>https://maven.pkg.github.com/IZGateway/izgw-core</url>
+            <releases>
+                <enabled>true</enabled>
+            </releases>
+            <snapshots>
+                <enabled>true</enabled>
+            </snapshots>
+        </repository>
 	</repositories>
 	<properties>
 		<buildno>${timestamp}</buildno>

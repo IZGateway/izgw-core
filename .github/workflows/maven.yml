@@ -73,10 +73,25 @@ jobs:
           EOF
           
           cat << EOF > ~/.m2/settings.xml
-          <?xml version="1.0" encoding="UTF-8"?><settings><servers><server><id>github-bom</id><username></username><password>${{ secrets.IZGW_ALL_REPO_ACCESS_TOKEN }}</password></server></servers></settings>
+          <?xml version="1.0" encoding="UTF-8"?>
+          <settings>
+            <servers>
+              <server>
+                <id>github-bom</id>
+                <password>${{ secrets.IZGW_ALL_REPO_ACCESS_TOKEN }}</password>
+              </server>
+              <server>
+                <id>github-publish-core</id>
+                <password>${{ secrets.IZGW_ALL_REPO_ACCESS_TOKEN }}</password>
+              </server>
+              <server>
+                <id>github-core</id>
+                <password>${{ secrets.IZGW_ALL_REPO_ACCESS_TOKEN }}</password>
+              </server>
+            </servers>
+          </settings>
           EOF
           
-          mvn -X -U help:evaluate -Dexpression=project.version -q -DforceStdout
           echo BASE_TAG=`mvn help:evaluate -Dexpression=project.version -q -DforceStdout` >> $GITHUB_ENV
           echo COMPUTERNAME=`hostname` >> $GITHUB_ENV
           

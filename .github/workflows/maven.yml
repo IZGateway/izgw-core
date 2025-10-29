@@ -90,7 +90,6 @@ jobs:
           </settings>
           EOF
           
-          mvn -X help:evaluate -Dexpression=project.version -q -DforceStdout
           echo BASE_TAG=`mvn help:evaluate -Dexpression=project.version -q -DforceStdout` >> $GITHUB_ENV
           echo COMPUTERNAME=`hostname` >> $GITHUB_ENV
           

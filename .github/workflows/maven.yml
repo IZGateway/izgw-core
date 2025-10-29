@@ -80,18 +80,11 @@ jobs:
                 <id>github-bom</id>
                 <password>${{ secrets.IZGW_ALL_REPO_ACCESS_TOKEN }}</password>
               </server>
-              <server>
-                <id>github-publish-core</id>
-                <password>${{ secrets.IZGW_ALL_REPO_ACCESS_TOKEN }}</password>
-              </server>
-              <server>
-                <id>github-core</id>
-                <password>${{ secrets.IZGW_ALL_REPO_ACCESS_TOKEN }}</password>
-              </server>
             </servers>
           </settings>
           EOF
           
+          mvn -X help:evaluate -Dexpression=project.version -q -DforceStdout
           echo BASE_TAG=`mvn help:evaluate -Dexpression=project.version -q -DforceStdout` >> $GITHUB_ENV
           echo COMPUTERNAME=`hostname` >> $GITHUB_ENV
           

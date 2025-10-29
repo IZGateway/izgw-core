@@ -87,18 +87,23 @@ jobs:
             <servers>
               <server>
                 <id>github</id>
-                <username>${{ github.actor }}</username>
-                <password>${{ secrets.GITHUB_TOKEN }}</password>
+                <username>keithboone</username>
+                <password>${{ secrets.ALL_REPO_ACCESS_TOKEN }}</password>
               </server>
               <server>
                 <id>github-core</id>
-                <username>${{ github.actor }}</username>
-                <password>${{ secrets.GITHUB_TOKEN }}</password>
+                <username>keithboone</username>
+                <password>${{ secrets.ALL_REPO_ACCESS_TOKEN }}</password>
+              </server>
+              <server>
+                <id>github-publish-core</id>
+                <username>keithboone</username>
+                <password>${{ secrets.ALL_REPO_ACCESS_TOKEN }}</password>
               </server>
               <server>
                 <id>github-bom</id>
-                <username>${{ github.actor }}</username>
-                <password>${{ secrets.GITHUB_TOKEN }}</password>
+                <username>keithboone</username>
+                <password>${{ secrets.ALL_REPO_ACCESS_TOKEN }}</password>
               </server>
             </servers>
             <mirrors />

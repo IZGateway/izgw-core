@@ -7,6 +7,7 @@
         <groupId>gov.cdc.izgw</groupId>
         <artifactId>izgw-bom</artifactId>
         <version>1.0.2-SNAPSHOT</version>
+        <relativePath/>
 	</parent>
 	<artifactId>izgw-core</artifactId>
 	<!-- Please ensure working brange is labeled <major>.<minor>.<patch>-IGDD-<ticket#>_<ticket-title>-SNAPSHOT 

@@ -27,7 +27,7 @@
 	</distributionManagement>
 	<repositories>
 		<repository>
-			<id>github</id>
+			<id>github-bom</id>
 			<name>GitHub Packages</name>
 			<url>https://maven.pkg.github.com/IZGateway/izgw-bom</url>
 			<releases>
@@ -309,10 +309,6 @@
 		<dependency>
 			<groupId>org.springframework.security</groupId>
 			<artifactId>spring-security-oauth2-resource-server</artifactId>
-		</dependency>
-		<dependency>
-			<groupId>org.springframework.security</groupId>
-			<artifactId>spring-security-web</artifactId>
 		</dependency>
 	</dependencies>
 	<build>

@@ -87,13 +87,13 @@ jobs:
             <servers>
               <server>
                 <id>github</id>
-                <username>keithboone</username>
-                <password>${{ secrets.ALL_REPO_ACCESS_TOKEN }}</password>
+                <username>${{ env.GITHUB_ACTOR }}</username>
+                <password>${{ secrets.GITHUB_TOKEN }}</password>
               </server>
               <server>
                 <id>github-core</id>
-                <username>keithboone</username>
-                <password>${{ secrets.ALL_REPO_ACCESS_TOKEN }}</password>
+                <username>${{ env.GITHUB_ACTOR }}</username>
+                <password>${{ secrets.GITHUB_TOKEN }}</password>
               </server>
               <server>
                 <id>github-bom</id>

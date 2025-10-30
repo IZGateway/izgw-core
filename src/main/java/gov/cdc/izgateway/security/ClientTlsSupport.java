@@ -155,7 +155,7 @@ public class ClientTlsSupport implements InitializingBean {
 			throw new ServiceConfigurationError(e.getMessage(), e);
 		}
 
-		// Set the default SSL context to use for clients to enable MySQL Connector to use it.
+		// Set the default SSL context to use for clients to enable database connectors to use it.
 		SSLContext.setDefault(sslContext);
 		HttpsURLConnection.setDefaultHostnameVerifier((a,b) -> true);  // NOSONAR IZGW only uses certificate verification
 

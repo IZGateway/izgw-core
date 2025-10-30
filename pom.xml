@@ -6,11 +6,9 @@
 	<parent>
         <groupId>gov.cdc.izgw</groupId>
         <artifactId>izgw-bom</artifactId>
-        <version>1.0.1-SNAPSHOT</version>
-		<relativePath />
-		<!-- lookup parent from repository -->
+        <version>1.0.2-SNAPSHOT</version>
+        <relativePath/>
 	</parent>
-	<groupId>gov.cdc.izgw</groupId>
 	<artifactId>izgw-core</artifactId>
 	<!-- Please ensure working brange is labeled <major>.<minor>.<patch>-IGDD-<ticket#>_<ticket-title>-SNAPSHOT 
 		release branch is labeled <major>.<minor>.<patch>-izgw-core-SNAPSHOT main 
@@ -19,16 +17,20 @@
 	<packaging>jar</packaging>
 	<name>IZ Gateway Core</name>
 	<description>IZ Gateway Core contains the core code for the IZ Gateway Hub and Transformation services</description>
-	<distributionManagement>
-		<repository>
-			<id>github</id>
-			<name>GitHub Packages</name>
-			<url>https://maven.pkg.github.com/IZGateway/izgw-core</url>
-		</repository>
-	</distributionManagement>
 	<repositories>
+	   <repository>
+            <id>central</id>
+            <name>Maven Central Repository</name>
+            <url>https://repo.maven.apache.org/maven2</url>
+            <releases>
+                <enabled>true</enabled>
+            </releases>
+            <snapshots>
+                <enabled>false</enabled>
+            </snapshots>
+        </repository>
 		<repository>
-			<id>github</id>
+			<id>github-bom</id>
 			<name>GitHub Packages</name>
 			<url>https://maven.pkg.github.com/IZGateway/izgw-bom</url>
 			<releases>
@@ -38,6 +40,17 @@
 				<enabled>true</enabled>
 			</snapshots>
 		</repository>
+		<repository>
+            <id>github-core</id>
+            <name>GitHub Packages</name>
+            <url>https://maven.pkg.github.com/IZGateway/izgw-core</url>
+            <releases>
+                <enabled>true</enabled>
+            </releases>
+            <snapshots>
+                <enabled>true</enabled>
+            </snapshots>
+        </repository>
 	</repositories>
 	<properties>
 		<buildno>${timestamp}</buildno>
@@ -62,6 +75,7 @@
 		</dependencies>
 	</dependencyManagement>
 	<dependencies>
+	    <!-- Explicitly declare all dependencies that you want managed by izgw-bom -->
 		<dependency>
 			<groupId>ca.uhn.hapi</groupId>
 			<artifactId>hapi-base</artifactId>
@@ -259,6 +273,74 @@
 			<groupId>software.amazon.awssdk</groupId>
 			<artifactId>secretsmanager</artifactId>
 		</dependency>
+		<dependency>
+			<groupId>org.springframework.security</groupId>
+			<artifactId>spring-security-core</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>org.springframework.security</groupId>
+			<artifactId>spring-security-config</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>org.springframework.security</groupId>
+			<artifactId>spring-security-web</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>org.springframework.security</groupId>
+			<artifactId>spring-security-crypto</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>org.springframework.security</groupId>
+			<artifactId>spring-security-oauth2-core</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>org.springframework.security</groupId>
+			<artifactId>spring-security-oauth2-jose</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>org.springframework.security</groupId>
+			<artifactId>spring-security-oauth2-resource-server</artifactId>
+		</dependency>
+		<dependency>
+            <groupId>io.netty</groupId>
+            <artifactId>netty-buffer</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>io.netty</groupId>
+            <artifactId>netty-codec</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>io.netty</groupId>
+            <artifactId>netty-codec-http</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>io.netty</groupId>
+            <artifactId>netty-codec-http2</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>io.netty</groupId>
+            <artifactId>netty-common</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>io.netty</groupId>
+            <artifactId>netty-handler</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>io.netty</groupId>
+            <artifactId>netty-resolver</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>io.netty</groupId>
+            <artifactId>netty-transport</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>io.netty</groupId>
+            <artifactId>netty-transport-classes-epoll</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>io.netty</groupId>
+            <artifactId>netty-transport-native-unix-common</artifactId>
+        </dependency>
 	</dependencies>
 	<build>
 		<pluginManagement>
@@ -380,6 +462,22 @@
 					</execution>
 				</executions>
 			</plugin>
+			<plugin>
+                <artifactId>maven-deploy-plugin</artifactId>
+                <version>3.1.4</version>
+                <configuration>
+                    <altDeploymentRepository>github-core::https://maven.pkg.github.com/IZGateway/izgw-core</altDeploymentRepository>
+                </configuration>
+                <executions>
+                  <execution>
+                    <id>default-deploy</id>
+                    <phase>deploy</phase>
+                    <goals>
+                        <goal>deploy</goal>
+                    </goals>
+                  </execution>
+                </executions>
+            </plugin>
 		</plugins>
 	</build>
 	<reporting>

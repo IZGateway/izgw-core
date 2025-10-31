@@ -81,16 +81,4 @@ public interface IAccessGroup extends DbAudit {
      * @param groups the list of groups
      */
     void setGroups(List<String> groups);
-
-	/**
-	 * Gets the date when the group was validated (onboarding or connectivity testing completed).
-	 * @return the validated on date
-	 */
-	Date getValidatedOn();
-	/**
-	 * Sets the date when the group was validated (onboarding or connectivity testing completed).
-	 * @param validatedOn the validated on date
-	 */
-	void setValidatedOn(Date validatedOn);
-  
 }

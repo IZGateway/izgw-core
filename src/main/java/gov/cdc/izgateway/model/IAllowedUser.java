@@ -56,12 +56,12 @@ public interface IAllowedUser extends DbAudit {
      *
      * @return true if access is enabled, false otherwise
      */
-    Boolean getEnabled();
+    boolean getEnabled();
 
     /**
      * Sets whether access is enabled.
      *
      * @param enabled true to enable access, false to disable
      */
-    void setEnabled(Boolean enabled);
+    void setEnabled(boolean enabled);
 }

@@ -17,7 +17,7 @@ import software.amazon.awssdk.enhanced.dynamodb.mapper.annotations.DynamoDbSortK
  *
  */
 @DynamoDbBean
-public interface DynamoDbEntity {
+public interface DynamoDbEntity extends DbAudit {
 	/** The attribute to use for entity type */
 	public static final String ENTITY_TYPE = "entityType";
 	/** The attribute to use for the sort key */

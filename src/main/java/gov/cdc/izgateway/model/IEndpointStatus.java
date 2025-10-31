@@ -9,10 +9,10 @@ import com.fasterxml.jackson.annotation.JsonFormat.Shape;
 import gov.cdc.izgateway.common.Constants;
 
 /**
- * This interface represents the status of an endpoint in use by an IZ Gateway service.
- * It keeps track of the current status, the reason for that status, what system and when
- * the status was set, the retry strategy that should be applied to a message, and the diagnostics
- * associated with the failure.
+ * Represents the status of an endpoint in IZ Gateway, including status details, diagnostics, retry strategy, and audit information.
+ * <p>
+ * Provides methods to get and set status details, diagnostics, retry strategy, timestamps, and related endpoint information.
+ * </p>
  *  
  * @author Audacious Inquiry
  *
@@ -20,79 +20,93 @@ import gov.cdc.izgateway.common.Constants;
 public interface IEndpointStatus extends IEndpoint {
 
 	/**
-	 * @return the detail associated with the status.
+	 * Gets the detail associated with the status.
+	 * @return the status detail
 	 */
 	String getDetail();
 
 	/**
-	 * @return the diagnostics associated with the status.
+	 * Gets the diagnostics associated with the status.
+	 * @return the diagnostics
 	 */
 	String getDiagnostics();
 
 	/**
-	 * @return the retry strategy associated with the status.
+	 * Gets the retry strategy associated with the status.
+	 * @return the retry strategy
 	 */
 	String getRetryStrategy();
 
 	/**
-	 * @return	The status
+	 * Gets the status value.
+	 * @return the status
 	 */
 	String getStatus();
 
 	/**
-	 * @return The datetime the status was set.
+	 * Gets the datetime the status was set.
+	 * @return the status timestamp
 	 */
 	Date getStatusAt();
 
 	/**
-	 * @return The host that set the status.
+	 * Gets the host that set the status.
+	 * @return the status host
 	 */
 	String getStatusBy();
 
 	/**
-	 * @return The id of the status entry.
+	 * Gets the ID of the status entry.
+	 * @return the status ID
 	 */
 	int getStatusId();
 
 	/**
-	 * @param destId the destination Id associated with the status.
+	 * Sets the destination ID associated with the status.
+	 * @param destId the destination ID
 	 */
 	void setDestId(String destId);
 	
+	/**
+	 * Gets the destination type ID.
+	 * @return the destination type ID
+	 */
 	int getDestTypeId();
 
 	/**
-	 * @param destUri the URI value associated with the endpoint to set.
+	 * Sets the URI value associated with the endpoint.
+	 * @param destUri the destination URI
 	 */
 	void setDestUri(String destUri);
 
 	/**
-	 * @param destVersion The protocol and version to use with the destination.
+	 * Sets the protocol and version to use with the destination.
+	 * @param destVersion the destination version
 	 */
 	void setDestVersion(String destVersion);
 
 	/**
-	 * Set the detail associated with the status
-	 * @param detail the detail associated with the status
+	 * Sets the detail associated with the status.
+	 * @param detail the status detail
 	 */
 	void setDetail(String detail);
 
 	/**
-	 * Set the diagnostic message associated with the status
+	 * Sets the diagnostic message associated with the status.
 	 * @param diagnostics the diagnostic message
 	 */
 	void setDiagnostics(String diagnostics);
 
-	@JsonIgnore
 	/**
-	 * Set the jurisdiction identifier associated with the endpoint
-	 * @param jurisdictionId The jurisdiction identifier 
+	 * Sets the jurisdiction identifier associated with the endpoint.
+	 * @param jurisdictionId the jurisdiction ID
 	 */
+	@JsonIgnore
 	void setJurisdictionId(int jurisdictionId);
 
 	/**
-	 * Set the Retry Strategy associated with this status.
-	 * @param retryStrategy the retry Strategy 
+	 * Sets the retry strategy associated with this status.
+	 * @param retryStrategy the retry strategy
 	 */
 	void setRetryStrategy(String retryStrategy);
 

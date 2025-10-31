@@ -13,7 +13,13 @@ import gov.cdc.izgateway.common.HasDestinationUri;
 import io.swagger.v3.oas.annotations.media.Schema;
 import software.amazon.awssdk.enhanced.dynamodb.mapper.annotations.DynamoDbIgnore;
 
-public interface IDestination extends IEndpoint, HasDestinationUri {
+/**
+ * Represents a destination endpoint in IZ Gateway, including facility, maintenance, credentials, and protocol details.
+ * <p>
+ * Provides methods to get and set destination properties, maintenance windows, credentials, and protocol information.
+ * </p>
+ */
+public interface IDestination extends IEndpoint, HasDestinationUri, DbAudit {
 	@SuppressWarnings("serial")
 	static class Map extends MappableEntity<IDestination> {}
 	static String ID_PATTERN = "^[-_\\p{Alnum}]+$";
@@ -33,34 +39,90 @@ public interface IDestination extends IEndpoint, HasDestinationUri {
 	/** Version value for ADS endpoints using NDLP 2.0 Schema (Azure with v2 Folder Structure) */
 	public static final String IZGW_AZURE_VERSION2 = "V2022-12-31";
 
+	/**
+	 * Gets the facility ID for the destination.
+	 * @return the facility ID
+	 */
 	String getFacilityId();
 
+	/**
+	 * Gets the destination identifier.
+	 * @return the destination identifier
+	 */
 	IDestinationId getId();
 
+	/**
+	 * Gets the maintenance end date.
+	 * @return the maintenance end date
+	 */
 	@JsonFormat(shape=Shape.STRING, pattern=Constants.TIMESTAMP_FORMAT) 
 	Date getMaintEnd();
 
+	/**
+	 * Gets the maintenance reason.
+	 * @return the maintenance reason
+	 */
 	String getMaintReason();
 
+	/**
+	 * Gets the maintenance start date.
+	 * @return the maintenance start date
+	 */
 	@JsonFormat(shape=Shape.STRING, pattern=Constants.TIMESTAMP_FORMAT) 
 	Date getMaintStart();
 
+	/**
+	 * Gets the MSH-22 value for HL7 messages.
+	 * @return the MSH-22 value
+	 */
 	String getMsh22();
 
+	/**
+	 * Gets the MSH-3 value for HL7 messages.
+	 * @return the MSH-3 value
+	 */
 	String getMsh3();
 
+	/**
+	 * Gets the MSH-4 value for HL7 messages.
+	 * @return the MSH-4 value
+	 */
 	String getMsh4();
 
+	/**
+	 * Gets the MSH-5 value for HL7 messages.
+	 * @return the MSH-5 value
+	 */
 	String getMsh5();
 
+	/**
+	 * Gets the MSH-6 value for HL7 messages.
+	 * @return the MSH-6 value
+	 */
 	String getMsh6();
 
+	/**
+	 * Gets the password for the destination.
+	 * @return the password
+	 */
 	String getPassword();
 	
+	/**
+	 * Gets the password expiry date.
+	 * @return the password expiry date
+	 */
 	Date getPassExpiry();
 
+	/**
+	 * Gets the RXA-11 value for HL7 messages.
+	 * @return the RXA-11 value
+	 */
 	String getRxa11();
 
+	/**
+	 * Gets the username for the destination.
+	 * @return the username
+	 */
 	String getUsername();
 	
 	void setDestUri(String destUri);

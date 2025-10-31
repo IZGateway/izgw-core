@@ -1,5 +1,7 @@
 package gov.cdc.izgateway.model;
 
+import java.util.Date;
+
 /**
  * Represents a user that is allowed to send to a destination endpoint.
  * <p>
@@ -56,7 +58,7 @@ public interface IAllowedUser extends DbAudit {
      *
      * @return true if access is enabled, false otherwise
      */
-    boolean getEnabled();
+    boolean isEnabled();
 
     /**
      * Sets whether access is enabled.
@@ -64,4 +66,15 @@ public interface IAllowedUser extends DbAudit {
      * @param enabled true to enable access, false to disable
      */
     void setEnabled(boolean enabled);
+
+	/**
+	 * Gets the validatedOn date
+	 * @return the validatedOn date
+	 */
+	Date getValidatedOn();
+	/**
+	 * Sets the validatedOn date
+	 * @param validatedOn the validatedOn date
+	 */
+	void setValidatedOn(Date validatedOn);
 }

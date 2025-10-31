@@ -2,9 +2,9 @@ package gov.cdc.izgateway.model;
 
 import java.util.Date;
 
-import gov.cdc.izgateway.model.DbAudit;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import software.amazon.awssdk.enhanced.dynamodb.mapper.annotations.DynamoDbConvertedBy;
 
 /**
  * Base class to provide audit fields for DynamoDB entities.
@@ -22,9 +22,25 @@ public abstract class DynamoDbAudit implements DbAudit {
 		updatedOn = other.getUpdatedOn();
 		createdBy = other.getCreatedBy();
 		updatedBy = other.getUpdatedBy();
-	}
+	}    
 	Date createdOn;
 	Date updatedOn;
 	String createdBy;
 	String updatedBy;
+	@DynamoDbConvertedBy(DateConverter.class)
+	public Date getCreatedOn() {
+		return createdOn;
+	}
+	@DynamoDbConvertedBy(DateConverter.class)
+	public void setCreatedOn(Date createdOn) {
+		this.createdOn = createdOn;
+	}
+	@DynamoDbConvertedBy(DateConverter.class)
+	public Date getUpdatedOn() {
+		return updatedOn;
+	}
+	@DynamoDbConvertedBy(DateConverter.class)
+	public void setUpdatedOn(Date updatedOn) {
+		this.updatedOn = updatedOn;
+	}
 }

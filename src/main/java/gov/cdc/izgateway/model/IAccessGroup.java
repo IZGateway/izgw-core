@@ -81,16 +81,5 @@ public interface IAccessGroup extends DbAudit {
      * @param groups the list of groups
      */
     void setGroups(List<String> groups);
-
-    /**
-     * Gets the last changed date for the record.
-     * @return the last changed date
-     */
-    Date getLastChanged();
-
-    /**
-     * Sets the last changed date for the record.
-     * @param lastChanged the last changed date
-     */
-    void setLastChanged(Date lastChanged);
+  
 }

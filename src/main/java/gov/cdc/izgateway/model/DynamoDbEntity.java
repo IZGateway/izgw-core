@@ -1,5 +1,7 @@
 package gov.cdc.izgateway.model;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+
 import software.amazon.awssdk.enhanced.dynamodb.mapper.annotations.DynamoDbAttribute;
 import software.amazon.awssdk.enhanced.dynamodb.mapper.annotations.DynamoDbBean;
 import software.amazon.awssdk.enhanced.dynamodb.mapper.annotations.DynamoDbPartitionKey;
@@ -28,6 +30,7 @@ public interface DynamoDbEntity {
 	 */
 	@DynamoDbPartitionKey
 	@DynamoDbAttribute(ENTITY_TYPE)
+	@JsonIgnore
 	default String getEntityType() {
 		return getClass().getSimpleName();
 	}
@@ -39,6 +42,7 @@ public interface DynamoDbEntity {
 	 */
 	@DynamoDbSortKey
 	@DynamoDbAttribute(SORT_KEY)
+	@JsonIgnore
 	default String getSortKey() {
 		return getPrimaryId();
 	}
@@ -48,6 +52,7 @@ public interface DynamoDbEntity {
 	 * This will be used as the sort key.
 	 * @return The primary id for this object.
 	 */
+	@JsonIgnore
 	public String getPrimaryId();
 	
 	/**

@@ -23,7 +23,7 @@ public class AppProperties {
 	private String serverMode;
 	
 	@Getter
-	@Value("${spring.database:jpa}")
+	@Value("${spring.database:dynamodb}")
 	private String databaseType;
 
 	@Getter

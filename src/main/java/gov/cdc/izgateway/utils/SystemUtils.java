@@ -15,11 +15,16 @@ public class SystemUtils {
 	private static final String HOSTNAME = hostName();
 	private static final int DESTTYPE = destType();
 	// (1,'PRODUCTION'),(2,'TEST'), (3, 'ONBOARD'), (4, 'STAGE'), (5, 'DEV')
-	private static final int DESTTYPE_PROD = 1;
-	private static final int DESTTYPE_TEST = 2;
-	private static final int DESTTYPE_ONBOARD = 3;
-	private static final int DESTTYPE_STAGE = 4;
-	private static final int DESTTYPE_DEV = 5;
+	/** Destination type for Production environment. */
+	public static final int DESTTYPE_PROD = 1;
+	/** Destination type for Development Test environment. */
+	public static final int DESTTYPE_TEST = 2;
+	/** Destination type for Onboarding environment. */
+	public static final int DESTTYPE_ONBOARD = 3;
+	/** Destination type for Staging environment. */
+	public static final int DESTTYPE_STAGE = 4;
+	/** Destination type for Development environment. */
+	public static final int DESTTYPE_DEV = 5;
     protected static final String[] ENVIRONMENTS = { "UNKNOWN", "Production", "Testing", "Onboarding", "Staging", "Development" };
     protected static final String[] ENVIRONMENT_TAGS = { "unknown", "prod", "test", "onboard", "staging", "dev" };
 

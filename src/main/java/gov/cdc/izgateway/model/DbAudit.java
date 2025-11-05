@@ -2,6 +2,8 @@ package gov.cdc.izgateway.model;
 
 import java.util.Date;
 
+import gov.cdc.izgateway.security.IzgPrincipal;
+
 /**
  * This interface is used to mark entities which have audit fields for createdBy, createdOn, updatedBy, and updatedOn.
  * @author Audacious Inquiry
@@ -51,4 +53,28 @@ public interface DbAudit {
 	 * @param updatedAt The date/time when the record was last updated
 	 */
 	void setUpdatedOn(Date updatedAt);
+	
+	/**
+	 * Set the created fields to the current date and server principal name and host.
+	 */
+	void setCreated();
+	
+	/**
+	 * Set the created fields to the current date and user principal name and host.
+	 * @param principal The user principal
+	 * @param hostname The host name
+	 */
+	void setCreated(IzgPrincipal principal, String hostname);
+	
+	/**
+	 * Set the updated fields to the current date and server principal name and host.
+	 */
+	void setUpdated();
+	
+	/**
+	 * Set the updated fields to the current date and user principal name and host.
+	 * @param principal
+	 * @param hostname
+	 */
+	void setUpdated(IzgPrincipal principal, String hostname);
 }

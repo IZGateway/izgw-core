@@ -30,14 +30,14 @@ public interface IAllowedUser extends DbAudit {
      *
      * @return the environment
      */
-    Integer getEnvironment();
+    int getEnvironment();
 
     /**
      * Sets the environment where access is being permitted.
      *
      * @param environment the environment
      */
-    void setEnvironment(Integer environment);
+    void setEnvironment(int environment);
 
     /**
      * Gets the name of the principal that is permitted to send to the endpoint.

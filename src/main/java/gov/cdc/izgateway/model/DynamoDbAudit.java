@@ -2,6 +2,9 @@ package gov.cdc.izgateway.model;
 
 import java.util.Date;
 
+import gov.cdc.izgateway.repository.DynamoDbRepository;
+import gov.cdc.izgateway.security.IzgPrincipal;
+import gov.cdc.izgateway.utils.SystemUtils;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import software.amazon.awssdk.enhanced.dynamodb.mapper.annotations.DynamoDbConvertedBy;
@@ -11,8 +14,20 @@ import software.amazon.awssdk.enhanced.dynamodb.mapper.annotations.DynamoDbConve
  * @author Audacious Inquiry
  */
 @Data
-@NoArgsConstructor
 public abstract class DynamoDbAudit implements DbAudit {
+	Date createdOn;
+	Date updatedOn;
+	String createdBy;
+	String updatedBy;
+	
+	/**
+	 * Default constructor initializes created and updated fields to current date and server principal.
+	 * These can be overridden later as needed, but ensures they are never null.
+	 */
+	public DynamoDbAudit() {
+		setCreated();
+		setUpdated();
+	}
 	/**
 	 * Copy constructor
 	 * @param other	the other audit object to copy from
@@ -22,25 +37,69 @@ public abstract class DynamoDbAudit implements DbAudit {
 		updatedOn = other.getUpdatedOn();
 		createdBy = other.getCreatedBy();
 		updatedBy = other.getUpdatedBy();
-	}    
-	Date createdOn;
-	Date updatedOn;
-	String createdBy;
-	String updatedBy;
+	} 
+	
+	@Override
 	@DynamoDbConvertedBy(DateConverter.class)
 	public Date getCreatedOn() {
 		return createdOn;
 	}
+	
+	@Override
 	@DynamoDbConvertedBy(DateConverter.class)
 	public void setCreatedOn(Date createdOn) {
 		this.createdOn = createdOn;
 	}
+	
+	@Override
 	@DynamoDbConvertedBy(DateConverter.class)
 	public Date getUpdatedOn() {
 		return updatedOn;
 	}
+	
+	@Override
 	@DynamoDbConvertedBy(DateConverter.class)
 	public void setUpdatedOn(Date updatedOn) {
 		this.updatedOn = updatedOn;
+	}
+	
+	/**
+	 * Set the created fields to the current date and server principal name and host.
+	 */
+	@Override
+	public void setCreated() {
+		this.createdOn = new Date();
+		this.createdBy = String.format("%s@%s", DynamoDbRepository.getServerName(), SystemUtils.getHostname());
+	}
+	
+	/**
+	 * Set the created fields to the current date and user principal name and host.
+	 * @param principal The user principal
+	 * @param hostname The host name
+	 */
+	@Override
+	public void setCreated(IzgPrincipal principal, String hostname) {
+		this.createdOn = new Date();
+		this.createdBy = String.format("%s@%s", principal.getName(), hostname);
+	}
+	
+	/**
+	 * Set the updated fields to the current date and server principal name and host.
+	 */
+	@Override
+	public void setUpdated() {
+		this.updatedOn = new Date();
+		this.updatedBy = String.format("%s@%s", DynamoDbRepository.getServerName(), SystemUtils.getHostname());
+	}
+	
+	/**
+	 * Set the updated fields to the current date and user principal name and host.
+	 * @param principal The user principal
+	 * @param hostname The host name
+	 */
+	@Override
+	public void setUpdated(IzgPrincipal principal, String hostname) {
+		this.updatedOn = new Date();
+		this.updatedBy = String.format("%s@%s", principal.getName(), hostname);
 	}
 }

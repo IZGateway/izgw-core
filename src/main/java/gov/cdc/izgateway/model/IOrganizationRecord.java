@@ -47,4 +47,15 @@ public interface IOrganizationRecord extends DbAudit {
 	 * @param organizationName the organization name to set
 	 */
 	void setOrganizationName(String organizationName);
+
+	/**
+	 * Gets the type of the organization (e.g., "IIS", "Provider", "Consumer").
+	 * @return	The organization type
+	 */
+	String getType();
+	/**
+	 * Sets the type of the organization (e.g., "IIS", "Provider", "Consumer").
+	 * @param type
+	 */
+	void setType(String type);
 }

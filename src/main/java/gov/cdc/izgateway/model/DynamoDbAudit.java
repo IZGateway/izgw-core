@@ -5,7 +5,6 @@ import java.util.Date;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 
 import gov.cdc.izgateway.repository.DynamoDbRepository;
-import gov.cdc.izgateway.security.IzgPrincipal;
 import gov.cdc.izgateway.utils.SystemUtils;
 import lombok.Data;
 import software.amazon.awssdk.enhanced.dynamodb.mapper.annotations.DynamoDbConvertedBy;
@@ -85,9 +84,9 @@ public abstract class DynamoDbAudit implements DynamoDbEntity {
 	 * @param hostname The host name
 	 */
 	@Override
-	public void setCreated(IzgPrincipal principal, String hostname) {
+	public void setCreated(String principal, String hostname) {
 		this.createdOn = new Date();
-		this.createdBy = String.format("%s@%s", principal.getName(), hostname);
+		this.createdBy = String.format("%s@%s", principal, hostname);
 	}
 	
 	/**
@@ -105,8 +104,8 @@ public abstract class DynamoDbAudit implements DynamoDbEntity {
 	 * @param hostname The host name
 	 */
 	@Override
-	public void setUpdated(IzgPrincipal principal, String hostname) {
+	public void setUpdated(String principal, String hostname) {
 		this.updatedOn = new Date();
-		this.updatedBy = String.format("%s@%s", principal.getName(), hostname);
+		this.updatedBy = String.format("%s@%s", principal, hostname);
 	}
 }

@@ -2,7 +2,8 @@ package gov.cdc.izgateway.model;
 
 import java.util.Date;
 
-import gov.cdc.izgateway.security.IzgPrincipal;
+import gov.cdc.izgateway.configuration.AppProperties;
+import gov.cdc.izgateway.utils.SystemUtils;
 
 /**
  * This interface is used to mark entities which have audit fields for createdBy, createdOn, updatedBy, and updatedOn.
@@ -57,24 +58,34 @@ public interface DbAudit {
 	/**
 	 * Set the created fields to the current date and server principal name and host.
 	 */
-	void setCreated();
+	default void setCreated() {
+		setCreated(AppProperties.getInstance().getServerName(), SystemUtils.getHostname());
+	}
 	
 	/**
 	 * Set the created fields to the current date and user principal name and host.
 	 * @param principal The user principal
 	 * @param hostname The host name
 	 */
-	void setCreated(IzgPrincipal principal, String hostname);
+	default void setCreated(String principal, String hostname) {
+		setCreatedBy(principal + "@" + hostname);
+		setCreatedOn(new Date());
+	}
 	
 	/**
 	 * Set the updated fields to the current date and server principal name and host.
 	 */
-	void setUpdated();
+	default void setUpdated() {
+		setUpdated(AppProperties.getInstance().getServerName(), SystemUtils.getHostname());
+	}
 	
 	/**
 	 * Set the updated fields to the current date and user principal name and host.
 	 * @param principal
 	 * @param hostname
 	 */
-	void setUpdated(IzgPrincipal principal, String hostname);
+	default void setUpdated(String principal, String hostname) {
+		setUpdatedBy(principal + "@" + hostname);
+		setUpdatedOn(new Date());
+	}
 }

@@ -33,6 +33,9 @@ public class AppProperties {
 	public AppProperties() {
 		setInstance(this);
 	}
+	public static AppProperties getInstance() {
+		return instance;
+	}
 	private static void setInstance(AppProperties instance) {
 		AppProperties.instance = instance;
 	}

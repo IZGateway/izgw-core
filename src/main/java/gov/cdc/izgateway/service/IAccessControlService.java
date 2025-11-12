@@ -31,7 +31,7 @@ public interface IAccessControlService {
 	 * The value is an object describing the group.
 	 * @return Get mapping of users to groups
      */
-	Map<String, ?> getGroups();
+	Map<String, Object> getGroups();
 
 	/**
 	 * Returns true if the user is in the specified group

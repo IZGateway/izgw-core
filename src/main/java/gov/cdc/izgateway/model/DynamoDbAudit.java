@@ -15,6 +15,7 @@ import software.amazon.awssdk.enhanced.dynamodb.mapper.annotations.DynamoDbConve
  */
 @Data
 public abstract class DynamoDbAudit implements DynamoDbEntity {
+	private static final String USER_FORMAT_STRING = "%s@%s";
 	Date createdOn;
 	Date updatedOn;
 	@JsonIgnore
@@ -26,7 +27,7 @@ public abstract class DynamoDbAudit implements DynamoDbEntity {
 	 * Default constructor initializes created and updated fields to current date and server principal.
 	 * These can be overridden later as needed, but ensures they are never null.
 	 */
-	public DynamoDbAudit() {
+	protected DynamoDbAudit() {
 		setCreated();
 		setUpdated();
 	}
@@ -34,7 +35,7 @@ public abstract class DynamoDbAudit implements DynamoDbEntity {
 	 * Copy constructor
 	 * @param other	the other audit object to copy from
 	 */
-	public DynamoDbAudit(DbAudit other) {
+	protected DynamoDbAudit(DbAudit other) {
 		createdOn = other.getCreatedOn();
 		updatedOn = other.getUpdatedOn();
 		createdBy = other.getCreatedBy();
@@ -75,7 +76,7 @@ public abstract class DynamoDbAudit implements DynamoDbEntity {
 	@Override
 	public void setCreated() {
 		this.createdOn = new Date();
-		this.createdBy = String.format("%s@%s", DynamoDbRepository.getServerName(), SystemUtils.getHostname());
+		this.createdBy = String.format(USER_FORMAT_STRING, DynamoDbRepository.getServerName(), SystemUtils.getHostname());
 	}
 	
 	/**
@@ -86,7 +87,7 @@ public abstract class DynamoDbAudit implements DynamoDbEntity {
 	@Override
 	public void setCreated(String principal, String hostname) {
 		this.createdOn = new Date();
-		this.createdBy = String.format("%s@%s", principal, hostname);
+		this.createdBy = String.format(USER_FORMAT_STRING, principal, hostname);
 	}
 	
 	/**
@@ -95,7 +96,7 @@ public abstract class DynamoDbAudit implements DynamoDbEntity {
 	@Override
 	public void setUpdated() {
 		this.updatedOn = new Date();
-		this.updatedBy = String.format("%s@%s", DynamoDbRepository.getServerName(), SystemUtils.getHostname());
+		this.updatedBy = String.format(USER_FORMAT_STRING, DynamoDbRepository.getServerName(), SystemUtils.getHostname());
 	}
 	
 	/**
@@ -106,6 +107,6 @@ public abstract class DynamoDbAudit implements DynamoDbEntity {
 	@Override
 	public void setUpdated(String principal, String hostname) {
 		this.updatedOn = new Date();
-		this.updatedBy = String.format("%s@%s", principal, hostname);
+		this.updatedBy = String.format(USER_FORMAT_STRING, principal, hostname);
 	}
 }

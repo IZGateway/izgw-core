@@ -95,7 +95,7 @@ public class AccessController {
 	 */
 	@Operation(summary="Report on access control groups", description="Return the list of groups under access controls")
 	@GetMapping("/access/groups")
-	public Map<String, ?> getAccessGroups() {
+	public Map<String, Object> getAccessGroups() {
 		return service.getGroups();
 	}
 

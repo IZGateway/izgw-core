@@ -4,7 +4,6 @@ import gov.cdc.izgateway.common.ResourceNotFoundException;
 import gov.cdc.izgateway.service.IAccessControlService;
 import io.swagger.v3.oas.annotations.Operation;
 
-import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -109,7 +108,7 @@ public class AccessController {
 	 * @throws ResourceNotFoundException if the group is not found
 	 */
 	@Operation(summary="Report on access control group members", description="Return the list of members for a given group")
-	@GetMapping("/access/groups/{groupName}")
+	@GetMapping("/access/groups/{group}")
 	public Object getUsersInGroup(@PathVariable String group) {
 		Object g = getAccessGroups().get(group);
 		if (g == null) {

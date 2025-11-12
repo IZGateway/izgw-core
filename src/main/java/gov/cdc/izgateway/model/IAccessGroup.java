@@ -8,7 +8,7 @@ import java.util.Set;
  * Provides group name, environment, description, roles, users, groups, and last changed date.
  * </p>
  */
-public interface IAccessGroup extends DbAudit {
+public interface IAccessGroup extends DbAudit, HasEnvironment {
     /**
      * Gets the name for the group.
      * @return the group name

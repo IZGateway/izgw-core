@@ -10,7 +10,7 @@ import java.util.Date;
  * </p>
  * @author Audacious Inquiry
  */
-public interface IAllowedUser extends DbAudit {
+public interface IAllowedUser extends DbAudit, HasEnvironment, Comparable<IAllowedUser> {
     /**
      * Gets the name of the destination that is permitting a principal to send to it.
      *
@@ -77,4 +77,20 @@ public interface IAllowedUser extends DbAudit {
 	 * @param validatedOn the validatedOn date
 	 */
 	void setValidatedOn(Date validatedOn);
+	
+    default int compareTo(IAllowedUser that) {
+    	int value = Integer.compare(getEnvironment(), that.getEnvironment());
+    	if (value != 0) {
+			return value;
+		}
+    	value = getDestinationId().compareTo(that.getDestinationId());
+    	if (value != 0) {
+			return value;
+		}
+    	value = this.getPrincipal().compareTo(that.getPrincipal());
+    	if (value != 0) {
+			return value;
+		}
+    	return Boolean.compare(this.isEnabled(), that.isEnabled());
+    }
 }

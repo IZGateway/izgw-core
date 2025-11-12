@@ -25,7 +25,7 @@ import lombok.Setter;
 @Data
 @EqualsAndHashCode(callSuper=true)
 @JsonPropertyOrder({"destId", "destType", "destTypeId", "destUri", "destVersion", "status", "statusAt", "statusBy", "detail", "diagnostics", "retryStrategy"})
-public abstract class  AbstractEndpointStatus extends DynamoDbAudit implements DbAudit, IEndpointStatus {
+public abstract class  AbstractEndpointStatus extends DynamoDbAudit implements IEndpointStatus {
 
 	@Schema(description="The identifier of destination")
 	private String destId;

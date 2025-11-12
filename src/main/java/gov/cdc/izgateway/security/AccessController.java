@@ -1,7 +1,6 @@
 package gov.cdc.izgateway.security;
 
 import gov.cdc.izgateway.common.ResourceNotFoundException;
-import gov.cdc.izgateway.model.IAccessControl;
 import gov.cdc.izgateway.service.IAccessControlService;
 import io.swagger.v3.oas.annotations.Operation;
 
@@ -25,6 +24,14 @@ import org.springframework.web.bind.annotation.RestController;
 
 import jakarta.annotation.security.RolesAllowed;
 
+/**
+ * REST controller for managing access control settings, endpoints, groups, routes, and users.
+ * 
+ * Endpoints are protected and require ADMIN role. Provides operations to report on and modify access controls,
+ * including denylist management and group membership queries.
+ * 
+ * @author Audacious Inquiry
+ */
 @RestController
 @CrossOrigin
 @RolesAllowed({Roles.ADMIN})
@@ -34,6 +41,12 @@ public class AccessController {
 	private final AccessControlRegistry registry;
 	private final IAccessControlService service;
 	
+	/**
+	 * Constructs the AccessController and registers it with the AccessControlRegistry.
+	 *
+	 * @param registry the access control registry
+	 * @param service the access control service
+	 */
 	@Autowired
 	public AccessController(AccessControlRegistry registry, IAccessControlService service) {
 		registry.register(this);
@@ -41,72 +54,129 @@ public class AccessController {
 		this.service = service;
 	}
 	
+	/**
+	 * Report on access control settings.
+	 * 
+	 * Returns access control endpoints, groups, routes, and users.
+	 *
+	 * @return a map containing endpoints, groups, routes, and users
+	 */
 	@Operation(summary="Report on access control settings", description="Return access control endpoints, groups, routes and users")
 	@GetMapping("/access")
 	public Map<String, Object> getAccess() {
 		Map<String, Object> maps = new TreeMap<>();
 		maps.put("Endpoints", getAccessEndpoints());
 		maps.put("Groups", getAccessGroups());
-		maps.put("Routes", getAccessRoutes());
+		maps.put("Routes", getAdsFileTypes());
 		maps.put("Users", getAccessUsers());
+		maps.put("DenyList", getDeniedUsers());
 		return maps;
 	}
 
+	/**
+	 * Report on access control endpoints.
+	 * 
+	 * Returns the list of endpoints under access controls.
+	 *
+	 * @return a map of endpoints and their controls
+	 */
 	@Operation(summary="Report on access control endpoints", description="Return the list of endpoints under access controls")
 	@GetMapping("/access/endpoints")
 	public Map<String, List<String>> getAccessEndpoints() {
-		return registry.getControls();
+		return registry.getApiEndpoints();
 	}
 
+	/**
+	 * Report on access control groups.
+	 * 
+	 * Returns the list of groups under access controls.
+	 *
+	 * @return a map of group names to their allowed users
+	 */
 	@Operation(summary="Report on access control groups", description="Return the list of groups under access controls")
 	@GetMapping("/access/groups")
-	public Map<String, Map<String, Boolean>> getAccessGroups() {
-		return service.getAllowedUsersByGroup();
+	public Map<String, ?> getAccessGroups() {
+		return service.getGroups();
 	}
 
+	/**
+	 * Report on access control group members.
+	 * <p>
+	 * Returns the list of members for a given group.
+	 *
+	 * @param group the group name
+	 * @return a set of users in the group
+	 * @throws ResourceNotFoundException if the group is not found
+	 */
 	@Operation(summary="Report on access control group members", description="Return the list of members for a given group")
-	@GetMapping("/access/groups/{group}")
-	public Set<String> getUsersInGroup(@PathVariable String group) {
-		Map<String, Boolean> members = getAccessGroups().get(group);
-		if (members == null) {
-			if (Roles.BLACKLIST.equals(group)) {
-				members = Collections.emptyMap();
-			} else {
-				throw new ResourceNotFoundException(String.format("Group %s not found.", group));
-			}
+	@GetMapping("/access/groups/{groupName}")
+	public Object getUsersInGroup(@PathVariable String group) {
+		Object g = getAccessGroups().get(group);
+		if (g == null) {
+			throw new ResourceNotFoundException(String.format("Group %s not found.", group));
 		}
-		TreeSet<String> users = new TreeSet<>();
-		for (Map.Entry<String, Boolean> e : members.entrySet()) {
-			if (Boolean.TRUE.equals(e.getValue())) {
-				users.add(e.getKey());
-			}
-		}
-		return users;
+		return g;
 	}
 
-	@Operation(summary="Report on users in blacklist", description="Return the list of blacklisted users")
-	@GetMapping("/access/blacklist") Set<String> getBlacklistedUsers() {
-		return getUsersInGroup(Roles.BLACKLIST);
+	/**
+	 * Report on users in deny list.
+	 * <p>
+	 * Returns the list of deny listed users.
+	 *
+	 * @return a set of deny listed users
+	 */
+	@Operation(summary="Report on users in deny list", description="Return the list of deny listed users")
+	@GetMapping("/access/denylist") 
+	Set<String> getDeniedUsers() {
+		return service.getDenyList();
 	}
 	
-	@Operation(summary="Add a user to blacklist", description="Add the specified user to the blacklist")
-	@PostMapping("/access/blacklist")
-	public IAccessControl addUserToBlackList(@RequestParam String user) {
-		return service.addUserToBlacklist(user);
+	/**
+	 * Add a user to deny list.
+	 * 
+	 * Adds the specified user to the deny list.
+	 *
+	 * @param user the user to add
+	 * @return the updated access control object
+	 */
+	@Operation(summary="Add a user to deny list", description="Add the specified user to the deny list")
+	@PostMapping("/access/denylist")
+	public Object addUserToBlackList(@RequestParam String user) {
+		return service.addUserToDenyList(user);
 	}
 	
-	@Operation(summary="Delete a user from the blacklist", description="Delete the specified user from the blacklist")
-	@DeleteMapping("/access/blacklist")
-	public IAccessControl removeUserFromBlackList(@RequestParam String user) {
-		return service.removeUserFromBlacklist(user);
+	/**
+	 * Delete a user from the deny list.
+	 * 
+	 * Deletes the specified user from the deny list.
+	 *
+	 * @param user the user to remove
+	 * @return the updated access control object
+	 */
+	@Operation(summary="Delete a user from the deny list", description="Delete the specified user from the deny list")
+	@DeleteMapping("/access/denylist")
+	public Object removeUserFromBlackList(@RequestParam String user) {
+		return service.removeUserFromDenyList(user);
 	}
 
-	@Operation(summary="Report on routes under access controls", description="Return the list routes under access controls")
-	@GetMapping("/access/routes")
-	Map<String, Map<String, Boolean>> getAccessRoutes() {
-		return service.getAllowedRoutesByEvent();
+	/**
+	 * Returns the list of file types supported for ADS
+	 *
+	 * @return The set of file types that can be uploaded
+	 */
+	@Operation(summary="Report on file types", description="Return the list file types that can be uploaded for ADS")
+	@GetMapping("/access/filetypes")
+	Set<String> getAdsFileTypes() {
+		return service.getEventTypes();
 	}
 
+	/**
+	 * Report on users under access controls.
+	 * <p>
+	 * Returns the users under access controls.
+	 *
+	 * @return a map of user names to their roles
+	 */
 	@Operation(summary="Report on users under access controls", description="Return the users under access controls")
 	@GetMapping("/access/users")
 	public Map<String, TreeSet<String>> getAccessUsers() {

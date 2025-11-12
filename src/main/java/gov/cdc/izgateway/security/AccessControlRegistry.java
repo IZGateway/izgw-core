@@ -37,7 +37,7 @@ public class AccessControlRegistry implements IAccessControlRegistry {
 	 * Get the access control map
 	 * @return The access control map
 	 */
-	public Map<String, List<String>> getControls() {
+	public Map<String, List<String>> getApiEndpoints() {
 		Map<String, List<String>> result = new TreeMap<>();
 		
 		for (Map.Entry<String, List<String>> e: allowedMap.entrySet()) {

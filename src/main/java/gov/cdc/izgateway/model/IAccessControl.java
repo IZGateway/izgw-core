@@ -59,15 +59,13 @@ public interface IAccessControl extends DbAudit{
 	void setName(String name);
 
 	/**
-	 * Groups are simple names following the pattern [0-9]*[a-zA-Z]+[a-zA-Z0-9]*.
-	 * In other words, they must contain only letters or digits, and must contain
-	 * at least one letter, and cannot be named "localhost".
+	 * Groups are simple names following the pattern [a-zA-Z0-9]+, and cannot be named "localhost".
 	 * 
 	 * @param	member	The pattern to check for a group name
-	 * @return	True if this is a group name, false for a user name pattern or a serial number
+	 * @return	True if this is a group name, false for a user name pattern.
 	 */
 	static boolean isGroup(String member) {
-		return !StringUtils.contains(member, '.') && !StringUtils.isNumeric(member) && !"localhost".equals(member);
+		return  !"localhost".equals(member) && member.matches("^[a-zA-Z0-9]+$");
 	}
 
 }

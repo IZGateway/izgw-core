@@ -139,7 +139,7 @@ public class AccessControlValve extends ValveBase {
 		if (accessControls.isUserInRole(user, Roles.ADMIN)) {
 			theRoles.add(Roles.ADMIN);
 		}
-		if (accessControls.isUserBlacklisted(user)) {
+		if (accessControls.isUserDenied(user)) {
 			theRoles.add(Roles.BLACKLIST);
 		}
 	}

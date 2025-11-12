@@ -1,13 +1,13 @@
 package gov.cdc.izgateway.repository;
 
 import java.lang.reflect.InvocationTargetException;
-import java.util.Date;
 import java.util.Iterator;
 import java.util.List;
 import java.util.ServiceConfigurationError;
 
 import gov.cdc.izgateway.logging.markers.Markers2;
 import gov.cdc.izgateway.model.DynamoDbEntity;
+import gov.cdc.izgateway.model.HasEnvironment;
 import gov.cdc.izgateway.utils.SystemUtils;
 import lombok.extern.slf4j.Slf4j;
 import software.amazon.awssdk.enhanced.dynamodb.DynamoDbEnhancedClient;
@@ -93,6 +93,18 @@ public abstract class DynamoDbRepository<T extends DynamoDbEntity> {
 	}
 	
 	/**
+	 * Find all items for the current environment.
+	 * NOTE: This method assumes that the sort key begins with the environment id followed by a '#'.
+	 * @return	All entities of the specified type stored in the database for the current environment
+	 */
+	public List<T> findAllForEnvironment() {
+		if (HasEnvironment.class.isAssignableFrom(entityClass)) {
+			return findByType(SystemUtils.getDestType() + "#");
+		} 
+		return findAll();
+	}
+	
+	/**
 	 * Find all items.
 	 * @return	All entities of the specified type stored in the database 
 	 */
@@ -108,9 +120,6 @@ public abstract class DynamoDbRepository<T extends DynamoDbEntity> {
 	public T createEntity() {
 		try {
 			T t = entityClass.getDeclaredConstructor().newInstance();
-			// Set default values for the creation date and user.
-			t.setCreatedOn(new Date());
-			t.setCreatedBy(String.format("%s@%s", getServerName(), SystemUtils.getHostname()));
 			return t;
 		} catch (InstantiationException | IllegalAccessException | IllegalArgumentException | InvocationTargetException
 				| NoSuchMethodException | SecurityException e) {
@@ -140,7 +149,10 @@ public abstract class DynamoDbRepository<T extends DynamoDbEntity> {
 		if (entity == null) {
 			throw new NullPointerException("Entity cannot be null");
 		}
+		// Note: Log before we act so that if the delete fails we still have a record of it.
 		Key key = Key.builder().partitionValue(entity.getEntityType()).sortValue(entity.getSortKey()).build();
+		String type = entity.getClass().getSimpleName();
+		log.info(Markers2.append(type, entity), "Deleted {}", type);
 		table.deleteItem(key);
 	}
 	
@@ -154,6 +166,8 @@ public abstract class DynamoDbRepository<T extends DynamoDbEntity> {
 			throw new NullPointerException("Entity cannot be null");
 		}
 		
+		String type = entity.getClass().getSimpleName();
+		log.info(Markers2.append(type, entity), "Updated {}", type);
 		table.putItem(entity);
         return entity;
 	}
@@ -164,7 +178,10 @@ public abstract class DynamoDbRepository<T extends DynamoDbEntity> {
 		).build();
 		PutItemEnhancedRequest<T> request = PutItemEnhancedRequest.builder(entityClass).item(entity).conditionExpression(ex).build();
 		try {
-			table.putItem(request);
+			// Note: Log before we act so that if the create fails we still have a record of it.
+			String type = entity.getClass().getSimpleName();
+			log.info(Markers2.append(type, entity), "Created {}", type);
+			table.putItem(entity);
 			return entity;
 		} catch (ConditionalCheckFailedException e) {
 			return null;

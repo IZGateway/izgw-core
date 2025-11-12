@@ -1,7 +1,5 @@
 package gov.cdc.izgateway.model;
 
-import java.util.Date;
-
 /**
  * Represents a file type record.
  * <p>

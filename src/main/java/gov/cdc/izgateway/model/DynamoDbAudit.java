@@ -2,11 +2,12 @@ package gov.cdc.izgateway.model;
 
 import java.util.Date;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+
 import gov.cdc.izgateway.repository.DynamoDbRepository;
 import gov.cdc.izgateway.security.IzgPrincipal;
 import gov.cdc.izgateway.utils.SystemUtils;
 import lombok.Data;
-import lombok.NoArgsConstructor;
 import software.amazon.awssdk.enhanced.dynamodb.mapper.annotations.DynamoDbConvertedBy;
 
 /**
@@ -14,10 +15,12 @@ import software.amazon.awssdk.enhanced.dynamodb.mapper.annotations.DynamoDbConve
  * @author Audacious Inquiry
  */
 @Data
-public abstract class DynamoDbAudit implements DbAudit {
+public abstract class DynamoDbAudit implements DynamoDbEntity {
 	Date createdOn;
 	Date updatedOn;
+	@JsonIgnore
 	String createdBy;
+	@JsonIgnore
 	String updatedBy;
 	
 	/**
@@ -40,24 +43,28 @@ public abstract class DynamoDbAudit implements DbAudit {
 	} 
 	
 	@Override
+	@JsonIgnore
 	@DynamoDbConvertedBy(DateConverter.class)
 	public Date getCreatedOn() {
 		return createdOn;
 	}
 	
 	@Override
+	@JsonIgnore
 	@DynamoDbConvertedBy(DateConverter.class)
 	public void setCreatedOn(Date createdOn) {
 		this.createdOn = createdOn;
 	}
 	
 	@Override
+	@JsonIgnore
 	@DynamoDbConvertedBy(DateConverter.class)
 	public Date getUpdatedOn() {
 		return updatedOn;
 	}
 	
 	@Override
+	@JsonIgnore
 	@DynamoDbConvertedBy(DateConverter.class)
 	public void setUpdatedOn(Date updatedOn) {
 		this.updatedOn = updatedOn;

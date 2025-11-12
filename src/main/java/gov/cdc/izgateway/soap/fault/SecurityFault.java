@@ -27,7 +27,11 @@ public class SecurityFault extends Fault {
     				+ "to or from IZ Gateway until it has been cleared by support.", RetryStrategy.CONTACT_SUPPORT),
     		new MessageSupport(FAULT_NAME, "63", "Decryption Failure", "Failure decrypting password for destination.", 
 					"The password used to connect to the specified destination could not be decrypted.", 
+					RetryStrategy.CONTACT_SUPPORT),
+    		new MessageSupport(FAULT_NAME, "64", "Access Denied", "Source is not authorized to access the specified destination.", 
+					"The source attempting to access the specified destination is not authorized to do so in this environment.", 
 					RetryStrategy.CONTACT_SUPPORT)
+    		
     	};
     static {
     	MessageSupport.registerMessageSupport(MESSAGE_TEMPLATES[0]);
@@ -50,6 +54,16 @@ public class SecurityFault extends Fault {
     	return new SecurityFault(MESSAGE_TEMPLATES[0].copy().setSummary(summary, detail), cause, null);
     }
 
+    /**
+     * Report a general security issue not elsewhere specified below.
+     * @param summary	The summary message, should be the same in all cases where the issue is the same
+     * @param detail	The detailed part of the message, provides specifics for each case
+     * @param cause		The cause of the exception
+     * @return	A new security fault ready to be thrown
+     */
+    public static SecurityFault notAllowed(String summary, String detail, Throwable cause) {
+    	return new SecurityFault(MESSAGE_TEMPLATES[0].copy().setSummary(summary, detail), cause, null);
+    }
 
     /**
      * Report a detected potential attack from a message sender or from a recipient's response

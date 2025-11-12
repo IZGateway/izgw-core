@@ -32,6 +32,7 @@ public class RequestContext {
 	}
     public static void setPrincipal(IzgPrincipal izgPrincipal) {
         principalDataVar.set(izgPrincipal);
+        roles.set(izgPrincipal.getRoles());
     }
 
 	public static void setTransactionData(TransactionData transactionData) {

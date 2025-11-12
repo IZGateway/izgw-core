@@ -58,6 +58,17 @@ public class MemoryAppender extends ListAppender<ILoggingEvent> {
         // 50 is sufficient for log testing
         list = new RingBuffer<ILoggingEvent>(50);
     }
+    
+    /**
+     * Set the size of the in-memory log list.  This is present to support testing 
+     * where the size may need to be adjusted.
+     * @param size	The maximum number of log events to keep in memory.
+     */
+    public void setSize(int size) {
+    	List<ILoggingEvent> oldList = list;
+		list = new RingBuffer<ILoggingEvent>(size);
+		list.addAll(oldList);
+	}
 
     public static MemoryAppender getInstance(String name) {
         SoftReference<MemoryAppender> ref = appenders.get(name);

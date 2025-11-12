@@ -6,6 +6,7 @@ import java.util.List;
 import java.util.ServiceConfigurationError;
 
 import gov.cdc.izgateway.logging.markers.Markers2;
+import gov.cdc.izgateway.model.DbAudit;
 import gov.cdc.izgateway.model.DynamoDbEntity;
 import gov.cdc.izgateway.model.HasEnvironment;
 import gov.cdc.izgateway.utils.SystemUtils;
@@ -27,7 +28,7 @@ import software.amazon.awssdk.services.dynamodb.model.ConditionalCheckFailedExce
  * @param <T>
  */
 @Slf4j
-public abstract class DynamoDbRepository<T extends DynamoDbEntity> {
+public abstract class DynamoDbRepository<T extends DynamoDbEntity & DbAudit> implements IRepository<T> {
 	
 	private static String serverName = null;
 	/**
@@ -57,7 +58,7 @@ public abstract class DynamoDbRepository<T extends DynamoDbEntity> {
 	 * @param client	The DynamoDbEnhancedClient to use to create the repository.
 	 * @param tableName The name of the DynamoDB table to use.
 	 */
-	public DynamoDbRepository(Class<T> entityClass, DynamoDbEnhancedClient client, String tableName) {
+	protected DynamoDbRepository(Class<T> entityClass, DynamoDbEnhancedClient client, String tableName) {
 		this.entityClass = entityClass;
 		// This creates the schema from the class, but does not get subclass attributes.
 		BeanTableSchema<T> schema = TableSchema.fromBean(entityClass);
@@ -119,8 +120,7 @@ public abstract class DynamoDbRepository<T extends DynamoDbEntity> {
 	 */
 	public T createEntity() {
 		try {
-			T t = entityClass.getDeclaredConstructor().newInstance();
-			return t;
+			return entityClass.getDeclaredConstructor().newInstance();
 		} catch (InstantiationException | IllegalAccessException | IllegalArgumentException | InvocationTargetException
 				| NoSuchMethodException | SecurityException e) {
 			String msg = "Unexpected exception creating " + entityClass.getName();
@@ -181,7 +181,7 @@ public abstract class DynamoDbRepository<T extends DynamoDbEntity> {
 			// Note: Log before we act so that if the create fails we still have a record of it.
 			String type = entity.getClass().getSimpleName();
 			log.info(Markers2.append(type, entity), "Created {}", type);
-			table.putItem(entity);
+			table.putItem(request);
 			return entity;
 		} catch (ConditionalCheckFailedException e) {
 			return null;

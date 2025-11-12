@@ -1,7 +1,5 @@
 package gov.cdc.izgateway.model;
 
-import org.apache.commons.lang3.StringUtils;
-
 /**
  * Represents access control information for a member, category, and name, with audit details.
  * <p>

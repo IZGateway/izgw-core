@@ -15,13 +15,13 @@ public interface IRepository<T> {
 	 * Get all entities in the repository.
 	 * @return a List of entities in the repository.
 	 */
-	List<? extends T> findAll();
+	List<T> findAll();
 
 	/**
 	 * Get all entities in the repository for the current environment.
 	 * @return	a List of entities in the repository for the current environment.
 	 */
-	List<? extends T> findAllForEnvironment();
+	List<T> findAllForEnvironment();
 	
 	/**
 	 * 

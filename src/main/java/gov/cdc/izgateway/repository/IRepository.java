@@ -48,4 +48,10 @@ public interface IRepository<T> {
 	 * @return a new entity supported by this repository.
 	 */
 	public T createEntity();
+	
+	/**
+	 * Delete an entity from the repository.
+	 * @param r	The entity to delete
+	 */
+	public void delete(T r);
 }

@@ -512,7 +512,7 @@ public class MessageSender {
 	 * 
 	 * @param con	The connection used to connect to the jurisdiction.
 	 */
-	public static void logDestinationCertificates(HttpURLConnection con) {
+	private static void logDestinationCertificates(HttpURLConnection con) {
 		DestinationInfo destination = RequestContext.getDestinationInfo();
 		if (destination.isConnected() && con instanceof HttpsURLConnection conx) {
 			try {

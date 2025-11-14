@@ -117,7 +117,7 @@ public class AccessControlValve extends ValveBase {
         }
         
         // False response means NOT OK to access.
-        if (Boolean.FALSE.equals(check)) {  // NOSONAR Null is still possible here, SONAR flags it as always true
+        if (Boolean.FALSE.equals(check)) {
 	        log.error("Access denied to protected URL {} address by {} at {}", path, user, host);
 	        resp.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
 	        return false;

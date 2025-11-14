@@ -323,13 +323,16 @@ public class MessageSender {
 			String action = toBeSent.getWsaHeaders().getAction();
 			con.setRequestProperty(HttpHeaders.CONTENT_TYPE, "application/soap+xml;charset=UTF-8;action=\"" + action + "\"");
 			messageInfo.setHttpHeaders(con.getRequestProperties());
-			
 			if (preserveOutput) {
 				pos = new PreservingOutputStream(con.getOutputStream(), FixedByteArrayOutputStream.DEFAULT_SIZE);
 			} else {
 				pos = con.getOutputStream();
 			}
-			
+			con.connect();
+			// If we got here, we are connected.
+			RequestContext.getDestinationInfo().setConnected(true);
+			// Now log the certificates, before doing anything else that could mess up the connection.
+			logDestinationCertificates(con);	
 			converter.write(toBeSent, pos);
 			readStarted = System.currentTimeMillis();
 			result = readResult(clazz, dest, con, started);
@@ -361,7 +364,6 @@ public class MessageSender {
 			TransactionData tData = RequestContext.getTransactionData();
 			tData.setElapsedTimeIIS(tData.getElapsedTimeIIS() + (finished - started));
 			tData.setReadTimeIIS(tData.getReadTimeIIS() + (finished - readStarted));
-			logDestinationCertificates(con);
 		}
 	}
 
@@ -402,7 +404,6 @@ public class MessageSender {
 			// Mark the buffer so we can reread on error.
 			m = new HttpUrlConnectionInputMessage(con, clientConfig.getMaxBufferSize());
 			statusCode = m.getStatusCode();
-			logDestinationCertificates(con);
 			body = m.getBody();
 			m.mark();
 			EndPointInfo endPoint = RequestContext.getDestinationInfo();
@@ -515,10 +516,9 @@ public class MessageSender {
 		DestinationInfo destination = RequestContext.getDestinationInfo();
 		if (destination.isConnected() && con instanceof HttpsURLConnection conx) {
 			try {
-				destination.setCipherSuite(conx.getCipherSuite());
-				destination.setConnected(true);
 				X509Certificate[] certs = (X509Certificate[]) conx.getServerCertificates();
 				destination.setCertificate(certs[0]);
+				destination.setCipherSuite(conx.getCipherSuite());
 			} catch (SSLPeerUnverifiedException | IllegalStateException ex) {
 				// Ignore this.
 			}

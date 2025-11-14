@@ -64,6 +64,7 @@ public class AccessController {
 	@GetMapping("/access")
 	public Map<String, Object> getAccess() {
 		Map<String, Object> maps = new TreeMap<>();
+		maps.put("migrated", service.isMigrated());
 		maps.put("Endpoints", getAccessEndpoints());
 		maps.put("Groups", getAccessGroups());
 		maps.put("Routes", getAdsFileTypes());

@@ -618,7 +618,8 @@ class MockMessageText {
 	
 	static final String TC_UNKF_TEXT = "Unknown Exception";
 
-	static final String TC_22B_TEXT = ENVELOPE + "" + "<soap:Fault>"
+	static final String TC_22B_TEXT = ENVELOPE 
+			+ "<soap:Fault>"
 			+ "<soap:Code><soap:Value>soap:Receiver</soap:Value></soap:Code><soap:Reason>"
 			+ "<soap:Text xml:lang='en'>Request Message contains forbidden patterns</soap:Text></soap:Reason><soap:Detail>"
 			+ "<ns2:SecurityFault xmlns:ns3='urn:cdc:iisb:2011' xmlns:ns2='urn:cdc:iisb:2014' xmlns='urn:cdc:iisb:hub:2014'></ns2:SecurityFault>"
@@ -626,7 +627,8 @@ class MockMessageText {
 			+ "<Retry>CORRECT_MESSAGE</Retry>"
 			+ "<Script>Forbidden message patterns causing an error</Script>"
 			+ "</soap:Detail></soap:Fault></soap:Envelope>";
-	static final String TC_22D_TEXT = ENVELOPE + "" + "<soap:Fault>"
+	static final String TC_22D_TEXT = ENVELOPE 
+			+ "<soap:Fault>"
 			+ "<soap:Code>" + "<soap:Value>soap:Receiver</soap:Value>"
 			+ "</soap:Code>" + "<soap:Reason>"
 			+ "<soap:Text xml:lang='en'>Request Message contains forbidden patterns</soap:Text>"
@@ -644,52 +646,57 @@ class MockMessageText {
 			+ "<Summary>javascript:alert('This is text in error')</Summary>"
 			+ "<Retry>CORRECT_MESSAGE</Retry>" + "</soap:Detail>"
 			+ "</soap:Fault></soap:Envelope>";
-	static final String TC_25_TEXT = "<soap:Envelope xmlns:soap='http://www.w3.org/2003/05/soap-envelope'>"
-			+ "<soap:Body>\r\n"
-			+ "<soap:Fault>\r\n"
-			+ "<soap:Code><soap:Value>soap:Sender</soap:Value></soap:Code>\r\n"
-			+ "<soap:Reason><soap:Text xml:lan=\"en-US\">\r\n"
-			+ "Authentication Error Occurred. Inspect the HL7 Response message for more details.\r\n"
-			+ "\r\n"
-			+ "Original HL7 Response\r\n"
-			+ "MSH|^\\~&amp;|WebIZ.24.12.0.21|KS0000|TestApplication|KSHL71234|20231115123051.679-0700||RSP^K11^RSP_K11|KS000020231115123051167|D|2.5.1|||NE|NE|||||Z33^CDCPHIVS\r"
-			+ "MSA|AE|KS999938854000000232\r\n"
-			+ "ERR||MSH^1^6^1^1~MSH^1^4^1^1|999^Application Error^HL70357|E|4^Invalid value^HL70533^WEBIZ-AUTH-609^Invalid Receiving Facility for Incoming Message\r"
-			+ "QPD|Z24^Request Immunization Hiistory|CDCPHINVS|querytag||SIMPSON^BART^^^^L19990101\r\n"
-			+ "</soap:Text></soap:Reason>"
-			+ "<soap:Detail>"
-			+ "<soap:Text xml:lan=\"en-US\">"
-			+ "Authentication Error Occurred. Inspect the HL7 Response message for more details.\n"
-			+ "\n"
-			+ "Original HL7 Response\n"
-			+ "MSH|^\\~&amp;|WebIZ.24.12.0.21|KS0000|TestApplication|KSHL71234|20231115123051.679-0700||RSP^K11^RSP_K11|KS000020231115123051167|D|2.5.1|||NE|NE|||||Z33^CDCPHIVS\r\n"
-			+ "MSA|AE|KS999938854000000232\n"
-			+ "ERR||MSH^1^6^1^1~MSH^1^4^1^1|999^Application Error^HL70357|E|4^Invalid value^HL70533^WEBIZ-AUTH-609^Invalid Receiving Facility for Incoming Message\r"
-			+ "QPD|Z24^Request Immunization Hiistory|CDCPHINVS|querytag||SIMPSON^BART^^^^L19990101\r\n"
-			+ "More text"
-			+ "</soap:Text>\r\n"
-			+ "</soap:Detail>"
-			+ "</soap:Fault></soap:Body></soap:Envelope>";
-	static final String TC_22S_TEXT = "<!DOCTYPE html>\r\n"
-			+ "<!--/secure/error.jsp-->\r\n"
-			+ "<!--/WEB-INF/jspf/standardHeader.jsp-->\r\n"
-			+ "<html lang=\"en-US\">\r\n" + "  <head>\r\n"
-			+ "    <title>PHC Hub Registry Importer Web Application Error Page</title>\r\n"
-			+ "    <meta http-equiv=\"X-UA-Compatible\" content=\"IE=edge\">\r\n"
-			+ "    <meta http-equiv=\"Content-Type\" content=\"text/html; charset=UTF-8\">\r\n"
-			+ "    <link rel=\"stylesheet\" href=\"/testphc/cache/00caf2989581d8ee7fa9fec6ac6ac440/struts/css_xhtml/styles.css\">\r\n"
-			+ "        <link rel=\"stylesheet\" href=\"/testphc/cache/840cca94d5e33faf324bcd4988fa8401/css/jquery-ui-css/jquery-ui.min.css\">\r\n"
-			+ "        <link rel=\"stylesheet\" href=\"/testphc/cache/ad157990ab4968a16f3c2dd26518af1d/css/chosen/chosen.min.css\">\r\n"
-			+ "        <link rel=\"stylesheet\" href=\"/testphc/cache/0e6ba998104b91868b2a8d2375d340e7/css/datatables/css/jquery.dataTables.min.css\">\r\n"
-			+ "        <link rel=\"stylesheet\" href=\"/testphc/cache/4679a941453d3eea0e5a7d5222d338c1/css/jquery-ui-css/jquery.ui.timepicker.css\">\r\n"
-			+ "        <link rel=\"stylesheet\" href=\"/testphc/cache/6a7d51a6d265b4ec2771abca088812ba/css/peraltahl7.css\">\r\n"
-			+ "        <link rel=\"stylesheet\" href=\"/testphc/cache/23a35f45b69017fbfb2ec8c44538e627/css/printPreview.css\"  media=\"print\">\r\n"
-			+ "      <script type=\"text/javascript\">\r\n"
-			+ "        var contextPath = \"/testphc\";\r\n" + "        \r\n"
-			+ "        document.contextPath = contextPath;\r\n"
-			+ "      </script>\r\n"
-			+ "      <script src=\"/testphc/cache/3c198bb745496d1069014c2f354a76dc/struts/utils.js\"></script>\r\n"
-			+ "    \r\n"
-			+ " <!--------------- walkMe snippet ends--------- -->\r\n"
-			+ "  </head><body><p onclick='javascript:alert(\"message\")'>javascript:alert('message;)</p></body></html>";
+	static final String TC_25_TEXT = """
+			<soap:Envelope xmlns:soap='http://www.w3.org/2003/05/soap-envelope'>
+			<soap:Body>	
+			<soap:Fault>
+			<soap:Code><soap:Value>soap:Sender</soap:Value></soap:Code>
+			<soap:Reason><soap:Text xml:lan="en-US">\r
+			Authentication Error Occurred. Inspect the HL7 Response message for more details.\r
+			\r
+			Original HL7 Response\r
+			MSH|^\\~&amp;|WebIZ.24.12.0.21|KS0000|TestApplication|KSHL71234|20231115123051.679-0700||RSP^K11^RSP_K11|KS000020231115123051167|D|2.5.1|||NE|NE|||||Z33^CDCPHIVS\r
+			MSA|AE|KS999938854000000232\r
+			ERR||MSH^1^6^1^1~MSH^1^4^1^1|999^Application Error^HL70357|E|4^Invalid value^HL70533^WEBIZ-AUTH-609^Invalid Receiving Facility for Incoming Message\r
+			QPD|Z24^Request Immunization Hiistory|CDCPHINVS|querytag||SIMPSON^BART^^^^L19990101\r
+			</soap:Text></soap:Reason>
+			<soap:Detail>
+			<soap:Text xml:lang="en-US">\r
+			Authentication Error Occurred. Inspect the HL7 Response message for more details.\r
+			\r
+			Original HL7 Response\r
+			MSH|^\\~&amp;|WebIZ.24.12.0.21|KS0000|TestApplication|KSHL71234|20231115123051.679-0700||RSP^K11^RSP_K11|KS000020231115123051167|D|2.5.1|||NE|NE|||||Z33^CDCPHIVS\r
+			MSA|AE|KS999938854000000232\r
+			ERR||MSH^1^6^1^1~MSH^1^4^1^1|999^Application Error^HL70357|E|4^Invalid value^HL70533^WEBIZ-AUTH-609^Invalid Receiving Facility for Incoming Message\r
+			QPD|Z24^Request Immunization Hiistory|CDCPHINVS|querytag||SIMPSON^BART^^^^L19990101\r
+			More text</soap:Text>
+			</soap:Detail>
+			</soap:Fault></soap:Body></soap:Envelope>""";
+	static final String TC_22S_TEXT = """
+			<!DOCTYPE html>
+			<!--/secure/error.jsp-->
+			<!--/WEB-INF/jspf/standardHeader.jsp-->
+			<html lang="en-US">
+			  <head>
+			    <title>PHC Hub Registry Importer Web Application Error Page</title>
+			    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+			    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+			    <link rel="stylesheet" href="/testphc/cache/00caf2989581d8ee7fa9fec6ac6ac440/struts/css_xhtml/styles.css">
+			    <link rel="stylesheet" href="/testphc/cache/840cca94d5e33faf324bcd4988fa8401/css/jquery-ui-css/jquery-ui.min.css">
+			    <link rel="stylesheet" href="/testphc/cache/ad157990ab4968a16f3c2dd26518af1d/css/chosen/chosen.min.css">
+			    <link rel="stylesheet" href="/testphc/cache/0e6ba998104b91868b2a8d2375d340e7/css/datatables/css/jquery.dataTables.min.css">
+			    <link rel="stylesheet" href="/testphc/cache/4679a941453d3eea0e5a7d5222d338c1/css/jquery-ui-css/jquery.ui.timepicker.css">
+			    <link rel="stylesheet" href="/testphc/cache/6a7d51a6d265b4ec2771abca088812ba/css/peraltahl7.css">
+			    <link rel="stylesheet" href="/testphc/cache/23a35f45b69017fbfb2ec8c44538e627/css/printPreview.css"  media="print">
+			    <script type="text/javascript">
+			      var contextPath = "/testphc";
+			      document.contextPath = contextPath;
+			    </script>
+			    <script src="/testphc/cache/3c198bb745496d1069014c2f354a76dc/struts/utils.js"></script>
+			    <!--  walkMe snippet ends -->
+			  </head>
+			  <body>
+			    <p onclick='javascript:alert("message")'>javascript:alert('message;)</p>
+			  </body>
+			</html>""";
 }

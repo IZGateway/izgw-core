@@ -19,6 +19,15 @@ public interface IAccessControlService {
 	/** Defines a group member */
 	static final String GROUP_CATEGORY = "group";
 
+	/**
+	 * Get the migration status of the service
+	 *  
+	 * @return true if access control data has been migrated to new model
+	 */
+	default boolean isMigrated() { 
+		return false;
+	}
+	
 	/** Refresh access control data */
 	void refresh();
 
@@ -37,7 +46,7 @@ public interface IAccessControlService {
 	 * Returns true if the user is in the specified group
 	 * @param user	The user
 	 * @param group	The group
-	 * @return	
+	 * @return	true if the user is in the group
 	 */
 	boolean isUserInGroup(String user, String group);
 	

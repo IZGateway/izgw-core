@@ -107,9 +107,10 @@ public interface IAccessControlService {
 	 * Add a user to the DenyList. Only used for denying at this point INSIDE IZGW,
 	 * and not suitable for general user/group membership management
 	 * @param user	The user
+	 * @param reason The reason for adding the user to the deny list
 	 * @return	The new access control entry that was added.
 	 */
-	Object addUserToDenyList(String user);
+	Object addUserToDenyList(String user, String reason);
 
 	/**
 	 * Get the list of deny listed users.

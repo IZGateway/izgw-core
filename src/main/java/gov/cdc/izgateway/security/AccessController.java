@@ -141,8 +141,8 @@ public class AccessController {
 	 */
 	@Operation(summary="Add a user to deny list", description="Add the specified user to the deny list")
 	@PostMapping("/access/denylist")
-	public Object addUserToBlackList(@RequestParam String user) {
-		return service.addUserToDenyList(user);
+	public Object addUserToDenyList(@RequestParam String user, @RequestParam(required=false) String reason) {
+		return service.addUserToDenyList(user, reason);
 	}
 	
 	/**
@@ -155,7 +155,7 @@ public class AccessController {
 	 */
 	@Operation(summary="Delete a user from the deny list", description="Delete the specified user from the deny list")
 	@DeleteMapping("/access/denylist")
-	public Object removeUserFromBlackList(@RequestParam String user) {
+	public Object removeUserFromDenyList(@RequestParam String user) {
 		return service.removeUserFromDenyList(user);
 	}
 

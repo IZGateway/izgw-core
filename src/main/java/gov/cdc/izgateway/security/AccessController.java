@@ -127,7 +127,7 @@ public class AccessController {
 	 */
 	@Operation(summary="Report on users in deny list", description="Return the list of deny listed users")
 	@GetMapping("/access/denylist") 
-	Set<String> getDeniedUsers() {
+	public Set<String> getDeniedUsers() {
 		return service.getDenyList();
 	}
 	

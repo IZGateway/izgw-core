@@ -166,7 +166,7 @@ public class AccessController {
 	 */
 	@Operation(summary="Report on file types", description="Return the list file types that can be uploaded for ADS")
 	@GetMapping("/access/filetypes")
-	Set<String> getAdsFileTypes() {
+	public Set<String> getAdsFileTypes() {
 		return service.getEventTypes();
 	}
 

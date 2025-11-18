@@ -81,8 +81,8 @@ public interface DbAudit {
 	
 	/**
 	 * Set the updated fields to the current date and user principal name and host.
-	 * @param principal
-	 * @param hostname
+	 * @param principal The user principal
+	 * @param hostname The host name
 	 */
 	default void setUpdated(String principal, String hostname) {
 		setUpdatedBy(principal + "@" + hostname);

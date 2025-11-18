@@ -78,6 +78,17 @@ public interface IAllowedUser extends DbAudit, HasEnvironment, Comparable<IAllow
 	 */
 	void setValidatedOn(Date validatedOn);
 	
+	/**
+	 * Gets the organization associated with this allowed user
+	 * @return the organization
+	 */
+	String getOrganization();
+	/**
+	 * Sets the organization associated with this allowed user
+	 * @param organization the organization
+	 */
+	void setOrganization(String organization);
+	
     default int compareTo(IAllowedUser that) {
     	int value = Integer.compare(getEnvironment(), that.getEnvironment());
     	if (value != 0) {
@@ -93,4 +104,5 @@ public interface IAllowedUser extends DbAudit, HasEnvironment, Comparable<IAllow
 		}
     	return Boolean.compare(this.isEnabled(), that.isEnabled());
     }
+
 }

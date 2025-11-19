@@ -4,11 +4,15 @@ import java.net.Socket;
 import java.security.cert.CertPathValidatorException;
 import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.List;
 
 import javax.net.ssl.SSLEngine;
 import javax.net.ssl.X509ExtendedTrustManager;
 
+import gov.cdc.izgateway.logging.info.DestinationInfo;
+import gov.cdc.izgateway.logging.markers.Markers2;
 import gov.cdc.izgateway.security.ocsp.RevocationChecker.SslLocation;
 import gov.cdc.izgateway.utils.X500Utils;
 import lombok.extern.slf4j.Slf4j;
@@ -107,11 +111,22 @@ public class RevocationTrustManager extends X509ExtendedTrustManager {
 
 	private void logException(SslLocation loc, X509Certificate[] chain, Exception e) {
 		if (log.isWarnEnabled()) {
-			log.warn(
-					"SSL {} certificate chain for {} is NOT trusted (subjectDnNames={}, issuerDnNames={}, serialNums={}): {}",
-					loc.getId(), X500Utils.getCommonName(chain[0]), Arrays.asList(X500Utils.buildSubjectDnNames(chain)),
-					Arrays.asList(X500Utils.buildIssuerDnNames(chain)),
-					Arrays.asList(X500Utils.buildSerialNumbers(chain)), e.getMessage());
+			List<DestinationInfo> destInfoList = new ArrayList<>();
+			for (X509Certificate cert: chain) {
+				DestinationInfo destInfo = new DestinationInfo();
+				destInfo.setCertificate(cert);
+				destInfoList.add(destInfo);	
+			}
+			
+			log.warn(Markers2.append(loc.getId() + "certificate", destInfoList.get(0), "certificateChain", destInfoList),
+				"SSL {} certificate chain for {} is NOT trusted (subjectDnNames={}, issuerDnNames={}, serialNums={}): {}",
+				loc.getId(), 
+				X500Utils.getCommonName(chain[0]), 
+				Arrays.asList(X500Utils.buildSubjectDnNames(chain)),
+				Arrays.asList(X500Utils.buildIssuerDnNames(chain)),
+				Arrays.asList(X500Utils.buildSerialNumbers(chain)), 
+				e.getMessage()
+			);
 		}
 	}
 

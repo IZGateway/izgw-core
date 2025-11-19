@@ -2,6 +2,13 @@ package gov.cdc.izgateway.model;
 
 import org.springframework.http.HttpStatus;
 
+/**
+ * Represents the retry strategy for handling message delivery failures in IZ Gateway.
+ * <p>
+ * Provides different strategies for retrying messages, including normal retry, correcting message,
+ * checking IIS status, and contacting support. Each strategy is associated with a message and HTTP status.
+ * </p>
+ */
 public enum RetryStrategy {
     /**
      * A possible transient error. The normal retry strategy would be to retry ONCE immediately,
@@ -40,20 +47,33 @@ public enum RetryStrategy {
         this.message = message;
         this.status = status;
     }
+    /**
+     * Gets the retry code for this strategy.
+     * @return the retry code as a string
+     */
     public String getRetryCode() {
         return Integer.toString(ordinal());
     }
     
+    /**
+     * Gets the HTTP status associated with this retry strategy.
+     * @return the HTTP status
+     */
     public HttpStatus getStatus() {
     	return status;
     }
+    /**
+     * Returns a string representation of the retry strategy and its message.
+     * @return the string representation
+     */
     @Override
     public String toString() {
         return super.toString() + ": " + message;
     }
     
     /**
-     * @return true if this message could be retried successfully
+     * Determines if this retry strategy allows retrying the message.
+     * @return true if retryable, false otherwise
      */
     public boolean isRetryable() {
     	return this == NORMAL || this == CHECK_IIS_STATUS;

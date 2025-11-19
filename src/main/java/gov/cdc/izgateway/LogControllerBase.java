@@ -4,12 +4,10 @@ import ch.qos.logback.classic.spi.ILoggingEvent;
 import gov.cdc.izgateway.logging.MemoryAppender;
 import gov.cdc.izgateway.logging.RequestContext;
 import gov.cdc.izgateway.logging.event.LogEvent;
-import gov.cdc.izgateway.security.AccessControlRegistry;
 import gov.cdc.izgateway.security.Roles;
 import gov.cdc.izgateway.soap.fault.SecurityFault;
 import gov.cdc.izgateway.utils.ListConverter;
 import jakarta.servlet.http.HttpServletRequest;
-import jakarta.servlet.http.HttpServletResponse;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.InitializingBean;
 
@@ -55,6 +53,12 @@ public class LogControllerBase implements InitializingBean {
 		return new ListConverter<>(events, LogEvent::new);
 	}
 
+	/**
+	 * Delete the logs
+	 * @param servletReq	The servlet request
+	 * @param clear		The clear parameter
+	 * @throws SecurityFault	If the user is not authorized
+	 */
 	public void deleteLogs(HttpServletRequest servletReq, String clear) throws SecurityFault {
         if (!RequestContext.getRoles().contains(Roles.ADMIN) && !RequestContext.getRoles().contains(Roles.OPERATIONS)) {
             throw SecurityFault

@@ -22,6 +22,7 @@ import jakarta.persistence.EmbeddedId;
 import jakarta.persistence.MappedSuperclass;
 import lombok.AllArgsConstructor;
 import lombok.Data;
+import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
 
 /**
@@ -31,9 +32,10 @@ import lombok.NoArgsConstructor;
 @MappedSuperclass
 @SuppressWarnings("serial")
 @Data
+@EqualsAndHashCode(callSuper=true)
 @JsonPropertyOrder({ "destId", "destType", "destUri", "destVersion", "facilityId", "msh3", "msh4", "msh5", "msh6",
 	"msh22", "rxa11" })
-public abstract class AbstractDestination implements IEndpoint, Serializable, IDestination {
+public abstract class AbstractDestination extends DynamoDbAudit implements HasDestinationUri, IEndpoint, Serializable, IDestination {
 	/**
 	 * A destination id.
 	 * A composite of the destination endpoint identifier, and the environment id (a.k.a., destination type). 

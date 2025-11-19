@@ -1,6 +1,6 @@
 package gov.cdc.izgateway.model;
 
-public interface IMessageHeader {
+public interface IMessageHeader extends DbAudit{
 	@SuppressWarnings("serial")
 	static class Map extends MappableEntity<IMessageHeader> {}
 

@@ -8,6 +8,7 @@ import java.util.function.Supplier;
 
 
 import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang3.Strings;
 import org.apache.commons.lang3.tuple.Pair;
 import org.codehaus.stax2.XMLStreamLocation2;
 
@@ -37,6 +38,12 @@ import javax.xml.stream.XMLStreamException;
 import javax.xml.stream.XMLStreamReader;
 import javax.xml.stream.XMLStreamWriter;
 
+/**
+ * A reader for SOAP messages using the CDC or IZ Gateway WSDL and Schemas
+ *
+ * @author Audacious Inquiry
+ *
+ */
 @Slf4j
 public class SoapMessageReader {
 	private static final String TAG_NAME_PATTERN = "script";
@@ -119,7 +126,7 @@ public class SoapMessageReader {
 		}
 	}
 	/**
-	 * Read a soap message
+	 * Create a reader to read a soap message
 	 * @param reader	The XML Reader to use
 	 * @param type		The schema associated with the message
 	 * @param writer	The writer to use to preserve the original XML, or null to skip preservation. 
@@ -131,6 +138,11 @@ public class SoapMessageReader {
 		this.writer = writer;
 	}
 
+	/**
+	 * Create a reader to read a soap message
+	 * @param reader	The XML Reader to use
+	 * @param type		The schema associated with the message
+	 */
 	public SoapMessageReader(XMLStreamReader reader, String type) {
 		this(reader, type, null);
 	}
@@ -227,9 +239,9 @@ public class SoapMessageReader {
 	 * @throws XMLStreamException
 	 * @throws SecurityFault
 	 */
-	private boolean parseElement(boolean filter) throws XMLStreamException, SecurityFault {
+	private boolean parseElement(boolean filter) throws XMLStreamException, SecurityFault { // NOSONAR -- Yes, this is mostly a big switch
 		String name = reader.getName().toString();
-		switch (name) {  // NOSONAR -- Yes, this is a big switch
+		switch (name) {  // NOSONAR -- I said it was big already
 		case "{urn:cdc:iisb:hub:2014}HubRequestHeader", "{urn:cdc:iisb:hub:2014}HubResponseHeader":
 			hubHeader = name;
 			verifyAttributes();
@@ -434,7 +446,7 @@ public class SoapMessageReader {
 		if (isHtmlMessage) {
 			return elementText;
 		}
-		if (!StringUtils.isEmpty(elementText) && StringUtils.containsIgnoreCase(elementText, TEXT_VALUE_PATTERN)) {
+		if (!StringUtils.isEmpty(elementText) && Strings.CI.contains(elementText, TEXT_VALUE_PATTERN)) {
 			throw SecurityFault.sourceAttack(
 					"Illegal text value in " + type + " inside: <" + lastElement + "> element", endpoint);
 		}
@@ -455,7 +467,7 @@ public class SoapMessageReader {
 			return;
 		}
 		// Check element name for illegal values.
-		if (StringUtils.containsIgnoreCase(localName, TAG_NAME_PATTERN)) {
+		if (Strings.CI.contains(localName, TAG_NAME_PATTERN)) {
 			throw SecurityFault.sourceAttack(
 					"Illegal element name <" + localName + "> found in the " + type + " at: <" + lastElement,
 					endpoint);
@@ -471,7 +483,7 @@ public class SoapMessageReader {
 		int count = reader.getAttributeCount();
 		while (count-- > 0) {
 			String text = reader.getAttributeValue(count);
-			if (StringUtils.containsIgnoreCase(text, TEXT_VALUE_PATTERN)) {
+			if (Strings.CI.contains(text, TEXT_VALUE_PATTERN)) {
 				throw SecurityFault.sourceAttack("Illegal attribute value in " + type + " at: <" + lastElement
 						+ " " + toNameString(reader.getAttributeName(count)) + "=", endpoint);
 			}
@@ -547,7 +559,7 @@ public class SoapMessageReader {
 		return parsedText;
 	}
 
-	public Pair<String, Integer> getElementText() throws XMLStreamException {
+	private Pair<String, Integer> getElementText() throws XMLStreamException {
 
         if (reader.getEventType() != XMLStreamConstants.START_ELEMENT) {
             throw new XMLStreamException(

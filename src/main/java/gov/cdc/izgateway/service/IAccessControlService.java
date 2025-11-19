@@ -7,8 +7,6 @@ import java.util.TreeSet;
 
 import org.springframework.web.bind.annotation.RequestMethod;
 
-import gov.cdc.izgateway.model.IAccessControl;
-
 /**
  *	This class supports management of access controls in IZ Gateway.
  *
@@ -20,26 +18,38 @@ public interface IAccessControlService {
 	static final String ROUTE_CATEGORY = "eventToRoute";
 	/** Defines a group member */
 	static final String GROUP_CATEGORY = "group";
-	/** Defines an endpoint that has OPEN access to any user */
-	static final String OPEN_TO_ANY = "OPEN";
 
-	/** Get the server name 
-	 * @return The server name
+	/**
+	 * Get the migration status of the service
+	 *  
+	 * @return true if access control data has been migrated to new model
 	 */
-	String getServerName();
-
+	default boolean isMigrated() { 
+		return false;
+	}
+	
 	/** Refresh access control data */
 	void refresh();
 
 	/** @return Get mapping of users to roles */
 	Map<String, TreeSet<String>> getUserRoles();
 
-	/** @return Get mapping users in groups */
-	Map<String, Map<String, Boolean>> getAllowedUsersByGroup();
+	/** 
+	 * Get groups
+	 * The key is the group name.
+	 * The value is an object describing the group.
+	 * @return Get mapping of users to groups
+     */
+	Map<String, Object> getGroups();
 
-	/** @return Get allowed routes for each event (submission) type */
-	Map<String, Map<String, Boolean>> getAllowedRoutesByEvent();
-
+	/**
+	 * Returns true if the user is in the specified group
+	 * @param user	The user
+	 * @param group	The group
+	 * @return	true if the user is in the group
+	 */
+	boolean isUserInGroup(String user, String group);
+	
 	/**
 	 * Checks roles for a user
 	 * @param user	The user (certificate common name)
@@ -49,36 +59,16 @@ public interface IAccessControlService {
 	boolean isUserInRole(String user, String role);
 
 	/**
-	 * Checks to see if a user is blacklisted
+	 * Checks to see if a user is on the DenyList
 	 * @param user	The user
-	 * @return	true if the user has been blacklisted
+	 * @return	true if the user has been Denied access
 	 */
-	boolean isUserBlacklisted(String user);
-
-	/**
-	 * @param event	The event (submission) type.
-	 * @return	A map of routes to whether or not they are allowed for this event.
-	 */
-	Map<String, Boolean> getEventMap(String event);
+	boolean isUserDenied(String user);
 
 	/**
 	 * @return the list of event (submission) types
 	 */
 	Set<String> getEventTypes();
-
-	/**
-	 * Returns true of the route is allowed for the specified event (submission) type
-	 * @param route	The route (a DEX endpoint)
-	 * @param event The event
-	 * @return True if the event can be sent to the specified route
-	 */
-	boolean isRouteAllowed(String route, String event);
-
-	/**
-	 * Set the server name.  Present to support testing.
-	 * @param serverName	The name of the server.
-	 */
-	void setServerName(String serverName);
 
 	/**
 	 * Get the roles allows to access a given method and path
@@ -103,22 +93,29 @@ public interface IAccessControlService {
 	 * @param group	The group
 	 * @return	True if use is a member of the group
 	 */
-	boolean isMemberOf(String user, String group);
+	boolean canAccessDestination(String user, String group);
 
 	/**
-	 * Removes a user from the blacklist.  Only used for blacklisting at this point
+	 * Removes a user from the denylist.  Only used for deny listing at this point
 	 * INSIDE IZGW, and not suitable for general user/group membership management.
 	 * @param user	The user
-	 * @return	The access control entry
+	 * @return	The access control entry that was removed, or null if none existed.
 	 */
-	IAccessControl removeUserFromBlacklist(String user);
+	Object removeUserFromDenyList(String user);
 
 	/**
-	 * Add a user to the blacklist. Only used for blacklisting at this point INSIDE IZGW,
+	 * Add a user to the DenyList. Only used for denying at this point INSIDE IZGW,
 	 * and not suitable for general user/group membership management
 	 * @param user	The user
-	 * @return	The new access control entry.
+	 * @param reason The reason for adding the user to the deny list
+	 * @return	The new access control entry that was added.
 	 */
-	IAccessControl addUserToBlacklist(String user);
+	Object addUserToDenyList(String user, String reason);
+
+	/**
+	 * Get the list of deny listed users.
+	 * @return The set of deny listed users.
+	 */
+	Set<String> getDenyList();
 
 }

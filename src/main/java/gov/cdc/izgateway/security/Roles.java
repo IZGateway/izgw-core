@@ -1,5 +1,7 @@
 package gov.cdc.izgateway.security;
 
+import java.util.List;
+
 /**
  * Constants for use in @RolesAllowed annotation.
  */
@@ -17,8 +19,13 @@ public class Roles {
 	};
 	// ADMIN user can use this header to avoid admin overrides.
 	public static final String NOT_ADMIN_HEADER = "X-Not-Admin";
-	public static String[] values() {
-		return values;
+	/**
+	 * Get the list of defined roles.
+	 * 
+	 * @return The list of defined roles
+	 */
+	public static List<String> values() {
+		return List.of(values);
 	}
 	private Roles() {}
 }

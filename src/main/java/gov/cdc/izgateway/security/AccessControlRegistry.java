@@ -33,7 +33,11 @@ public class AccessControlRegistry implements IAccessControlRegistry {
 	private Map<String, List<String>> specialMap = new LinkedHashMap<>();
 	private static final String[] ALL_METHODS = { "*" };
 	
-	public Map<String, List<String>> getControls() {
+	/**
+	 * Get the access control map
+	 * @return The access control map
+	 */
+	public Map<String, List<String>> getApiEndpoints() {
 		Map<String, List<String>> result = new TreeMap<>();
 		
 		for (Map.Entry<String, List<String>> e: allowedMap.entrySet()) {
@@ -104,7 +108,7 @@ public class AccessControlRegistry implements IAccessControlRegistry {
 				continue;
 			}
 			
-			roles = ObjectUtils.defaultIfNull(method.getAnnotation(RolesAllowed.class), defaultRoles);
+			roles = ObjectUtils.getIfNull(method.getAnnotation(RolesAllowed.class), defaultRoles);
 			if (roles == null) {
 				continue;
 			}

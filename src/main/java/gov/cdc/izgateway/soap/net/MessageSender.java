@@ -192,30 +192,24 @@ public class MessageSender {
 				getStatusChecker().updateStatus(status, dest, null);
 				return toBeReturned;
 			} catch (Fault f) {
-				retryCount++;
-				checkRetries(dest, status, retryCount, f);
-				// Log the fault and try again.
+				if (!canRetry(++retryCount, f)) {
+					RequestContext.getTransactionData().setProcessError(f);
+					RequestContext.getTransactionData().setRetries(retryCount);
+					getStatusChecker().updateStatus(status, dest, f);
+					throw f;
+				}
 			} 
 		}
 	}
 
-	private void checkRetries(IDestination dest, IEndpointStatus status,
-			int retryCount, Fault f) throws Fault {
+	private boolean canRetry(int retryCount, Fault f) {
 		if (!f.isRetryable() || f.getCause() instanceof XMLStreamException) {
 			// This is not a retry-able failure.
-			RequestContext.getTransactionData().setRetries(retryCount);
-			getStatusChecker().updateStatus(status, dest, f);
-			throw f;
+			return false;
 		}
 		
-		// Update retry count and throw circuit break if too many exceeded
-		if (retryCount > senderConfig.getMaxRetries()) {
-			// Throw the circuit breaker for this endpoint
-			RequestContext.getTransactionData().setProcessError(f);
-			RequestContext.getTransactionData().setRetries(retryCount);
-			getStatusChecker().updateStatus(status, dest, f);
-			throw f;
-		}
+		// Retry only up to the max retries
+		return retryCount <= senderConfig.getMaxRetries();
 	}
 
 	/**

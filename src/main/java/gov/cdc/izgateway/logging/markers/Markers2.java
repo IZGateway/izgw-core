@@ -33,10 +33,17 @@ import net.logstash.logback.marker.Markers;
  * { "myInfo": { however Info is marshalled by Jackson }, "message": "This is the message" }
  */
 public class Markers2 {
-    public static final String MARKER_FIELD_NAME_DELIM = "_";
-    public static final String MARKER_FIELD_NAME_LITERAL_DELIMS = "-" + MARKER_FIELD_NAME_DELIM;
+    private static final String MARKER_FIELD_NAME_DELIM = "_";
+    private static final String MARKER_FIELD_NAME_LITERAL_DELIMS = "-" + MARKER_FIELD_NAME_DELIM;
 	private Markers2() {}
     
+	/**
+	 * Append the given objects as LogstashMarkers.
+	 * @param objects The objects to append as markers. If the object is a String, it is used as the 
+	 * field name for the next object. If the object is a Throwable, its details are extracted.
+	 * To append multiple named objects, provide alternating String and Object parameters.
+	 * @return A LogstashMarker containing the appended objects.
+	 */
 	public static LogstashMarker append(Object ...objects) {
 		String fieldname;
 		LogstashMarker marker = new EmptyLogstashMarker();
@@ -90,14 +97,4 @@ public class Markers2 {
 		}
 		return t;
 	}
-	
-    public static String buildFieldName(Object markerObj) {
-        Class<?> markerObjClass = markerObj.getClass();
-        MarkerObjectFieldName markerObjFieldNameAnno = AnnotationUtils.findAnnotation(markerObjClass, MarkerObjectFieldName.class);
-        String markerFieldName = markerObjFieldNameAnno != null ? 
-        		markerObjFieldNameAnno.value() : markerObjClass.getSimpleName();
-        return StringUtils.containsAny(markerFieldName, "-_") ? 
-        		markerFieldName : CaseUtils.toCamelCase(markerFieldName, false);
-    }
-
 }

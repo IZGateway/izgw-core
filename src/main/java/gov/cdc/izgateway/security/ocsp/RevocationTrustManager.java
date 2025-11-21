@@ -118,7 +118,7 @@ public class RevocationTrustManager extends X509ExtendedTrustManager {
 				destInfoList.add(destInfo);	
 			}
 			
-			log.warn(Markers2.append(loc.getId() + "certificate", destInfoList.get(0), "certificateChain", destInfoList),
+			log.warn(Markers2.append(loc.getId() + "Certificate", destInfoList.get(0), "certificateChain", destInfoList),
 				"SSL {} certificate chain for {} is NOT trusted (subjectDnNames={}, issuerDnNames={}, serialNums={}): {}",
 				loc.getId(), 
 				X500Utils.getCommonName(chain[0]), 

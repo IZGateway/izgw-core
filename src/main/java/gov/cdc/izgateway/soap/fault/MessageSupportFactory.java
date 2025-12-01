@@ -77,7 +77,7 @@ public class MessageSupportFactory {
 	}
 
 	private MessageSupport constructMessage(String faultName, String messageName, Map<String, String> faultMessage) {
-		String code = ObjectUtils.defaultIfNull(faultMessage.get("code"), "unknown");
+		String code = ObjectUtils.getIfNull(faultMessage.get("code"), "unknown");
 		String summary = faultMessage.get("summary");
 		if (summary == null) {
 			summary = messageName.replaceAll("([A-Z]+)", "$1 ");

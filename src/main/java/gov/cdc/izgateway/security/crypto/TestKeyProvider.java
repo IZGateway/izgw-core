@@ -2,8 +2,6 @@ package gov.cdc.izgateway.security.crypto;
 
 import org.bouncycastle.util.encoders.Hex;
 
-import java.nio.charset.StandardCharsets;
-
 /**
  * Test implementation of the KeyProvider interface for unit testing and development.
  * <p>

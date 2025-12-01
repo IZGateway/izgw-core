@@ -11,7 +11,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
-import javax.net.ssl.X509TrustManager;
 import javax.security.auth.x500.X500Principal;
 import java.security.cert.*;
 import java.util.Map;

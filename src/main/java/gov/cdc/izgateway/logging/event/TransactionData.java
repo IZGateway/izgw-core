@@ -396,7 +396,7 @@ public class TransactionData {
             eventId = getNextEventId();
         }
         this.transactionId = UUID.randomUUID().toString();
-        this.threadId = Thread.currentThread().getId();  // NOSONAR
+        this.threadId = Thread.currentThread().threadId();  // NOSONAR
         this.dateTime = dt;
         this.startTime = dt.getTime();
         this.eventId = eventId.contains(".") ? eventId : (EventId.getPrefix() + "." + eventId);

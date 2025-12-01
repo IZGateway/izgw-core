@@ -60,12 +60,12 @@ public class RevocationChecker {
 	    }
 	}
 	
-	private final ICertificateStatusService certificateStatusService;
+	private final ICertificateStatusService<ICertificateStatus> certificateStatusService;
 	private final SecureRandom secureRandom;
 	
 	@Autowired
 	public
-	RevocationChecker(ICertificateStatusService certificateStatusService, SecureRandom secureRandom) {
+	RevocationChecker(ICertificateStatusService<ICertificateStatus> certificateStatusService, SecureRandom secureRandom) {
 		this.certificateStatusService = certificateStatusService;
 		this.secureRandom = secureRandom;
 		setInstance(this);

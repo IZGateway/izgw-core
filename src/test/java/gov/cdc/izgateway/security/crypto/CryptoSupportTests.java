@@ -37,7 +37,7 @@ class CryptoSupportTests {
         assertEquals(TEST_PLAINTEXT, decrypted, "Initial decryption should work");
 
         // Rotate the key
-        testKeyProvider.rotateKey();
+        TestKeyProvider.rotateKey();
         byte[] newKey = testKeyProvider.loadKey();
         assertFalse(java.util.Arrays.equals(originalKey, newKey), "New key should differ from original");
 

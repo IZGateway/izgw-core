@@ -5,10 +5,6 @@ import java.io.StringWriter;
 import java.util.ArrayList;
 import java.util.List;
 
-import org.apache.commons.lang3.StringUtils;
-import org.apache.commons.text.CaseUtils;
-import org.springframework.core.annotation.AnnotationUtils;
-
 import gov.cdc.izgateway.common.HasDestinationUri;
 import gov.cdc.izgateway.soap.fault.Fault;
 import net.logstash.logback.marker.EmptyLogstashMarker;
@@ -33,9 +29,7 @@ import net.logstash.logback.marker.Markers;
  * { "myInfo": { however Info is marshalled by Jackson }, "message": "This is the message" }
  */
 public class Markers2 {
-    private static final String MARKER_FIELD_NAME_DELIM = "_";
-    private static final String MARKER_FIELD_NAME_LITERAL_DELIMS = "-" + MARKER_FIELD_NAME_DELIM;
-	private Markers2() {}
+    private Markers2() {}
     
 	/**
 	 * Append the given objects as LogstashMarkers.

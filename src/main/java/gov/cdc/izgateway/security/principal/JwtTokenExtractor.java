@@ -3,7 +3,6 @@ package gov.cdc.izgateway.security.principal;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.extern.slf4j.Slf4j;
 
-import org.slf4j.MDC;
 import org.springframework.stereotype.Component;
 
 @Slf4j

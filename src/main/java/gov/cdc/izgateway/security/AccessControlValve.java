@@ -132,7 +132,7 @@ public class AccessControlValve extends ValveBase {
         } 
         
         // Health Checks can come from AWS Infrastructure, so allow them unconditionally.
-        if (isHealthCheck(path, user)) {
+        if (isHealthCheck(path)) {
         	log.trace("Access granted to health check {} address by {} at {}", path, user, host);
         	updateRoles(user, theRoles);
         	return true;
@@ -157,7 +157,7 @@ public class AccessControlValve extends ValveBase {
 		return path != null && path.startsWith("/swagger/") && accessControls.isUserInRole(user, Roles.ADMIN);
 	}
     
-    private boolean isHealthCheck(String path, String user) {
+    private boolean isHealthCheck(String path) {
 		return path != null && (path.endsWith("/health") || path.endsWith("/healthy"));
 	}
 

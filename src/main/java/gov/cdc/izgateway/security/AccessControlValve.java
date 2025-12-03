@@ -118,6 +118,13 @@ public class AccessControlValve extends ValveBase {
         	return true;
         }
         
+        // Health Checks can come from AWS Infrastructure, so allow them unconditionally.
+        if (isHealthCheck(path)) {
+        	log.trace("Access granted to health check {} address by {} at {}", path, user, host);
+        	updateRoles(user, theRoles);
+        	return true;
+        }
+        
         // False response means NOT OK to access.
         if (Boolean.FALSE.equals(check)) {
 	        log.error("Access denied to protected URL {} address by {} at {} due to missing roles {}", path, user, host, roles);
@@ -130,13 +137,6 @@ public class AccessControlValve extends ValveBase {
         	updateRoles(user, theRoles);
         	return true;
         } 
-        
-        // Health Checks can come from AWS Infrastructure, so allow them unconditionally.
-        if (isHealthCheck(path)) {
-        	log.trace("Access granted to health check {} address by {} at {}", path, user, host);
-        	updateRoles(user, theRoles);
-        	return true;
-        }
         
         // Null response means path unknown. This could be swagger documentation
         log.error("Access denied to unknown path {} address by {} at {}", path, user, host);

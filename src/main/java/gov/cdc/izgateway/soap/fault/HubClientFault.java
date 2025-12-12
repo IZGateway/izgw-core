@@ -330,7 +330,7 @@ public class HubClientFault extends Fault implements HasDestinationUri {
 		Document doc = XmlUtils.parseDocument(originalBody);
 		// This results from a validation error in the fault that was returned by the
 		// destination.
-		if (firstChildIsFault(doc) || documentElementIsError(doc)) {
+		if (doc != null && (firstChildIsFault(doc) || documentElementIsError(doc))) {
 			Element xmlName = getFaultName(doc.getDocumentElement());
 			if (xmlName != null) {
 				details[0] = getDetail(doc.getDocumentElement());
@@ -343,7 +343,7 @@ public class HubClientFault extends Fault implements HasDestinationUri {
 	}
 
 	private static boolean documentElementIsError(Document originalError) {
-		return "ErrorText".equals(originalError.getFirstChild().getNodeName());
+		return originalError != null && "ErrorText".equals(originalError.getFirstChild().getNodeName());
 	}
 
 	private static String getDetail(Element documentElement) {
@@ -388,10 +388,13 @@ public class HubClientFault extends Fault implements HasDestinationUri {
 	}
 
 	private static boolean firstChildIsFault(Document originalError) {
-		return getElement(originalError.getDocumentElement(), FAULT) != null;
+		return originalError != null && getElement(originalError.getDocumentElement(), FAULT) != null;
 	}
 
 	private static Element getElement(Element p, String name) {
+		if (p == null) {
+			return null;
+		}
 		NodeList l = p.getElementsByTagNameNS("*", name);
 		if (l.getLength() > 0) {
 			return (Element) l.item(0);

@@ -10,6 +10,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.function.UnaryOperator;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang3.Strings;
 
 import lombok.Getter;
 
@@ -19,7 +20,7 @@ import lombok.Getter;
  * logs without including any PHI.
  */
 public class HL7Utils {
-    public static final Map<String, Collection<Integer>> DEFAULT_ALLOWED_SEGMENTS = new TreeMap<>();
+    protected static final Map<String, Collection<Integer>> DEFAULT_ALLOWED_SEGMENTS = new TreeMap<>();
     public static final String ETC = "...";
 
     static {
@@ -65,7 +66,7 @@ public class HL7Utils {
 				allowedFields = adjustNonMSHAllowedValues(allowedFields);
 			}
 			if (allowedFields == null) {
-				if (!StringUtils.endsWith(b, etcSuffix)) {
+				if (!Strings.CS.endsWith(b, etcSuffix)) {
 					b.append(etcSuffix);
 				}
 			} else if (allowedFields.isEmpty()) {
@@ -171,7 +172,7 @@ public class HL7Utils {
 		public static final int SENDING_RESPONSIBLE_ORGANIZATION = 22;
 		
 		@Getter
-		private final String hl7Message;
+		private final String hl7Message;  // NOSONAR
 		@Getter
 		private final String msh;
 		private final String[] parts;

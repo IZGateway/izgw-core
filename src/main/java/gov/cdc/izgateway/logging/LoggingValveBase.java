@@ -1,16 +1,13 @@
 package gov.cdc.izgateway.logging;
 
-import gov.cdc.izgateway.common.HealthService;
 import gov.cdc.izgateway.logging.event.EventCreator;
 import gov.cdc.izgateway.logging.event.EventId;
 import gov.cdc.izgateway.logging.event.TransactionData;
-import gov.cdc.izgateway.logging.info.MessageInfo;
 import gov.cdc.izgateway.logging.info.SourceInfo;
 import gov.cdc.izgateway.logging.markers.Markers2;
 import gov.cdc.izgateway.security.IzgPrincipal;
 import gov.cdc.izgateway.security.service.PrincipalService;
 import jakarta.servlet.ServletException;
-import jakarta.servlet.http.HttpServletResponse;
 import jakarta.servlet.http.HttpSession;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.catalina.Globals;
@@ -18,6 +15,7 @@ import org.apache.catalina.connector.Request;
 import org.apache.catalina.connector.Response;
 import org.apache.catalina.valves.ValveBase;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang3.Strings;
 import org.slf4j.MDC;
 import org.springframework.http.HttpHeaders;
 
@@ -173,7 +171,7 @@ public abstract class LoggingValveBase extends ValveBase implements EventCreator
      */
     
 	protected void fixHeaders(Request req) {
-		fixHeader(req, HttpHeaders.ACCEPT, t -> StringUtils.contains(t, "/"), "*/*"); 
+		fixHeader(req, HttpHeaders.ACCEPT, t -> Strings.CS.contains(t, "/"), "*/*"); 
 		fixHeader(req, HttpHeaders.ACCEPT_CHARSET, t-> "UTF-8".equalsIgnoreCase(t) || checkCharset(t), "utf-8"); 
 	}
 	
@@ -191,7 +189,7 @@ public abstract class LoggingValveBase extends ValveBase implements EventCreator
 			if (!test.test(value)) {
 				// A bogus header value was found.
 				req.getCoyoteRequest().getMimeHeaders().removeHeader(header);
-				if (replacement != null && replacement.length() != 0) {
+				if (replacement != null && !replacement.isEmpty()) {
 					req.getCoyoteRequest().getMimeHeaders().addValue(header).setString(replacement);
 				}
 				return;

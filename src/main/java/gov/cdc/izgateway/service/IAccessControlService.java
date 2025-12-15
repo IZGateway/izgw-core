@@ -7,6 +7,8 @@ import java.util.TreeSet;
 
 import org.springframework.web.bind.annotation.RequestMethod;
 
+import gov.cdc.izgateway.soap.fault.SecurityFault;
+
 /**
  *	This class supports management of access controls in IZ Gateway.
  *
@@ -117,5 +119,14 @@ public interface IAccessControlService {
 	 * @return The set of deny listed users.
 	 */
 	Set<String> getDenyList();
+
+	/**
+	 * Check access to a destination, throwing an exception if access is denied.
+	 * @param destId The destination ID.
+	 * @throws SecurityFault If access is denied
+	 */
+	default void checkAccessToDestination(String destId) throws SecurityFault {
+		// Default implementation does nothing.
+	}
 
 }

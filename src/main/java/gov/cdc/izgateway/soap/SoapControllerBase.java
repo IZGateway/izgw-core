@@ -344,7 +344,7 @@ public abstract class SoapControllerBase {
 			if (!StringUtils.isEmpty(devAction)) {
 				throwSimulatedFault(devAction, null);
 			}
-			wsdl = ObjectUtils.defaultIfNull(wsdl, wsdl2);
+			wsdl = ObjectUtils.getIfNull(wsdl, wsdl2);
 			if (wsdl == null && StringUtils.isEmpty(xsd)) {
 				throw new UnsupportedOperationFault("At least one of the WSDL or xsd parameters must be present", null);
 			} else if (xsd != null && !XSD_FILES.contains(xsd)) {

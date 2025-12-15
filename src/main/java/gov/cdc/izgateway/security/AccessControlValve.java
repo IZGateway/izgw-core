@@ -9,6 +9,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.Ordered;
 import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Component;
+import org.springframework.web.bind.annotation.RequestMethod;
 
 import gov.cdc.izgateway.logging.RequestContext;
 import gov.cdc.izgateway.logging.info.HostInfo;
@@ -107,8 +108,9 @@ public class AccessControlValve extends ValveBase {
     		log.trace("Access granted to protected URL {} address by {} at {}", path, user, host);
         	return true;
         }
-        
-        Boolean check = accessControls.checkAccess(user, req.getMethod(), path); 
+        String method = req.getMethod();
+        List<String> roles = accessControls.getAllowedRoles(RequestMethod.valueOf(method), path);
+        Boolean check = accessControls.checkAccess(user, method, path); 
         // True response means OK to access.
         if (Boolean.TRUE.equals(check)) {
         	log.trace("Access granted to protected URL {} address by {} at {}", path, user, host);
@@ -116,9 +118,16 @@ public class AccessControlValve extends ValveBase {
         	return true;
         }
         
+        // Health Checks can come from AWS Infrastructure, so allow them unconditionally.
+        if (isHealthCheck(path)) {
+        	log.trace("Access granted to health check {} address by {} at {}", path, user, host);
+        	updateRoles(user, theRoles);
+        	return true;
+        }
+        
         // False response means NOT OK to access.
         if (Boolean.FALSE.equals(check)) {
-	        log.error("Access denied to protected URL {} address by {} at {}", path, user, host);
+	        log.error("Access denied to protected URL {} address by {} at {} due to missing roles {}", path, user, host, roles);
 	        resp.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
 	        return false;
         } 
@@ -146,6 +155,10 @@ public class AccessControlValve extends ValveBase {
 
     private boolean isSwagger(String path, String user) {
 		return path != null && path.startsWith("/swagger/") && accessControls.isUserInRole(user, Roles.ADMIN);
+	}
+    
+    private boolean isHealthCheck(String path) {
+		return path != null && (path.endsWith("/health") || path.endsWith("/healthy"));
 	}
 
 	/**

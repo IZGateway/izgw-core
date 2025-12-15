@@ -13,7 +13,7 @@ import jakarta.servlet.http.HttpSession;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.catalina.connector.Request;
 import org.apache.catalina.connector.Response;
-import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang3.Strings;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.Ordered;
 import org.springframework.core.annotation.Order;
@@ -39,6 +39,7 @@ import java.util.concurrent.TimeUnit;
 @Component("valveLogging")
 @Order(Ordered.HIGHEST_PRECEDENCE)
 public class LoggingValve extends LoggingValveBase implements EventCreator {
+	private static final String IIS_HUB_SERVICE = "/IISHubService";
 	private static final String REST_ADS = "/rest/ads";
 	@SuppressWarnings("unused")
 	private ScheduledFuture<?> adsMonitor =
@@ -82,7 +83,7 @@ public class LoggingValve extends LoggingValveBase implements EventCreator {
                 RequestContext.disableTransactionDataLogging();
                 break;
             default:
-                if (request.getRequestURI().startsWith("/IISHubService") || request.getRequestURI().startsWith("/dev/")) {
+                if (request.getRequestURI().startsWith(IIS_HUB_SERVICE) || request.getRequestURI().startsWith("/dev/")) {
                     // Any HTTP URI like this denotes a problem with how the request was formulated.
                     log.error("Unexpected HTTP Error {} from SOAP Request", response.getStatus());
                 }
@@ -138,7 +139,7 @@ public class LoggingValve extends LoggingValveBase implements EventCreator {
 	}
 
 	protected boolean isLogged(String requestURI) {
-    	return requestURI.startsWith(REST_ADS) || requestURI.startsWith("/IISHubService") || requestURI.startsWith("/izgw") || requestURI.startsWith("/dev/");
+    	return requestURI.startsWith(REST_ADS) || requestURI.startsWith(IIS_HUB_SERVICE) || requestURI.startsWith("/izgw") || requestURI.startsWith("/dev/");
 	}
 
 	@Override
@@ -155,7 +156,7 @@ public class LoggingValve extends LoggingValveBase implements EventCreator {
         req.setAttribute(EVENT_ID, eventId);
         
         // Initialize Service type.
-        boolean isGateway = StringUtils.contains(req.getRequestURI(), "/IISHubService") || StringUtils.contains(req.getRequestURI(), "/rest/");
+        boolean isGateway = Strings.CS.contains(req.getRequestURI(), IIS_HUB_SERVICE) || Strings.CS.contains(req.getRequestURI(), "/rest/");
 
         TransactionData t = new TransactionData(eventId);
         t.setServiceType(isGateway ? "Gateway" : "Mock");

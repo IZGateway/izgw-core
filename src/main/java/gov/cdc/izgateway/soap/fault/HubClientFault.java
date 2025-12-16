@@ -268,6 +268,7 @@ public class HubClientFault extends Fault implements HasDestinationUri {
 			int statusCode2, IDestination destination, String path) {
 		String[] details = { null };
 		String faultName = null;
+		String message = rootCause == null ? null : rootCause.getMessage();
 		if (faultMessage instanceof FaultMessage fm && !FAULT.equals(fm.getFaultName())) {
 			faultName = fm.getFaultName();
 			details[0] = fm.getReason();
@@ -275,7 +276,7 @@ public class HubClientFault extends Fault implements HasDestinationUri {
 		} else {
 			faultName = getFaultName(rootCause, originalBody2, details);
 			if (details[0] == null) {
-				details[0] = rootCause == null ? null : rootCause.getMessage();
+				details[0] = message;
 			}
 		}
 		if (StringUtils.isEmpty(faultName)) {
@@ -284,9 +285,9 @@ public class HubClientFault extends Fault implements HasDestinationUri {
 		switch (faultName) {
 		case "CertificateException":
 			if (destination.isDex()) {
-				return new MessageSupport(FAULT_NAME, "220", rootCause.getMessage());
+				return new MessageSupport(FAULT_NAME, "220", message);
 			}
-			return new MessageSupport(FAULT_NAME, "221", rootCause.getMessage());
+			return new MessageSupport(FAULT_NAME, "221", message);
 
 		case "MessageTooLargeFault":
 			return new MessageSupport(FAULT_NAME, "224", details[0]);
@@ -320,8 +321,15 @@ public class HubClientFault extends Fault implements HasDestinationUri {
 				status.getReasonPhrase() + (StringUtils.isNotEmpty(path) ? " accessing " + path : ""));
 	}
 
-	private static String getFaultName(Throwable rootCause, String originalBody, String[] details) {
-		String faultName = rootCause == null ? "Fault" : rootCause.getClass().getSimpleName();
+	/**
+	 * Get the fault name from the original body if possible
+	 * @param rootCause	The root cause of the fault
+	 * @param originalBody	The original body returned by the destination
+	 * @param details	An array of one element to hold the fault details
+	 * @return The fault name
+	 */
+	public static String getFaultName(Throwable rootCause, String originalBody, String[] details) {
+		String faultName = rootCause == null ? FAULT : rootCause.getClass().getSimpleName();
 
 		if (originalBody == null) {
 			return faultName;
@@ -342,7 +350,12 @@ public class HubClientFault extends Fault implements HasDestinationUri {
 		return faultName;
 	}
 
-	private static boolean documentElementIsError(Document originalError) {
+	/**
+	 * Determine if the document element indicates an error text
+	 * @param originalError The document to check
+	 * @return true if the document element indicates an error text
+	 */
+	public static boolean documentElementIsError(Document originalError) {
 		return originalError != null && "ErrorText".equals(originalError.getFirstChild().getNodeName());
 	}
 
@@ -387,7 +400,12 @@ public class HubClientFault extends Fault implements HasDestinationUri {
 		return null;
 	}
 
-	private static boolean firstChildIsFault(Document originalError) {
+	/**
+	 * Determine if the first child of the document element is a fault
+	 * @param originalError	The document to check
+	 * @return	true if the first child of the document element is a fault
+	 */
+	public static boolean firstChildIsFault(Document originalError) {
 		return originalError != null && getElement(originalError.getDocumentElement(), FAULT) != null;
 	}
 
@@ -405,7 +423,7 @@ public class HubClientFault extends Fault implements HasDestinationUri {
 	@Getter
 	private final SoapMessage faultMessage;
 	@Getter
-	private final IDestination destination;
+	private transient final IDestination destination;
 	@Getter
 	private final int statusCode;
 	@Getter

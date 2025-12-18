@@ -5,16 +5,11 @@ import gov.cdc.izgateway.model.IDestination;
 import gov.cdc.izgateway.model.IEndpointStatus;
 import gov.cdc.izgateway.service.IJurisdictionService;
 
-import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
-import org.springframework.stereotype.Repository;
-
 import java.util.List;
 
 /**
  * A no-operation implementation of the EndpointStatusRepository interface.
  */
-@Repository
-@ConditionalOnMissingBean(EndpointStatusRepository.class)
 public class NoopEndpointStatusRepository implements EndpointStatusRepository<IEndpointStatus> {
 	
 	/**

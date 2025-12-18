@@ -2,16 +2,11 @@ package gov.cdc.izgateway.service;
 
 import gov.cdc.izgateway.model.IMessageHeader;
 
-import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
-import org.springframework.stereotype.Service;
-
 import java.util.List;
 
 /**
  * No-op implementation of IMessageHeaderService to be used when no other implementation is provided.
  */
-@Service
-@ConditionalOnMissingBean(IMessageHeaderService.class)
 public class NoopMessageHeaderService implements IMessageHeaderService {
     @Override
     public void refresh() {

@@ -3,6 +3,8 @@ package gov.cdc.izgateway.security;
 import gov.cdc.izgateway.model.IAccessControl;
 import gov.cdc.izgateway.service.IAccessControlService;
 import org.springframework.web.bind.annotation.RequestMethod;
+import org.springframework.stereotype.Component;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 
 import java.util.List;
 import java.util.Map;
@@ -14,6 +16,8 @@ import java.util.TreeSet;
  * This is needed until we refactor the core class "AccessController" as it requires an IAccessControlService
  * implementation.
  */
+@Component
+@ConditionalOnMissingBean(IAccessControlService.class)
 public class AccessControlServiceNoop implements IAccessControlService {
 
     @Override

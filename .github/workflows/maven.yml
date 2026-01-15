@@ -3,14 +3,10 @@ name: Java CI with Maven
 on:
   push:
     branches:
-      - Release*
-      - main
       - develop
 
   pull_request:
     branches:
-      - Release*
-      - main
       - develop
 
   # Schedule runs on the default branch.

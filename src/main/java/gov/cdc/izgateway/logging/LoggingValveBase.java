@@ -123,7 +123,7 @@ public abstract class LoggingValveBase extends ValveBase implements EventCreator
             log.error(Markers2.append(err), "Error during invocation", err);
         } finally {
             // Log first, then clean up MDC!
-            if (RequestContext.getTransactionData() != null && !RequestContext.isLoggingDisabled()) {
+            if (t != null && !RequestContext.isLoggingDisabled()) {
                 t.logIt();
             }
             RequestContext.clear();

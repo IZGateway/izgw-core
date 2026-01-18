@@ -68,7 +68,7 @@ public class LoggingValve extends LoggingValveBase implements EventCreator {
             
             TransactionData t = RequestContext.getTransactionData();
             
-            if (RequestContext.getTransactionData() != null && !RequestContext.isLoggingDisabled()) {
+            if (t != null && !RequestContext.isLoggingDisabled()) {
                 HealthService.incrementVolumes(t.getHasProcessError());
             }
 

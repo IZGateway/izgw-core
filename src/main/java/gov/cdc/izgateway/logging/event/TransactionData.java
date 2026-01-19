@@ -693,12 +693,18 @@ public class TransactionData {
         );
     }
 
+    /**
+     * Compute the transaction times based on the start time and elapsed times.
+     */
     public void computeTransactionTimes() {
         setElapsedTimeTotal(System.currentTimeMillis() - getStartTime());
         setElapsedTimeProcessing(getElapsedTimeTotal() - getElapsedTimeIIS());
         setWriteTimeIIS(getElapsedTimeIIS() - getReadTimeIIS());
     }
 
+    /**
+     * Log this transaction data.
+     */
     public void logIt() {
         computeTransactionTimes();
         log.info(Markers2.append("transactionData", this), "{}", getMessage());

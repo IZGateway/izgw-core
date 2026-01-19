@@ -39,8 +39,11 @@ import java.util.concurrent.TimeUnit;
 @Component("valveLogging")
 @Order(Ordered.HIGHEST_PRECEDENCE)
 public class LoggingValve extends LoggingValveBase implements EventCreator {
+	private static final String DEV_SERVICE_PPREFIX = "/dev/";
+	private static final String IIS_CDC_SERVICE = "/izgw";
 	private static final String IIS_HUB_SERVICE = "/IISHubService";
 	private static final String REST_ADS = "/rest/ads";
+	private final PrincipalService principalService;
 	@SuppressWarnings("unused")
 	private ScheduledFuture<?> adsMonitor =
     	Executors.newSingleThreadScheduledExecutor(r -> new Thread(r, "ADS Monitor"))
@@ -67,8 +70,8 @@ public class LoggingValve extends LoggingValveBase implements EventCreator {
             this.getNext().invoke(request, response);
             
             TransactionData t = RequestContext.getTransactionData();
-            
-            if (t != null && !RequestContext.isLoggingDisabled()) {
+            boolean isLoggingDisabled = RequestContext.isLoggingDisabled();
+            if (t != null && !isLoggingDisabled) {
                 HealthService.incrementVolumes(t.getHasProcessError());
             }
 
@@ -83,7 +86,7 @@ public class LoggingValve extends LoggingValveBase implements EventCreator {
                 RequestContext.disableTransactionDataLogging();
                 break;
             default:
-                if (request.getRequestURI().startsWith(IIS_HUB_SERVICE) || request.getRequestURI().startsWith("/dev/")) {
+                if (request.getRequestURI().startsWith(IIS_HUB_SERVICE) || request.getRequestURI().startsWith(DEV_SERVICE_PPREFIX)) {
                     // Any HTTP URI like this denotes a problem with how the request was formulated.
                     log.error("Unexpected HTTP Error {} from SOAP Request", response.getStatus());
                 }
@@ -94,6 +97,12 @@ public class LoggingValve extends LoggingValveBase implements EventCreator {
             if (messageInfo != null) {
                 messageInfo.setHttpHeaders(getHeaders(response));
             }
+            log.info(Markers2.append("transactionData", t), 
+            	"What {} be logged and {} is: {}", 
+            	isLoggingDisabled ? "will NOT" : "will",
+            	isLogged(request.getRequestURI()) ? "should be" : "should NOT be",
+            	t.getMessage()
+            );
 
         } finally {
             if (monitored) {
@@ -139,7 +148,7 @@ public class LoggingValve extends LoggingValveBase implements EventCreator {
 	}
 
 	protected boolean isLogged(String requestURI) {
-    	return requestURI.startsWith(REST_ADS) || requestURI.startsWith(IIS_HUB_SERVICE) || requestURI.startsWith("/izgw") || requestURI.startsWith("/dev/");
+		return Strings.CS.startsWithAny(requestURI, REST_ADS, IIS_HUB_SERVICE, IIS_CDC_SERVICE, DEV_SERVICE_PPREFIX);
 	}
 
 	@Override

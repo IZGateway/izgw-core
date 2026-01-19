@@ -22,6 +22,11 @@ on:
         type: string
         default: 'standard'
 
+permissions:
+  contents: write # required for pushing branches, tags, and commits
+  packages: write # required for publishing and deleting GitHub Packages versions
+  pull-requests: read # required for gh pr view when generating release notes
+
 jobs:
   release:
     runs-on: ubuntu-latest

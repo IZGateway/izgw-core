@@ -16,6 +16,11 @@ on:
         required: false
         type: string
 
+permissions:
+  contents: write
+  packages: write
+  pull-requests: read
+
 jobs:
   release:
     uses: ./.github/workflows/_release_common.yml

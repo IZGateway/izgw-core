@@ -43,7 +43,6 @@ public class LoggingValve extends LoggingValveBase implements EventCreator {
 	private static final String IIS_CDC_SERVICE = "/izgw";
 	private static final String IIS_HUB_SERVICE = "/IISHubService";
 	private static final String REST_ADS = "/rest/ads";
-	private final PrincipalService principalService;
 	@SuppressWarnings("unused")
 	private ScheduledFuture<?> adsMonitor =
     	Executors.newSingleThreadScheduledExecutor(r -> new Thread(r, "ADS Monitor"))
@@ -51,7 +50,7 @@ public class LoggingValve extends LoggingValveBase implements EventCreator {
     private static final ConcurrentHashMap<Request, String> adsRequests = new ConcurrentHashMap<>();
     @Autowired
     public LoggingValve(PrincipalService principalService) {
-        this.principalService = principalService;
+        super(principalService);
     }
 
     @Override

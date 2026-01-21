@@ -80,7 +80,21 @@ public abstract class LoggingValveBase extends ValveBase implements EventCreator
         }
     }
 
-    protected static String convertSize(long sizeBytes) {
+    /** 
+	 * Default constructor for cases where no principal service is needed.
+	 */
+    public LoggingValveBase() {
+		this.principalService = null;
+	}
+
+    /** 
+	 * Constructor with principal service.
+	 */
+    public LoggingValveBase(PrincipalService principalService) {
+		this.principalService = principalService;
+	}
+
+	protected static String convertSize(long sizeBytes) {
     	if (sizeBytes <= 0) {
     		return "0b";
     	}
@@ -100,7 +114,7 @@ public abstract class LoggingValveBase extends ValveBase implements EventCreator
         SourceInfo source = setSourceInfoValues(req, t);
 
         // Set RequestContext values.
-        IzgPrincipal p = principalService.getPrincipal(req);
+        IzgPrincipal p = getPrincipal(req);
         RequestContext.setPrincipal(p);
         RequestContext.setTransactionData(t);
         RequestContext.setHttpHeaders(getHeaders(req));
@@ -132,7 +146,16 @@ public abstract class LoggingValveBase extends ValveBase implements EventCreator
         }
     }
 
-    protected abstract void clearContext();
+    /** 
+     * If there is a principal service, get the principal for the request.
+     * @param req	The request to get the principal for.
+     * @return The principal for the request, or null if no principal service is configured.
+     */
+    private IzgPrincipal getPrincipal(Request req) {
+		return principalService == null ? null : principalService.getPrincipal(req);
+	}
+
+	protected abstract void clearContext();
 
 	protected abstract TransactionData createTransactionData(Request req);
 

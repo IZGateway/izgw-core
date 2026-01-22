@@ -397,7 +397,7 @@ jobs:
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           publish_dir: ./target/site
-          destination_dir: v${{ env.BASE_TAG }}
+          destination_dir: v${{ inputs.release-version }}
 
       - name: Merge release branch to main
         run: |

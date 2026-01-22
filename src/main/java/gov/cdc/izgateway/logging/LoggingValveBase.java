@@ -83,14 +83,14 @@ public abstract class LoggingValveBase extends ValveBase implements EventCreator
     /** 
 	 * Default constructor for cases where no principal service is needed.
 	 */
-    public LoggingValveBase() {
+    protected LoggingValveBase() {
 		this.principalService = null;
 	}
 
     /** 
 	 * Constructor with principal service.
 	 */
-    public LoggingValveBase(PrincipalService principalService) {
+    protected LoggingValveBase(PrincipalService principalService) {
 		this.principalService = principalService;
 	}
 

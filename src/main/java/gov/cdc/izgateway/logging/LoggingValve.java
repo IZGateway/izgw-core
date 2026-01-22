@@ -39,7 +39,7 @@ import java.util.concurrent.TimeUnit;
 @Component("valveLogging")
 @Order(Ordered.HIGHEST_PRECEDENCE)
 public class LoggingValve extends LoggingValveBase implements EventCreator {
-	private static final String DEV_SERVICE_PPREFIX = "/dev/";
+	private static final String DEV_SERVICE_PREFIX = "/dev/";
 	private static final String IIS_CDC_SERVICE = "/izgw";
 	private static final String IIS_HUB_SERVICE = "/IISHubService";
 	private static final String REST_ADS = "/rest/ads";
@@ -85,7 +85,7 @@ public class LoggingValve extends LoggingValveBase implements EventCreator {
                 RequestContext.disableTransactionDataLogging();
                 break;
             default:
-                if (request.getRequestURI().startsWith(IIS_HUB_SERVICE) || request.getRequestURI().startsWith(DEV_SERVICE_PPREFIX)) {
+                if (request.getRequestURI().startsWith(IIS_HUB_SERVICE) || request.getRequestURI().startsWith(DEV_SERVICE_PREFIX)) {
                     // Any HTTP URI like this denotes a problem with how the request was formulated.
                     log.error("Unexpected HTTP Error {} from SOAP Request", response.getStatus());
                 }
@@ -96,13 +96,6 @@ public class LoggingValve extends LoggingValveBase implements EventCreator {
             if (messageInfo != null) {
                 messageInfo.setHttpHeaders(getHeaders(response));
             }
-            log.info(Markers2.append("transactionData", t), 
-            	"What {} be logged and {} is: {}", 
-            	isLoggingDisabled ? "will NOT" : "will",
-            	isLogged(request.getRequestURI()) ? "should be" : "should NOT be",
-            	t.getMessage()
-            );
-
         } finally {
             if (monitored) {
                 adsRequests.remove(request);
@@ -147,7 +140,7 @@ public class LoggingValve extends LoggingValveBase implements EventCreator {
 	}
 
 	protected boolean isLogged(String requestURI) {
-		return Strings.CS.startsWithAny(requestURI, REST_ADS, IIS_HUB_SERVICE, IIS_CDC_SERVICE, DEV_SERVICE_PPREFIX);
+		return Strings.CS.startsWithAny(requestURI, REST_ADS, IIS_HUB_SERVICE, IIS_CDC_SERVICE, DEV_SERVICE_PREFIX);
 	}
 
 	@Override

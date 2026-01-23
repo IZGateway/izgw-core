@@ -39,6 +39,8 @@ import java.util.concurrent.TimeUnit;
 @Component("valveLogging")
 @Order(Ordered.HIGHEST_PRECEDENCE)
 public class LoggingValve extends LoggingValveBase implements EventCreator {
+	private static final String DEV_SERVICE_PREFIX = "/dev/";
+	private static final String IIS_CDC_SERVICE = "/izgw";
 	private static final String IIS_HUB_SERVICE = "/IISHubService";
 	private static final String REST_ADS = "/rest/ads";
 	@SuppressWarnings("unused")
@@ -48,7 +50,7 @@ public class LoggingValve extends LoggingValveBase implements EventCreator {
     private static final ConcurrentHashMap<Request, String> adsRequests = new ConcurrentHashMap<>();
     @Autowired
     public LoggingValve(PrincipalService principalService) {
-        this.principalService = principalService;
+        super(principalService);
     }
 
     @Override
@@ -67,8 +69,8 @@ public class LoggingValve extends LoggingValveBase implements EventCreator {
             this.getNext().invoke(request, response);
             
             TransactionData t = RequestContext.getTransactionData();
-            
-            if (RequestContext.getTransactionData() != null && !RequestContext.isLoggingDisabled()) {
+            boolean isLoggingDisabled = RequestContext.isLoggingDisabled();
+            if (t != null && !isLoggingDisabled) {
                 HealthService.incrementVolumes(t.getHasProcessError());
             }
 
@@ -83,7 +85,7 @@ public class LoggingValve extends LoggingValveBase implements EventCreator {
                 RequestContext.disableTransactionDataLogging();
                 break;
             default:
-                if (request.getRequestURI().startsWith(IIS_HUB_SERVICE) || request.getRequestURI().startsWith("/dev/")) {
+                if (request.getRequestURI().startsWith(IIS_HUB_SERVICE) || request.getRequestURI().startsWith(DEV_SERVICE_PREFIX)) {
                     // Any HTTP URI like this denotes a problem with how the request was formulated.
                     log.error("Unexpected HTTP Error {} from SOAP Request", response.getStatus());
                 }
@@ -94,7 +96,6 @@ public class LoggingValve extends LoggingValveBase implements EventCreator {
             if (messageInfo != null) {
                 messageInfo.setHttpHeaders(getHeaders(response));
             }
-
         } finally {
             if (monitored) {
                 adsRequests.remove(request);
@@ -139,7 +140,7 @@ public class LoggingValve extends LoggingValveBase implements EventCreator {
 	}
 
 	protected boolean isLogged(String requestURI) {
-    	return requestURI.startsWith(REST_ADS) || requestURI.startsWith(IIS_HUB_SERVICE) || requestURI.startsWith("/izgw") || requestURI.startsWith("/dev/");
+		return Strings.CS.startsWithAny(requestURI, REST_ADS, IIS_HUB_SERVICE, IIS_CDC_SERVICE, DEV_SERVICE_PREFIX);
 	}
 
 	@Override

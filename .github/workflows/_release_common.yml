@@ -780,9 +780,7 @@ jobs:
           echo "- Authentication issues: Verify GitHub Packages credentials" >> $GITHUB_STEP_SUMMARY
           echo "- Artifact already exists: Manually delete the GitHub Package version before retrying" >> $GITHUB_STEP_SUMMARY
 
-      - name: Notify on failure (keep branch)
-        if: failure()
-        run: |
+
           echo "## Release Failed - Branch Kept" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "The release process failed. The release branch **${{ steps.validate.outputs.release_branch }}** has been kept for investigation." >> $GITHUB_STEP_SUMMARY

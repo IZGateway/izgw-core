@@ -108,6 +108,9 @@ public class Health {
 	@Schema(description="This Host's Region", example="us-east-1")
 	private String region;
 	
+	@JsonProperty
+	@Schema(description="The access control action configuration in use", example="warn | deny")
+	private String accessControlAction;
 	
     /**
      * Construct a new Health object with default values.
@@ -148,6 +151,7 @@ public class Health {
         this.ingressDnsAddress = that.ingressDnsAddress;
         this.egressDnsAddress = that.egressDnsAddress;
         this.region = that.region;
+        this.accessControlAction = that.accessControlAction;
     }
 
     /**

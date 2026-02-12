@@ -61,5 +61,10 @@ public class HealthService {
 	public static void setIngressDnsAddress(String[] address) {
 		health.setIngressDnsAddress(address);
 	}
+
+	public static void setAccessControlAction(String accessControlAction) {
+		health.setAccessControlAction(accessControlAction);
+		
+	}
 	
 }

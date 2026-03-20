@@ -1,0 +1,16 @@
+# Maven Dependency Update Exclusions
+# 
+# This file lists dependencies that should NOT be automatically updated.
+# Add one dependency per line in the format: groupId:artifactId
+# Lines starting with # are comments.
+#
+# Last updated: 2026-03-20
+
+# Bouncy Castle FIPS modules - require certification validation
+org.bouncycastle:bc-fips
+org.bouncycastle:bcpkix-fips
+org.bouncycastle:bctls-fips
+
+# Add other exclusions below as needed
+# Example format:
+# com.example:critical-library

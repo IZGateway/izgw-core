@@ -1,5 +1,6 @@
 package gov.cdc.izgateway.configuration;
 
+import java.net.URI;
 import java.net.URL;
 
 import org.springframework.beans.factory.InitializingBean;
@@ -34,6 +35,6 @@ public class ServerConfiguration implements InitializingBean {
 
 	@Override
 	public void afterPropertiesSet() throws Exception {
-		baseUrl = new URL(protocol, hostname, port, "/");
+		new URI(protocol, null, hostname, port, "/", null, null).toURL();
 	}
 }

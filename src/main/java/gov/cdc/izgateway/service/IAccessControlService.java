@@ -139,33 +139,4 @@ public interface IAccessControlService {
 	default IFileType getFileType(String reportType) {
 		return null;
 	}
-
-	/**
-	 * Compute the ADS data stream ID from a file type name by inserting hyphens
-	 * before each uppercase letter (except the first) and converting to lowercase.
-	 * <p>Examples:</p>
-	 * <ul>
-	 *   <li>{@code "routineImmunization"} → {@code "routine-immunization"}</li>
-	 *   <li>{@code "influenzaVaccination"} → {@code "influenza-vaccination"}</li>
-	 *   <li>{@code "farmerFlu"} → {@code "farmer-flu"}</li>
-	 * </ul>
-	 *
-	 * @param fileTypeName the file type name to convert
-	 * @return the computed data stream ID, or {@code "generic-immunization"} if the input is null/empty
-	 */
-	static String computeDataStreamId(String fileTypeName) {
-		if (fileTypeName == null || fileTypeName.isEmpty()) {
-			return "generic-immunization";
-		}
-		StringBuilder result = new StringBuilder();
-		for (int i = 0; i < fileTypeName.length(); i++) {
-			char c = fileTypeName.charAt(i);
-			if (i > 0 && Character.isUpperCase(c)) {
-				result.append('-');
-			}
-			result.append(Character.toLowerCase(c));
-		}
-		return result.toString();
-	}
-
 }

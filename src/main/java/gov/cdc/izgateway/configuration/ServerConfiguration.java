@@ -35,6 +35,6 @@ public class ServerConfiguration implements InitializingBean {
 
 	@Override
 	public void afterPropertiesSet() throws Exception {
-		new URI(protocol, null, hostname, port, "/", null, null).toURL();
+		baseUrl = new URI(protocol, null, hostname, port, "/", null, null).toURL();
 	}
 }

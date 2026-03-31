@@ -7,6 +7,7 @@ import java.util.TreeSet;
 
 import org.springframework.web.bind.annotation.RequestMethod;
 
+import gov.cdc.izgateway.model.IFileType;
 import gov.cdc.izgateway.soap.fault.SecurityFault;
 
 /**
@@ -129,4 +130,13 @@ public interface IAccessControlService {
 		// Default implementation does nothing.
 	}
 
+	/**
+	 * Look up a FileType by report type name (case-insensitive).
+	 *
+	 * @param reportType the report type name (e.g. "routineImmunization")
+	 * @return the matching FileType, or null if not found
+	 */
+	default IFileType getFileType(String reportType) {
+		return null;
+	}
 }

@@ -153,8 +153,18 @@ public class AccessControlValve extends ValveBase {
 		}
 	}
 
+    /**
+     * Returns true if the path is a Swagger documentation path and the user is not blacklisted.
+     * Swagger documentation is publicly accessible to any authenticated non-denied user; it
+     * does not require admin privileges. TC_92a intentionally tests access with
+     * {@code X-Not-Admin: true} to verify that non-admin users can view the API docs.
+     *
+     * @param path the request path
+     * @param user the authenticated user identifier
+     * @return true if access to the swagger path should be granted
+     */
     private boolean isSwagger(String path, String user) {
-		return path != null && path.startsWith("/swagger/") && accessControls.isUserInRole(user, Roles.ADMIN);
+		return path != null && path.startsWith("/swagger/") && !accessControls.isUserDenied(user);
 	}
     
     private boolean isHealthCheck(String path) {

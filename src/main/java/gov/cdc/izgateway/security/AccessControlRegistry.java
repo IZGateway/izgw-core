@@ -265,7 +265,7 @@ public class AccessControlRegistry implements IAccessControlRegistry {
 				return allowed.getValue();
 			}
 		}
-		log.warn("NO path matching {} on {}", method, path);
+		log.debug("NO path matching {} on {}", method, path);
 		return Collections.emptyList();
 	}
 	

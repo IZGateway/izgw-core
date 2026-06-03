@@ -1,3 +1,8 @@
+## [3.1.0] - 2026-06-03
+
+### Changes
+- IGDD-2758: Fix TC_92a - webflux removal and swagger access control ([#81](https://github.com/IZGateway/izgw-core/pull/81))
+
 # Release Notes
 
 All notable changes to this project will be documented in this file.

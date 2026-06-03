@@ -6,14 +6,14 @@
 	<parent>
         <groupId>gov.cdc.izgw</groupId>
         <artifactId>izgw-bom</artifactId>
-        <version>1.6.0</version>
+        <version>1.9.0</version>
         <relativePath/>
 	</parent>
 	<artifactId>izgw-core</artifactId>
 	<!-- Please ensure working brange is labeled <major>.<minor>.<patch>-IGDD-<ticket#>_<ticket-title>-SNAPSHOT 
 		release branch is labeled <major>.<minor>.<patch>-izgw-core-SNAPSHOT main 
 		branch is labeled <major>.<minor>.<patch>-izgw-core-RELEASE -->
-	<version>3.0.0</version>
+	<version>3.1.0</version>
 	<packaging>jar</packaging>
 	<name>IZ Gateway Core</name>
 	<description>IZ Gateway Core contains the core code for the IZ Gateway Hub and Transformation services</description>
@@ -222,10 +222,6 @@
 		<dependency>
 			<groupId>org.codehaus.woodstox</groupId>
 			<artifactId>stax2-api</artifactId>
-		</dependency>
-		<dependency>
-			<groupId>org.springdoc</groupId>
-			<artifactId>springdoc-openapi-starter-webflux-ui</artifactId>
 		</dependency>
 		<dependency>
 			<groupId>org.springdoc</groupId>

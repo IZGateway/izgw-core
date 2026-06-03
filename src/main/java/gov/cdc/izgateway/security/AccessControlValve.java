@@ -153,6 +153,16 @@ public class AccessControlValve extends ValveBase {
 		}
 	}
 
+    /**
+     * Returns true if the path is a Swagger documentation path and the user has admin role.
+     * Swagger documentation is restricted to admin users only. {@code X-Not-Admin: true}
+     * header in test requests suppresses admin behaviour within the application itself but
+     * does not affect this valve-level DB role check.
+     *
+     * @param path the request path
+     * @param user the authenticated user identifier
+     * @return true if the user is admin and the path is a swagger documentation path
+     */
     private boolean isSwagger(String path, String user) {
 		return path != null && path.startsWith("/swagger/") && accessControls.isUserInRole(user, Roles.ADMIN);
 	}

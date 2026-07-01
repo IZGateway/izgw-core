@@ -14,6 +14,10 @@ import java.io.FileInputStream;
 import java.io.IOException;
 import java.security.GeneralSecurityException;
 import java.security.KeyStore;
+import java.security.KeyStoreException;
+import java.security.cert.Certificate;
+import java.security.cert.X509Certificate;
+import java.util.Enumeration;
 import java.util.ServiceConfigurationError;
 
 /**
@@ -39,10 +43,13 @@ public class TrustManagerProvider {
     @Getter
     private X509TrustManager serverTrustManager;
 
+    @Getter
+    private KeyStore trustStore;
+
     @PostConstruct
     private void initializeTrustManager() {
         try {
-            KeyStore trustStore = KeyStore.getInstance(trustStoreType, trustStoreProvider);
+            this.trustStore = KeyStore.getInstance(trustStoreType, trustStoreProvider);
 
             try (FileInputStream fis = new FileInputStream(trustStorePath)) {
                 trustStore.load(fis, trustStorePassword.toCharArray());
@@ -62,5 +69,27 @@ public class TrustManagerProvider {
             throw new ServiceConfigurationError(e.getMessage(), e);
         }
         throw new ServiceConfigurationError("No ServerTrustManager could be found.");
+    }
+
+    /**
+     * Finds the issuer certificate for the given leaf certificate by matching its issuer DN
+     * against the subject DN of each entry in the trust store.
+     * Returns null if no match is found — callers should skip OCSP in that case.
+     */
+    public X509Certificate findIssuerCert(X509Certificate cert) {
+        String issuerDN = cert.getIssuerX500Principal().getName();
+        try {
+            Enumeration<String> aliases = trustStore.aliases();
+            while (aliases.hasMoreElements()) {
+                Certificate candidate = trustStore.getCertificate(aliases.nextElement());
+                if (candidate instanceof X509Certificate x509
+                        && x509.getSubjectX500Principal().getName().equals(issuerDN)) {
+                    return x509;
+                }
+            }
+        } catch (KeyStoreException e) {
+            log.warn("Error looking up issuer cert for {}", issuerDN, e);
+        }
+        return null;
     }
 }

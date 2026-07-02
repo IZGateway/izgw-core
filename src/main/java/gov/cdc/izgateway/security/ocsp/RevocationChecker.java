@@ -123,9 +123,12 @@ public class RevocationChecker {
 				// It was previous checked, and sufficient time hasn't passed
 				return;
 			}
+		} catch (CertPathValidatorException cpve) {
+			// Explicit revocation — must not be swallowed. Re-throw so the caller rejects the cert.
+			throw cpve;
 		} catch (Exception e) {
 			log.error(Markers2.append(e), "Error retrieving certificate status for {}", X500Utils.getCommonName(cert));
-			// DB Access failure should NOT block certificate validation
+			// DB access failure should NOT block certificate validation — fail open.
 			return;
 		}
 

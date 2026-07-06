@@ -11,6 +11,7 @@ import com.fasterxml.jackson.annotation.JsonValue;
 
 import gov.cdc.izgateway.common.Constants;
 import gov.cdc.izgateway.configuration.AppProperties;
+import gov.cdc.izgateway.logging.LoggingValveBase;
 import gov.cdc.izgateway.logging.info.DestinationInfo;
 import gov.cdc.izgateway.logging.info.MessageInfo.RequestInfo;
 import gov.cdc.izgateway.logging.info.MessageInfo.ResponseInfo;
@@ -36,6 +37,7 @@ import java.util.TreeMap;
 import java.util.UUID;
 import java.util.regex.Pattern;
 import org.apache.commons.lang3.StringUtils;
+import org.slf4j.MDC;
 
 @Slf4j
 @JsonPropertyOrder(value = {
@@ -674,6 +676,14 @@ public class TransactionData {
     @JsonIgnore
     public String getMessage() {
         String unknown = "**unknown**";
+        if ("GET".equals(MDC.get(LoggingValveBase.METHOD))) {
+            // A GET on a SOAP endpoint is a WSDL/schema retrieval, not a transaction.
+            // It has no destination and no message type, so log a short, distinct message.
+            return String.format("WSDL/schema retrieval from %s at %s",
+                    source == null ? unknown : source.getName(),
+                    source == null ? unknown : source.getIpAddress()
+            );
+        }
         return String.format("%sTransaction %s(%s) containing %s(%s) "
                         + "from %s at %s "
                         + "to %s at %s(%s) "
@@ -707,6 +717,12 @@ public class TransactionData {
      */
     public void logIt() {
         computeTransactionTimes();
-        log.info(Markers2.append("transactionData", this), "{}", getMessage());
+        if ("GET".equals(MDC.get(LoggingValveBase.METHOD))) {
+            // WSDL/schema retrievals are performed on every SOAP invocation by frameworks
+            // like STC and Docket; log them at debug so they do not pollute the INFO stream.
+            log.debug(Markers2.append("transactionData", this), "{}", getMessage());
+        } else {
+            log.info(Markers2.append("transactionData", this), "{}", getMessage());
+        }
     }
 }

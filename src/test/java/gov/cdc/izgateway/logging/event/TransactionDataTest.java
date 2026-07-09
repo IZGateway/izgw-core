@@ -3,8 +3,10 @@ package gov.cdc.izgateway.logging.event;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.lang.reflect.Field;
 import java.util.List;
 
+import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
@@ -25,11 +27,29 @@ import gov.cdc.izgateway.logging.LoggingValveBase;
  */
 class TransactionDataTest {
 
+    private static AppProperties previousInstance;
+
     @BeforeAll
-    static void initAppProperties() {
-        // TransactionData's constructor reads AppProperties.isProduction(); the constructor
-        // registers itself as the static instance, which is all this test needs.
-        new AppProperties();
+    static void initAppProperties() throws Exception {
+        // TransactionData's constructor reads AppProperties.isProduction(). Instantiating
+        // AppProperties registers itself as the global static singleton, so capture whatever
+        // instance was there first and restore it in @AfterAll to avoid making other tests
+        // (e.g. Spring tests relying on @Value-injected AppProperties) order-dependent.
+        previousInstance = AppProperties.getInstance();
+
+        // When constructed outside Spring, serverMode is never injected and the effective mode
+        // is incidental. Force a deterministic "prod" mode so these tests do not depend on it.
+        AppProperties props = new AppProperties();
+        Field serverMode = AppProperties.class.getDeclaredField("serverMode");
+        serverMode.setAccessible(true);
+        serverMode.set(props, AppProperties.PROD_MODE_VALUE);
+    }
+
+    @AfterAll
+    static void restoreAppProperties() throws Exception {
+        Field instance = AppProperties.class.getDeclaredField("instance");
+        instance.setAccessible(true);
+        instance.set(null, previousInstance);
     }
 
     @AfterEach

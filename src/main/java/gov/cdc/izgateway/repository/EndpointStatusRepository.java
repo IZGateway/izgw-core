@@ -20,6 +20,12 @@ public interface EndpointStatusRepository<T extends IEndpointStatus> {
 	List<T> find(int maxQuarterHours, String[] include);
 	boolean refresh();
 	void resetCircuitBreakers();
+	/**
+	 * Reset the circuit breaker for a single endpoint by destination ID.
+	 * @param id the destination ID whose circuit breaker should be reset
+	 * @return the updated status, or {@code null} if no entry was found for the given ID
+	 */
+	T resetCircuitBreakerById(String id);
 	T newEndpointStatus();
 	T newEndpointStatus(IDestination dest);
 }

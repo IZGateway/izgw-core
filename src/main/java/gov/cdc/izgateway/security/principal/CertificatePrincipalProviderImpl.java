@@ -2,6 +2,7 @@ package gov.cdc.izgateway.security.principal;
 
 import gov.cdc.izgateway.principal.provider.CertificatePrincipalProvider;
 import gov.cdc.izgateway.security.*;
+import gov.cdc.izgateway.security.ocsp.RevocationChecker;
 import gov.cdc.izgateway.utils.X500Utils;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.extern.slf4j.Slf4j;
@@ -25,10 +26,12 @@ public class CertificatePrincipalProviderImpl implements CertificatePrincipalPro
     private String certHeaderKey;
 
     private final CertificateValidator validator;
+    private final TrustManagerProvider trustManagerProvider;
 
     @Autowired
     public CertificatePrincipalProviderImpl(TrustManagerProvider provider) {
         this.validator = new CertificateValidator(provider.getServerTrustManager());
+        this.trustManagerProvider = provider;
     }
 
     @Override
@@ -64,8 +67,12 @@ public class CertificatePrincipalProviderImpl implements CertificatePrincipalPro
 
         try {
             cert = CertificateProcessor.processCertificateFromHeader(certHeader);
-        	log.debug("Certificate found in {}", certHeaderKey);
-            return validator.isValid(cert) ? cert : null;
+            log.debug("Certificate found in {}", certHeaderKey);
+            if (!validator.isValid(cert)) {
+                return null;
+            }
+            checkRevocation(cert);
+            return cert;
         } catch (CertificateException e) {
             log.error("Failed to process certificate from header {}", certHeader, e);
             return null;
@@ -84,6 +91,30 @@ public class CertificatePrincipalProviderImpl implements CertificatePrincipalPro
     private X509Certificate getCertificateFromAttribute(HttpServletRequest request) {
         X509Certificate[] certs = (X509Certificate[]) request.getAttribute(Globals.CERTIFICATES_ATTR);
         return (certs != null && certs.length > 0) ? certs[0] : null;
+    }
+
+    /**
+     * Checks OCSP revocation status for a cert received via the ALB header.
+     * Resolves the issuer from the trust store; skips the check with a warning if the issuer
+     * is not found (certs without a known issuer in the trust store cannot be OCSP-checked).
+     * Throws CertificateException if the cert is confirmed revoked.
+     */
+    private void checkRevocation(X509Certificate cert) throws CertificateException {
+        RevocationChecker checker = RevocationChecker.getInstance();
+        if (checker == null) {
+            return;
+        }
+        X509Certificate issuer = trustManagerProvider.findIssuerCert(cert);
+        if (issuer == null) {
+            log.warn("Issuer cert not found in trust store for {}, skipping OCSP check",
+                    X500Utils.getCommonName(cert));
+            return;
+        }
+        try {
+            checker.check(RevocationChecker.SslLocation.CLIENT, cert, issuer);
+        } catch (CertPathValidatorException e) {
+            throw new CertificateException("Certificate revoked: " + e.getMessage(), e);
+        }
     }
 
     /**

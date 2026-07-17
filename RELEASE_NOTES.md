@@ -1,3 +1,10 @@
+## [3.2.0] - 2026-07-07
+
+### Changes
+- chore: Bump izgw-bom to 1.11.0 release ([#87](https://github.com/IZGateway/izgw-core/pull/87))
+- IGDD-2075 Add OCSP revocation check for ALB-forwarded client certificates. ([#85](https://github.com/IZGateway/izgw-core/pull/85))
+- Bump actions/checkout from 6 to 7 ([#83](https://github.com/IZGateway/izgw-core/pull/83))
+
 ## [3.1.0] - 2026-06-03
 
 ### Changes

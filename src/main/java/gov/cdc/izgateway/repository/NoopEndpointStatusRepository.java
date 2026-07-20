@@ -67,6 +67,11 @@ public class NoopEndpointStatusRepository implements EndpointStatusRepository<IE
     }
 
     @Override
+    public IEndpointStatus resetCircuitBreakerById(String id) {
+    	return null;
+    }
+
+    @Override
     public IEndpointStatus newEndpointStatus() {
         return status;
     }

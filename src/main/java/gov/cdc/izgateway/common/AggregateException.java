@@ -36,8 +36,12 @@ public class AggregateException extends RuntimeException {
      * @param causes  the individual exceptions; must not be {@code null} or empty
      */
     public AggregateException(String message, List<RuntimeException> causes) {
-        super(buildMessage(message, causes), causes.isEmpty() ? null : causes.get(0));
-        this.causes = Collections.unmodifiableList(causes);
+        super(buildMessage(message, causes == null ? java.util.List.of() : causes),
+              (causes == null || causes.isEmpty()) ? null : causes.get(0));
+        this.causes = java.util.List.copyOf(causes == null ? java.util.List.of() : causes);
+        for (int i = 1; i < this.causes.size(); i++) {
+            addSuppressed(this.causes.get(i));
+        }
     }
 
     /**

@@ -139,6 +139,13 @@ public enum MockMessage {
 
 	TC_23G(MediaType.APPLICATION_XML, MockMessageText.TC_23G_TEXT,
 			HttpStatus.BAD_REQUEST),
+	// 2011 CT WebIZ-style SecurityFault Testing (IGDD-3089)
+	TC_23H(MediaType.APPLICATION_XML, MockMessageText.TC_23H_TEXT,
+			HttpStatus.INTERNAL_SERVER_ERROR),
+
+	TC_23I(MediaType.APPLICATION_XML, MockMessageText.TC_23I_TEXT,
+			HttpStatus.INTERNAL_SERVER_ERROR),
+
 	// 2014 Fault Testing
 	TC_24A(SecurityFault.class, MockMessageText.TC_24A_TEXT),
 
@@ -156,6 +163,10 @@ public enum MockMessage {
 			HttpStatus.BAD_REQUEST), 
 
 	TC_24I(MockMessageText.TC_24I_TEXT),
+	// 2014 CT WebIZ-style SecurityFault Testing (IGDD-3089)
+	TC_24J(MediaType.APPLICATION_XML, MockMessageText.TC_24J_TEXT,
+			HttpStatus.INTERNAL_SERVER_ERROR),
+
 	// PHI Masking in faults
 	TC_25(MediaType.APPLICATION_XML, MockMessageText.TC_25_TEXT, HttpStatus.INTERNAL_SERVER_ERROR),
 	TC_UNKF(MockMessage::simulateFault,
@@ -571,6 +582,34 @@ class MockMessageText {
 			+ "<ns3:Code>401</ns3:Code>" + "<ns3:Reason>Security</ns3:Reason>"
 			+ "<ns3:Detail>Invalid Username, Password or FacilityID</ns3:Detail>"
 			+ "</ns3:SecurityFault></soap:Detail></soap:Fault></soap:Envelope>";
+	// 2011 CT WebIZ-style SecurityFault with HTTP 500, WEBIZ-AUTH-625 detail (IGDD-3089)
+	static final String TC_23H_TEXT =
+			"<soap:Envelope xmlns:soap='http://www.w3.org/2003/05/soap-envelope'><soap:Body>"
+			+ "<soap:Fault><soap:Code><soap:Value>soap:Receiver</soap:Value></soap:Code>"
+			+ "<soap:Reason><soap:Text xml:lang='en-US'>Facility inactive/suspended</soap:Text></soap:Reason>"
+			+ "<soap:Detail><ns3:SecurityFault xmlns:ns3='urn:cdc:iisb:2011'>"
+			+ "<ns3:Code>225</ns3:Code><ns3:Reason>Security</ns3:Reason>"
+			+ "<ns3:Detail>Facility inactive/suspended</ns3:Detail>"
+			+ "</ns3:SecurityFault></soap:Detail></soap:Fault></soap:Body></soap:Envelope>";
+	// 2011 CT WebIZ-style SecurityFault with HTTP 500, HL7 content embedded in Reason (IGDD-3089)
+	static final String TC_23I_TEXT = """
+			<soap:Envelope xmlns:soap='http://www.w3.org/2003/05/soap-envelope'><soap:Body>
+			<soap:Fault>
+			<soap:Code><soap:Value>soap:Receiver</soap:Value></soap:Code>
+			<soap:Reason><soap:Text xml:lang='en-US'>Authentication Error Occurred. Inspect the HL7 Response message for more details.\r
+			\r
+			Original HL7 Response\r
+			MSH|^~\\&amp;|WebIZ.24.12.0.21|CT0000|TestApplication|CTHL71234|20231115123051.679-0700||RSP^K11^RSP_K11|CT000020231115123051167|D|2.5.1|||NE|NE|||||Z33^CDCPHIVS\r
+			MSA|AE|CT999938854000000232\r
+			ERR||MSH^1^6^1^1~MSH^1^4^1^1|999^Application Error^HL70357|E|4^Invalid value^HL70533^WEBIZ-AUTH-625^Facility inactive/suspended\r
+			</soap:Text></soap:Reason>
+			<soap:Detail>
+			<ns3:SecurityFault xmlns:ns3='urn:cdc:iisb:2011'>
+			<ns3:Code>225</ns3:Code><ns3:Reason>Security</ns3:Reason>
+			<ns3:Detail>Facility inactive/suspended</ns3:Detail>
+			</ns3:SecurityFault>
+			</soap:Detail>
+			</soap:Fault></soap:Body></soap:Envelope>""";
 	// 2014 Fault Testing
 	static final String TC_24A_TEXT = "Invalid Username, Password or FacilityID";
 
@@ -607,6 +646,15 @@ class MockMessageText {
 			+ "</soap:Detail></soap:Fault></soap:Envelope>";
 
 	static final String TC_24H_TEXT = "This is not a SOAP Fault nor is it XML";
+	// 2014 CT WebIZ-style SecurityFault with HTTP 500, WEBIZ-AUTH-625 detail (IGDD-3089)
+	static final String TC_24J_TEXT =
+			"<soap:Envelope xmlns:soap='http://www.w3.org/2003/05/soap-envelope'><soap:Body>"
+			+ "<soap:Fault><soap:Code><soap:Value>soap:Receiver</soap:Value></soap:Code>"
+			+ "<soap:Reason><soap:Text xml:lang='en-US'>Facility inactive/suspended</soap:Text></soap:Reason>"
+			+ "<soap:Detail><ns3:SecurityFault xmlns:ns3='urn:cdc:iisb:2014'>"
+			+ "<ns3:Code>225</ns3:Code><ns3:Reason>Security</ns3:Reason>"
+			+ "<ns3:Detail>Facility inactive/suspended</ns3:Detail>"
+			+ "</ns3:SecurityFault></soap:Detail></soap:Fault></soap:Body></soap:Envelope>";
 
 	static final String TC_24I_TEXT = "MSH|^~\\&|IRIS IIS|IRIS||IZG|20220205||RSP^K11^RSP_K11|20210330093013AZQ231|P|2.5.1|||||||||Z32^CDCPHINVS\r"
 			+ "MSA|AA|20210330093013AZQ231||0||0^Message Accepted^HL70357" + Character.valueOf((char)0x13)

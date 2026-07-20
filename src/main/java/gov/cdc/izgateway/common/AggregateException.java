@@ -1,6 +1,5 @@
 package gov.cdc.izgateway.common;
 
-import java.util.Collections;
 import java.util.List;
 
 /**

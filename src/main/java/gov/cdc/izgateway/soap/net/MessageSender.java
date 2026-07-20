@@ -198,7 +198,12 @@ public class MessageSender {
 					getStatusChecker().updateStatus(status, dest, f);
 					throw f;
 				}
-			} 
+			} catch (RuntimeException e) {
+				// A RuntimeException escaping sendMessage would bypass setProcessError, causing
+				// logstash-logback-encoder to silently drop the transactionData log entry.
+				RequestContext.getTransactionData().setRetries(retryCount);
+				throw e;
+			}
 		}
 	}
 
@@ -405,8 +410,11 @@ public class MessageSender {
 				result = converter.read(m, endPoint);
 				if (result instanceof FaultMessage) {
 					m.reset();
+					// Record the IIS fault response as the client response before throwing
+					RequestContext.getTransactionData().getClientResponse()
+						.setWs_response_message(new MessageInfo(result, EndpointType.CLIENT, Direction.INBOUND, isProduction));
 					throw HubClientFault.clientThrewFault(null, dest, statusCode, body, result, StringUtils.substringBefore(con.getURL().toString(), "?"));
-				} 
+				}
 				return clazz.cast(result);
 			} else {
 				try (InputStream errStream = con.getErrorStream()) {

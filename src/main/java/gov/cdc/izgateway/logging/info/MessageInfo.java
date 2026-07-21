@@ -10,6 +10,7 @@ import lombok.AccessLevel;
 import lombok.Data;
 import lombok.Getter;
 import lombok.Setter;
+import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
@@ -31,6 +32,7 @@ import io.swagger.v3.oas.annotations.media.Schema;
  */
 @Schema(description = "Records a Web Service message to or from an endpoint")
 @Data
+@Slf4j
 public class MessageInfo {
 	@Schema(description = "Records request Web Service messages to an endpoint")
 	@Data
@@ -85,8 +87,11 @@ public class MessageInfo {
 		FixedByteArrayOutputStream fos = new FixedByteArrayOutputStream();
 		try {
 			new SoapMessageWriter(payload, IndentingXMLStreamWriter.createInstance(fos), filtering).write();
-		} catch (XMLStreamException | CryptoException e) {
-			// Swallow this, we only want the first part anyway.
+		} catch (Exception e) {
+			// Widen catch from XMLStreamException|CryptoException: any uncaught RuntimeException
+			// from SoapMessageWriter.write() would otherwise escape into Jackson and cause
+			// logstash-logback-encoder to silently drop the entire transactionData log entry.
+			log.warn("Error serializing SOAP message payload for logging; partial payload may be written", e);
 		}
 		payloadString = fos.toString();
 		return payloadString;

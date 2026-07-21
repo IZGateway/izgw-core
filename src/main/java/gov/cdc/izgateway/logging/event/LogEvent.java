@@ -40,11 +40,16 @@ public class LogEvent {
 	public LogEvent(ILoggingEvent event) {
 		this.event = event;
 		properties = new LinkedHashMap<>(event.getMDCPropertyMap());
-		// The next two properties need to be removed because they are 
-		// explicitly accessed through this interface.
+		// These properties are removed because they are explicitly accessed
+		// through named getters on this interface; leaving them in the map
+		// causes @JsonAnyGetter to serialize them a second time.
 		properties.remove("eventId");
 		properties.remove("sessionId");
+		properties.remove("commonName");
 		getMarkers(event.getMarkerList(), properties);
+		// Marker-sourced fields also have explicit getters; remove them too.
+		properties.remove("transactionData");
+		properties.remove("health");
 	}
 	
 	@JsonProperty("@timestamp")

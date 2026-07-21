@@ -413,6 +413,8 @@ public class MessageSender {
 					// Record the IIS fault response as the client response before throwing
 					RequestContext.getTransactionData().getClientResponse()
 						.setWs_response_message(new MessageInfo(result, EndpointType.CLIENT, Direction.INBOUND, isProduction));
+						// We received a fault response, so we were connected.
+						endPoint.setConnected(true);
 					throw HubClientFault.clientThrewFault(null, dest, statusCode, body, result, StringUtils.substringBefore(con.getURL().toString(), "?"));
 				}
 				return clazz.cast(result);

@@ -148,6 +148,9 @@ public enum MockMessage {
 	// 2011 CT WebIZ-style SecurityFault with HTTP 500, unescaped & in HL7 (malformed XML, IGDD-3089)
 	TC_23J(MediaType.APPLICATION_XML, MockMessageText.TC_23J_TEXT,
 			HttpStatus.INTERNAL_SERVER_ERROR),
+	// 2011 CT WebIZ-style SecurityFault with HTTP 500, MLLP 0x0B/0x1C chars in HL7 (IGDD-3089)
+	TC_23K(MediaType.APPLICATION_XML, MockMessageText.TC_23K_TEXT,
+			HttpStatus.INTERNAL_SERVER_ERROR),
 
 	// 2014 Fault Testing
 	TC_24A(SecurityFault.class, MockMessageText.TC_24A_TEXT),
@@ -632,6 +635,28 @@ class MockMessageText {
 			</ns3:SecurityFault>
 			</soap:Detail>
 			</soap:Fault></soap:Body></soap:Envelope>""";
+	// 2011 CT WebIZ-style SecurityFault with HTTP 500, MLLP 0x0B/0x1C framing chars in HL7 (IGDD-3089)
+	// These characters are illegal in XML 1.0; the StAX parser will reject them, and the exception
+	// message carrying 0x0B/0x1C may then flow into TransactionData fields that Jackson tries to serialize.
+	static final String TC_23K_TEXT =
+			"<soap:Envelope xmlns:soap='http://www.w3.org/2003/05/soap-envelope'><soap:Body>"
+			+ "<soap:Fault>"
+			+ "<soap:Code><soap:Value>soap:Receiver</soap:Value></soap:Code>"
+			+ "<soap:Reason><soap:Text xml:lang='en-US'>Authentication Error Occurred. Inspect the HL7 Response message for more details.\r\n"
+			+ "\r\n"
+			+ "Original HL7 Response\r\n"
+			+ "\u000BMSH|^~\\&amp;|WebIZ.24.12.0.21|CT0000|TestApplication|CTHL71234|20231115123051.679-0700||RSP^K11^RSP_K11|CT000020231115123051167|D|2.5.1|||NE|NE|||||Z33^CDCPHIVS\r\n"
+			+ "MSA|AE|CT999938854000000232\r\n"
+			+ "ERR||MSH^1^6^1^1~MSH^1^4^1^1|999^Application Error^HL70357|E|4^Invalid value^HL70533^WEBIZ-AUTH-625^Facility inactive/suspended\r\n"
+			+ "\u001C\r\n"
+			+ "</soap:Text></soap:Reason>"
+			+ "<soap:Detail>"
+			+ "<ns3:SecurityFault xmlns:ns3='urn:cdc:iisb:2011'>"
+			+ "<ns3:Code>225</ns3:Code><ns3:Reason>Security</ns3:Reason>"
+			+ "<ns3:Detail>Facility inactive/suspended</ns3:Detail>"
+			+ "</ns3:SecurityFault>"
+			+ "</soap:Detail>"
+			+ "</soap:Fault></soap:Body></soap:Envelope>";
 	// 2014 Fault Testing
 	static final String TC_24A_TEXT = "Invalid Username, Password or FacilityID";
 

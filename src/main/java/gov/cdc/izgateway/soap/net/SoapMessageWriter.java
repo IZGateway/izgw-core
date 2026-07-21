@@ -225,15 +225,15 @@ public class SoapMessageWriter {
 			if (SoapMessage.IIS2011_NS.equals(m.getSchema())) {
 				writeOptionalTextElement("Code", f.getCode());
 				writeOptionalTextElement("Reason", f.getReason());
-				writeOptionalTextElement("Detail", f.getDetail());
+					writeOptionalTextElement("Detail", filtering ? HIDDEN : f.getDetail());
 			}
 			writeNoNamespaceElement("EventID", MDC.get(EventId.EVENTID_KEY));
 			writeNoNamespaceElement("Summary", StringUtils.join(f.getSummary().split("\\s+")));
-			writeNoNamespaceElement("Detail", f.getDetail());
-			writeNoNamespaceElement("Diagnostics", f.getDiagnostics());
+				writeNoNamespaceElement("Detail", filtering ? HIDDEN : f.getDetail());
+				writeNoNamespaceElement("Diagnostics", filtering ? HIDDEN : f.getDiagnostics());
 			writeNoNamespaceElement("Retry", f.getRetry());
 			if ("HubClientFault".equals(f.getFaultName())) {
-				writeNoNamespaceElement("Original", f.getOriginal());
+					writeNoNamespaceElement("Original", filtering ? HIDDEN : f.getOriginal());
 			}
 		w.writeEndElement();
 	}

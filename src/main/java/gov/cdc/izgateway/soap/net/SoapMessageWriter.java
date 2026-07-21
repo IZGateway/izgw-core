@@ -184,6 +184,19 @@ public class SoapMessageWriter {
 		return clazz.getSimpleName();
 	}
 	
+	/**
+	 * Mask any HL7 segment content in fault text that may contain PHI.
+	 * Applied when filtering=true to Detail, Diagnostics, and Original fields.
+	 * @param text	The fault text to mask
+	 * @return	The text with HL7 PHI segments masked
+	 */
+	private String maskFaultText(String text) {
+		if (!filtering) {
+			return text;
+		}
+		return HL7Utils.maskSegments(text);
+	}
+
 	public void writeFaultContent() throws XMLStreamException {
 		FaultMessage f = (FaultMessage) m;
 		w.writeStartElement(SoapMessage.SOAP_PREFIX, "Code", SoapMessage.SOAP_NS);
@@ -225,15 +238,15 @@ public class SoapMessageWriter {
 			if (SoapMessage.IIS2011_NS.equals(m.getSchema())) {
 				writeOptionalTextElement("Code", f.getCode());
 				writeOptionalTextElement("Reason", f.getReason());
-					writeOptionalTextElement("Detail", filtering ? HIDDEN : f.getDetail());
+					writeOptionalTextElement("Detail", maskFaultText(f.getDetail()));
 			}
 			writeNoNamespaceElement("EventID", MDC.get(EventId.EVENTID_KEY));
 			writeNoNamespaceElement("Summary", StringUtils.join(f.getSummary().split("\\s+")));
-				writeNoNamespaceElement("Detail", filtering ? HIDDEN : f.getDetail());
-				writeNoNamespaceElement("Diagnostics", filtering ? HIDDEN : f.getDiagnostics());
+				writeNoNamespaceElement("Detail", maskFaultText(f.getDetail()));
+				writeNoNamespaceElement("Diagnostics", maskFaultText(f.getDiagnostics()));
 			writeNoNamespaceElement("Retry", f.getRetry());
 			if ("HubClientFault".equals(f.getFaultName())) {
-					writeNoNamespaceElement("Original", filtering ? HIDDEN : f.getOriginal());
+					writeNoNamespaceElement("Original", maskFaultText(f.getOriginal()));
 			}
 		w.writeEndElement();
 	}

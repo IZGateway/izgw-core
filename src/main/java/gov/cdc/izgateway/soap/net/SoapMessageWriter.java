@@ -203,7 +203,7 @@ public class SoapMessageWriter {
 			writeSoapValueElement("soap:Receiver");
 		w.writeEndElement();
 		w.writeStartElement(SoapMessage.SOAP_PREFIX, "Reason", SoapMessage.SOAP_NS);
-			writeSoapTextElement(f.getReason());
+			writeSoapTextElement(maskFaultText(f.getReason()));
 		w.writeEndElement();
 		w.writeStartElement(SoapMessage.SOAP_PREFIX, "Detail", SoapMessage.SOAP_NS);
 		w.writeNamespace("", "");
@@ -237,7 +237,7 @@ public class SoapMessageWriter {
 			w.writeEndElement();
 			if (SoapMessage.IIS2011_NS.equals(m.getSchema())) {
 				writeOptionalTextElement("Code", f.getCode());
-				writeOptionalTextElement("Reason", f.getReason());
+				writeOptionalTextElement("Reason", maskFaultText(f.getReason()));
 					writeOptionalTextElement("Detail", maskFaultText(f.getDetail()));
 			}
 			writeNoNamespaceElement("EventID", MDC.get(EventId.EVENTID_KEY));

@@ -185,18 +185,16 @@ public class SoapMessageWriter {
 	}
 	
 	/**
-	 * Mask fault text from an external IIS that may contain PHI.
-	 * Fault Detail, Diagnostics, and Original fields originate from external IIS
-	 * systems which may return real patient data in any format (plain text or HL7).
-	 * Redact entirely when non-empty rather than relying on HL7 segment detection.
+	 * Mask any HL7 segment content in fault text that may contain PHI.
+	 * Applied when filtering=true to Detail, Diagnostics, and Original fields.
 	 * @param text	The fault text to mask
-	 * @return	"...[masked]..." if text is non-empty, otherwise the original value
+	 * @return	The text with HL7 PHI segments masked
 	 */
 	private String maskFaultText(String text) {
-		if (StringUtils.isEmpty(text)) {
+		if (!filtering) {
 			return text;
 		}
-		return "...[masked]...";
+		return HL7Utils.maskSegments(text);
 	}
 
 	public void writeFaultContent() throws XMLStreamException {

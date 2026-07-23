@@ -39,7 +39,8 @@ public class DateConverter implements AttributeConverter<Date> { // NOSONAR, sin
 				return ftNoMillis.parse(s);
 			} catch (ParseException e2) {
 				// Log this so we find it, but return null so that things mostly work as expected
-				log.error("Error parsing date string {}", s, e);
+				e2.addSuppressed(e);
+				log.error("Error parsing date string {}", s, e2);
 				return null;
 			}
 		}

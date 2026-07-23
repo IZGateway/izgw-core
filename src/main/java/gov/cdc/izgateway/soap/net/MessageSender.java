@@ -201,7 +201,7 @@ public class MessageSender {
 			} catch (RuntimeException e) {
 				// A RuntimeException escaping sendMessage would bypass setProcessError, causing
 				// logstash-logback-encoder to silently drop the transactionData log entry.
-				RequestContext.getTransactionData().setRetries(retryCount);
+					RequestContext.getTransactionData().setRetries(retryCount + 1);
 				throw e;
 			}
 		}

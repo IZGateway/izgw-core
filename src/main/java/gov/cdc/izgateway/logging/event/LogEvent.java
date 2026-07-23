@@ -50,8 +50,10 @@ public class LogEvent {
 		properties.remove("commonName");
 		getMarkers(event.getMarkerList(), properties);
 		// Cache typed values before removing from map to keep explicit getters functional.
-		this.transactionData = (TransactionData) properties.remove("transactionData");
-		this.health = (Health) properties.remove("health");
+		Object td = properties.remove("transactionData");
+		this.transactionData = td instanceof TransactionData ? (TransactionData) td : null;
+		Object h = properties.remove("health");
+		this.health = h instanceof Health ? (Health) h : null;
 	}
 	
 	@JsonProperty("@timestamp")

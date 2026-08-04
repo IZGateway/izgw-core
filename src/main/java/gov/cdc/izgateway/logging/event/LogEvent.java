@@ -37,14 +37,23 @@ import net.logstash.logback.marker.ObjectAppendingMarker;
 public class LogEvent {
 	private ILoggingEvent event;
 	private Map<String, Object> properties;
+	private final Health health;
+	private final TransactionData transactionData;
 	public LogEvent(ILoggingEvent event) {
 		this.event = event;
 		properties = new LinkedHashMap<>(event.getMDCPropertyMap());
-		// The next two properties need to be removed because they are 
-		// explicitly accessed through this interface.
+		// These properties are removed because they are explicitly accessed
+		// through named getters on this interface; leaving them in the map
+		// causes @JsonAnyGetter to serialize them a second time.
 		properties.remove("eventId");
 		properties.remove("sessionId");
+		properties.remove("commonName");
 		getMarkers(event.getMarkerList(), properties);
+		// Cache typed values before removing from map to keep explicit getters functional.
+		Object td = properties.remove("transactionData");
+		this.transactionData = td instanceof TransactionData ? (TransactionData) td : null;
+		Object h = properties.remove("health");
+		this.health = h instanceof Health ? (Health) h : null;
 	}
 	
 	@JsonProperty("@timestamp")
@@ -123,12 +132,12 @@ public class LogEvent {
 	// Insert other objects that may appear in log events
 	@Schema(description="The health of the server (appears in Heartbeat messages)")
 	public Health getHealth() {
-		return (Health) properties.get("health");
+		return health;
 	}
 	
 	@Schema(description="Metadata about the transaction (appears in TransactionData messages)")
 	public TransactionData getTransactionData() {
-		return (TransactionData) properties.get("transactionData");
+		return transactionData;
 	}
 	
 	public String toString() {

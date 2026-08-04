@@ -17,9 +17,10 @@ import software.amazon.awssdk.services.dynamodb.model.AttributeValue;
  */
 @Slf4j
 public class DateConverter implements AttributeConverter<Date> { // NOSONAR, singleton OK here.
-	// This is the correct ISO 8601 format with timezone offset that supports Z at the end
-	// as is used by JavaScript Date.toISOString()
+	// Primary format: ISO 8601 with milliseconds, as used by JavaScript Date.toISOString()
 	private static FastDateFormat ft = FastDateFormat.getInstance("yyyy-MM-dd'T'HH:mm:ss.SSSXX");
+	// Fallback: ISO 8601 without milliseconds (e.g. dates stored by non-JS sources)
+	private static FastDateFormat ftNoMillis = FastDateFormat.getInstance("yyyy-MM-dd'T'HH:mm:ssXX");
 	
 	private static final DateConverter INSTANCE = new DateConverter();
 	
@@ -34,9 +35,14 @@ public class DateConverter implements AttributeConverter<Date> { // NOSONAR, sin
 		try {
 			return ft.parse(s);
 		} catch (ParseException e) {
-			// Log this so we find it, but return null so that things mostly work as expected
-			log.error("Error parsing date string {}", input.s(), e);
-			return null;
+			try {
+				return ftNoMillis.parse(s);
+			} catch (ParseException e2) {
+				// Log this so we find it, but return null so that things mostly work as expected
+				e2.addSuppressed(e);
+				log.error("Error parsing date string {}", s, e2);
+				return null;
+			}
 		}
 	}
 

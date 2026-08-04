@@ -116,4 +116,13 @@ public class EndpointStatusService {
 	public void resetCircuitBreakers() {
 		endpointStatusRepository.resetCircuitBreakers();
 	}
+
+	/**
+	 * Reset the circuit breaker for a single endpoint by destination ID.
+	 * @param id the destination ID whose circuit breaker should be reset
+	 * @return the updated {@link IEndpointStatus}, or {@code null} if no entry was found
+	 */
+	public IEndpointStatus resetCircuitBreakerById(String id) {
+		return endpointStatusRepository.resetCircuitBreakerById(id);
+	}
 }

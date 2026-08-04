@@ -184,13 +184,26 @@ public class SoapMessageWriter {
 		return clazz.getSimpleName();
 	}
 	
+	/**
+	 * Mask any HL7 segment content in fault text that may contain PHI.
+	 * Applied when filtering=true to Detail, Diagnostics, and Original fields.
+	 * @param text	The fault text to mask
+	 * @return	The text with HL7 PHI segments masked
+	 */
+	private String maskFaultText(String text) {
+		if (!filtering) {
+			return text;
+		}
+		return HL7Utils.maskSegments(text);
+	}
+
 	public void writeFaultContent() throws XMLStreamException {
 		FaultMessage f = (FaultMessage) m;
 		w.writeStartElement(SoapMessage.SOAP_PREFIX, "Code", SoapMessage.SOAP_NS);
 			writeSoapValueElement("soap:Receiver");
 		w.writeEndElement();
 		w.writeStartElement(SoapMessage.SOAP_PREFIX, "Reason", SoapMessage.SOAP_NS);
-			writeSoapTextElement(f.getReason());
+			writeSoapTextElement(maskFaultText(f.getReason()));
 		w.writeEndElement();
 		w.writeStartElement(SoapMessage.SOAP_PREFIX, "Detail", SoapMessage.SOAP_NS);
 		w.writeNamespace("", "");
@@ -224,16 +237,16 @@ public class SoapMessageWriter {
 			w.writeEndElement();
 			if (SoapMessage.IIS2011_NS.equals(m.getSchema())) {
 				writeOptionalTextElement("Code", f.getCode());
-				writeOptionalTextElement("Reason", f.getReason());
-				writeOptionalTextElement("Detail", f.getDetail());
+				writeOptionalTextElement("Reason", maskFaultText(f.getReason()));
+					writeOptionalTextElement("Detail", maskFaultText(f.getDetail()));
 			}
 			writeNoNamespaceElement("EventID", MDC.get(EventId.EVENTID_KEY));
 			writeNoNamespaceElement("Summary", StringUtils.join(f.getSummary().split("\\s+")));
-			writeNoNamespaceElement("Detail", f.getDetail());
-			writeNoNamespaceElement("Diagnostics", f.getDiagnostics());
+				writeNoNamespaceElement("Detail", maskFaultText(f.getDetail()));
+				writeNoNamespaceElement("Diagnostics", maskFaultText(f.getDiagnostics()));
 			writeNoNamespaceElement("Retry", f.getRetry());
 			if ("HubClientFault".equals(f.getFaultName())) {
-				writeNoNamespaceElement("Original", f.getOriginal());
+					writeNoNamespaceElement("Original", maskFaultText(f.getOriginal()));
 			}
 		w.writeEndElement();
 	}

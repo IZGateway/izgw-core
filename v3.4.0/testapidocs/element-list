@@ -1,0 +1,6 @@
+gov.cdc.izgateway.logging.event
+gov.cdc.izgateway.security.crypto
+gov.cdc.izgateway.security.filter
+gov.cdc.izgateway.security.principal
+test.gov.cdc.izgateway.regression
+test.gov.cdc.izgateway.utils

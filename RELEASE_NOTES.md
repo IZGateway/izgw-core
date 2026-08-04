@@ -1,3 +1,9 @@
+## [3.4.0] - 2026-08-04
+
+### Changes
+- chore: Update to latest izgw-bom release 1.13.0 ([#90](https://github.com/IZGateway/izgw-core/pull/90))
+- feat: Add AggregateException class and circuit breaker reset methods ([#88](https://github.com/IZGateway/izgw-core/pull/88))
+
 ## [3.2.0] - 2026-07-07
 
 ### Changes

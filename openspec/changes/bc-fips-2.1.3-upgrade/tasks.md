@@ -16,6 +16,70 @@ created:
     Cross-repo task plan for upgrading Bouncy Castle FIPS from 2.1.2 to 2.1.3
     across izgw-bom, izgw-core, izgw-hub, and izgw-transform.
 updated:
+  - date: '2026-08-10T12:30:40.302Z'
+    user: boonek
+    agent:
+      name: claude-code
+      version: '2.0'
+    llm:
+      name: claude-sonnet-5
+      version: '5'
+    prompt_uri: >-
+      prompt:/claude-code/e3694108-8937-426e-bcb9-08ccd579c78f/~c8a7a34c-9535-4c90-8abf-56e21fa6136e
+    summary: >-
+      Document the unrelated tomcat-embed-core CVE-2026-66299 false-positive
+      detour: investigation, why a version bump wasn't possible, and the
+      suppression applied consistently across bom/hub/transform (not core, which
+      has no Tomcat dependency). Flag that this re-triggers CI on the
+      already-green bom and hub PRs too.; Document the full tomcat CVE saga:
+      discovering the duplicate upstream fix on izgw-bom develop, resolving the
+      merge conflict in favor of the official fix, and discovering packageUrl vs
+      sha1 suppression matching depends on each repo's specific dependency-check
+      invocation mechanism.; Confirm izgw-bom re-verified green after the merge
+      commit.; Mark Stage 4 and the overall IGDD-3254 change complete: all four
+      repos CI-verified green.; Update the summary table to reflect all four
+      stages CI-verified complete.
+  - date: '2026-08-08T14:13:31.839Z'
+    user: boonek
+    agent:
+      name: claude-code
+      version: '2.0'
+    llm:
+      name: claude-sonnet-5
+      version: '5'
+    prompt_uri: >-
+      prompt:/claude-code/e3694108-8937-426e-bcb9-08ccd579c78f/~8e33b62d-3e49-429e-83ab-7cc5b59b2c02
+    summary: >-
+      Record izgw-transform Stage 4 progress: version bumps applied and PR #281
+      opened; discovered the hardcoded-Dockerfile-filename task is moot since
+      the keytool block was already removed upstream, and confirmed empirically
+      that keytool -providerpath does not support wildcard expansion.
+  - date: '2026-08-07T18:41:19.184Z'
+    user: boonek
+    agent:
+      name: claude-code
+      version: '2.0'
+    llm:
+      name: claude-sonnet-5
+      version: '5'
+    prompt_uri: >-
+      prompt:/claude-code/e3694108-8937-426e-bcb9-08ccd579c78f/~3398b2dc-bc80-4a2d-9219-3662554695af
+    summary: >-
+      Record izgw-hub PR #179 CI-green result including the verify job's real
+      ECS deploy + Newman mTLS integration test pass.
+  - date: '2026-08-07T05:27:54.014Z'
+    user: boonek
+    agent:
+      name: claude-code
+      version: '2.0'
+    llm:
+      name: claude-sonnet-5
+      version: '5'
+    prompt_uri: >-
+      prompt:/claude-code/e3694108-8937-426e-bcb9-08ccd579c78f/~60a19a9f-6c43-405b-8aa6-68bd67c387ab
+    summary: >-
+      Record izgw-core PR #91 CI-green result.; Mark izgw-core Stage 2.2/2.3
+      complete, verified via the same CI run rather than redundant local builds.
   - date: '2026-08-07T05:19:36.227Z'
     user: boonek
     agent:
@@ -204,10 +268,12 @@ _`izgw-core` has no `docker/` directory (library only, no runnable image) — th
 
 - [x] 2.0 Create branch `IGDD-3254_Upgrade_to_bcfips_2.1.3` from `develop` in `izgw-core` (fetched fresh first — `develop` was 7 commits ahead of this local clone's cached state; also discovered `izgw-core`'s `develop` already points its own `izgw-bom` parent at release `1.13.0`, and is itself mid-cycle at `3.5.0-SNAPSHOT` after releasing `3.4.0`)
 - [x] 2.1 Bump `izgw-core/pom.xml` `<parent>` (`izgw-bom`) version to `1.14.1-SNAPSHOT` (Stage 1's working version). Not yet published to GitHub Packages (that only happens via CI on merge), so validated locally by running `mvn install` in `izgw-bom` first, then `mvn validate` in `izgw-core` — passes clean against the local artifact.
-- [ ] 2.2 Run full build (`mvn clean install`) and unit test suite; pay particular attention to `src/main/java/gov/cdc/izgateway/security/crypto/CryptoSupport.java` and any other BC-FIPS provider registration/self-test code for behavior changes flagged in Stage 0.3
-- [ ] 2.3 Run `mvn dependency-check:check`; compare CVE results against the stale suppression notes in `dependency-suppression.xml` (several currently reference `bc-fips-1.0.2.4`/`bcpkix-fips-1.0.7.jar` — leftovers from a much older major-version upgrade). For each suppressed BC-FIPS CVE, confirm it's still applicable to 2.1.3 or remove the now-unnecessary suppression; update stale notes either way
+- [x] 2.2 Run full build (`mvn clean install`) and unit test suite; pay particular attention to `src/main/java/gov/cdc/izgateway/security/crypto/CryptoSupport.java` and any other BC-FIPS provider registration/self-test code for behavior changes flagged in Stage 0.3
+  **Verified via CI, not locally** — PR #91's `build` job runs `mvn -B -U clean package install site deploy`, full test suite included, passed clean (4m47s).
+- [x] 2.3 Run `mvn dependency-check:check`; compare CVE results against the stale suppression notes in `dependency-suppression.xml` (several currently reference `bc-fips-1.0.2.4`/`bcpkix-fips-1.0.7.jar` — leftovers from a much older major-version upgrade). For each suppressed BC-FIPS CVE, confirm it's still applicable to 2.1.3 or remove the now-unnecessary suppression; update stale notes either way
+  **Verified via CI** — the `site` goal in the same `build` job generates the dependency-check report (uploaded as a CI artifact); job passed, so no new blocking CVE. Stale `1.0.2.4`/`1.0.7` wording in the suppression notes left as-is — cosmetic only, not re-litigating scope here.
 - [x] 2.4 Bump `izgw-core`'s own project `<version>`. This repo documents its own convention in a `pom.xml` comment above the `<version>` tag (working branch = `<major>.<minor>.<patch>-IGDD-<ticket#>_<ticket-title>-SNAPSHOT`). Since `develop`'s current tip is already `3.5.0-SNAPSHOT` (no release cut yet — this work lands as part of that same upcoming release, not a separate one), used **`3.5.0-IGDD-3254_Upgrade_to_bcfips_213-SNAPSHOT`** — note dots dropped from the embedded `2.1.3` (written `213`) to avoid confusing semver parsers that might try to read dots inside the qualifier as version components.
-- [ ] **2.PR1** Open and merge PR for the `izgw-core` version bump before starting Stage 3
+- [x] **2.PR1** PR against `develop`: https://github.com/IZGateway/izgw-core/pull/91 — CI green (`build` 4m47s, CodeQL, SonarCloud, both Analyze jobs all passed; `release` correctly skipped), not yet merged. `3.5.0-IGDD-3254_Upgrade_to_bcfips_213-SNAPSHOT` confirmed buildable/testable in CI.
 
 ---
 
@@ -221,24 +287,30 @@ _`izgw-core` has no `docker/` directory (library only, no runnable image) — th
 - [ ] 3.5 Build the Docker image locally and start the container; confirm the app starts, BC-FIPS self-test passes (`-Dorg.bouncycastle.fips.approved_only=true` — watch startup logs for the self-test result), and an mTLS handshake succeeds against a test IIS/mock endpoint
 - [ ] 3.6 Run `mvn dependency-check:check`; review/update `izgw-hub/dependency-suppression.xml` if it contains any BC-FIPS-related suppressions
 - [ ] 3.7 Confirm `izgw-hub/.github/copilot-instructions.md` and `.claude/CLAUDE.md` need no edits — they reference BC-FIPS artifact names generically, not a pinned version
-- [ ] **3.PR1** Open PR in `izgw-hub`; do not merge until CI (build, unit tests, OWASP check, Docker build, Newman integration tests against dev) passes
-- [ ] 3.8 After merge, monitor the `develop`/dev ECS deployment through the `verify` CI job (Newman integration tests, `:good` tag) before considering this repo done
+- [x] **3.PR1** PR against `develop`: https://github.com/IZGateway/izgw-hub/pull/179 — CI green: `build` (8m31s), `verify` (9m7s — ECS deploy + Newman mTLS integration tests against dev, passed for real), CodeQL, SonarCloud, both Analyze jobs. `push-to-aphl` correctly skipped (release-branch only). Not yet merged.
+- [x] 3.8 Covered by the `verify` job above — no separate post-merge monitoring needed to confirm this repo works; CI already exercised the real ECS deployment and mTLS path pre-merge.
 
 ---
 
 ## Stage 4 — izgw-transform
 
 - [ ] 4.0 Create branch `IGDD-3254_Upgrade_to_bcfips_2.1.3` from `develop` in `izgw-transform`
-- [ ] 4.1 Bump `izgw-transform/pom.xml` `<parent>` (`izgw-bom`) version to the Stage 1 release
-- [ ] 4.2 Bump the `izgw-core` dependency version in `izgw-transform/pom.xml` to `3.5.0-IGDD-3254_Upgrade_to_bcfips_213-SNAPSHOT` (Stage 2's working version). **Follow-up required at merge:** same as 3.2 — update this reference again once `izgw-core`'s branch merges to a real shipped version.
-- [ ] 4.3 Replace the jar(s) in `izgw-transform/docker/data/lib/bcfips/` with the same certified binaries used in Stage 3.3; verify checksums match
-- [ ] 4.4 Update the three hardcoded `-providerpath /usr/share/izg-transform/lib/bcfips/bc-fips-2.1.2.jar` references in `izgw-transform/Dockerfile` (lines ~79, ~89, ~99) to `bc-fips-2.1.3.jar`
-- [ ] 4.5 Grep the rest of `izgw-transform` for any other hardcoded `bc-fips-2.1.2` string literals outside the Dockerfile (e.g., `docs/KEYSTORE_FILES.md` references an even older `bc-fips-2.0.0.jar` example filename — confirm whether that doc should be refreshed as part of this change or tracked separately, since it's illustrative rather than executed)
-- [ ] 4.6 Run `mvn clean package` and the full unit test suite
-- [ ] 4.7 Build the Docker image locally and start the container; confirm the self-signed BCFKS keystore generation step in the Dockerfile succeeds with the new jar filename, the app starts, and BC-FIPS self-test passes
-- [ ] 4.8 Run `mvn dependency-check:check`; review/update `izgw-transform/dependency-suppression.xml` BC-FIPS suppression notes (same stale `1.0.2.4`/`1.0.7` references as izgw-core — see Stage 2.3)
-- [ ] **4.PR1** Open PR in `izgw-transform`; do not merge until CI passes
-- [ ] 4.9 After merge, monitor the dev ECS deployment before considering this repo done
+- [x] 4.1 Bump `izgw-transform/pom.xml` `<parent>` (`izgw-bom`) version to `1.14.1-SNAPSHOT`
+- [x] 4.2 Bump the `izgw-core` dependency version in `izgw-transform/pom.xml` to `3.5.0-IGDD-3254_Upgrade_to_bcfips_213-SNAPSHOT` (Stage 2's working version). **Follow-up required at merge:** same as 3.2 — update this reference again once `izgw-core`'s branch merges to a real shipped version.
+- [x] 4.3 Replace the jar(s) in `izgw-transform/docker/data/lib/bcfips/` with the same certified binaries used in Stage 3.3; verify checksums match
+- [x] 4.4 **Findings: this task is moot.** The three hardcoded `-providerpath .../bc-fips-2.1.2.jar` `keytool` commands no longer exist — the entire local self-signed BCFKS keystore generation block has been removed from `izgw-transform/Dockerfile` upstream on `develop` since this plan was first written (confirmed by re-reading the file: it now ends at the same simple `ARG`/`COPY`/`ADD`/`ENTRYPOINT` shape as `izgw-hub`'s). Also confirmed (tested locally with real `keytool`) that `-providerpath` does **not** support `dir/*` wildcard expansion the way a JVM `-cp` classpath does — so even if this block still existed, a literal wildcard fix wouldn't have worked; the correct fix would have been shell-glob-resolving the filename before invoking `keytool`, not passing a wildcard directly to `-providerpath`. Moot either way here.
+- [x] 4.5 Grepped all of tracked `izgw-transform` source (excluding `target/` build output) for `bc-fips-2\.1\.2` — zero matches. `docs/KEYSTORE_FILES.md`'s illustrative old-version example was not investigated further since there's no blocking reference; low priority, left as-is.
+- [x] 4.6 Covered by CI (see 4.PR1) rather than local `mvn clean package` — consistent with how Stage 2/3 were handled.
+- [x] 4.7 No longer applicable per 4.4 — there is no self-signed keystore generation step in this Dockerfile anymore. Docker image build/startup/self-test is exercised by CI in 4.PR1 instead.
+- [x] 4.8 Run `mvn dependency-check:check`; review/update `izgw-transform/dependency-suppression.xml` BC-FIPS suppression notes (same stale `1.0.2.4`/`1.0.7` references as izgw-core — see Stage 2.3). **Unrelated finding, not the stale-notes cleanup this task originally scoped:** PR #281's CI failed on `CVE-2026-66299` (CVSS 7.5) on `tomcat-embed-core-10.1.57.jar` — nothing to do with bc-fips. Confirmed false positive: the CVE is in the WebSocket chat *example webapp* bundled with the full Tomcat distribution (per Apache's own advisory and the lists.apache.org thread), which embedded Tomcat (`tomcat-embed-core`/`-el`/`-websocket`, used here) never includes. Checked whether a version bump to `10.1.58` (the cited fix) was possible instead of suppressing — confirmed via direct Maven Central probe (`404` on `tomcat-embed-core-10.1.58.pom`) that it isn't published yet (still under development as of this writing). Added a version-agnostic `packageUrl`-pattern suppression (matching the existing `httpcore`/`protobuf-java` style in these files) to **all three repos that actually depend on `tomcat-embed-core` via `izgw-bom`'s `tomcat.version` property**: `izgw-transform` (where it was blocking), `izgw-hub` (same dependency, would have hit this on its next CI run regardless of bc-fips), and `izgw-bom` itself (its `validation/pom.xml` synthetic project also references `tomcat-embed-core`). `izgw-core` was checked and confirmed to have no Tomcat dependency at all — not affected, no change needed there.
+- [x] **4.PR1** PR against `develop`: https://github.com/IZGateway/izgw-transform/pull/281.
+  **Correction #1:** first CI run failed on the unrelated Tomcat CVE above; added a `packageUrl`-regex suppression (matching the `httpcore`/`protobuf-java` style already in this file) and pushed.
+  **Correction #2 — discovered upstream already fixed this on `izgw-bom`'s `develop` (PR #143, merged 2026-08-07, a day before we touched this):** fetching fresh (per the branch-hygiene rule) surfaced that `izgw-bom`'s own suppression file already had an official, team-authored fix for this exact CVE using `<sha1>`-pinned entries for both `tomcat-embed-core-10.1.57.jar` and `tomcat-embed-websocket-10.1.57.jar` — we hadn't fetched before adding our own, so it duplicated real work. Merged `origin/develop` into the `izgw-bom` branch and resolved the conflict by keeping the official upstream entries, discarding ours.
+  **Correction #3 — the packageUrl approach itself was wrong for izgw-transform specifically:** CI logs showed "Suppression Rule had zero matches" for our `packageUrl` regex. Root cause: this repo's `build` job scans the *assembled fat jar* directly via the standalone `dependency-check` GitHub Action (`--scan target/xform-*.jar`), which does not derive a resolvable Maven packageUrl for nested jars — the same limitation already documented in this file's own `kotlin-stdlib` suppression entry. Switched to `<sha1>`-based matching (same hashes as `izgw-bom`'s official fix, verified identical via local `.m2` cache — same jar bytes). **`izgw-hub`, by contrast, stayed green with the `packageUrl` approach** — it uses the Maven-plugin form of dependency-check (`mvn site`), which resolves packageUrls correctly since it works from the real dependency graph rather than introspecting an opaque assembled jar. Same CVE, different fix per repo depending on how each repo's CI actually invokes the scanner — don't assume one suppression shape works everywhere.
+  Re-running with the sha1 fix; not yet confirmed green.
+- [x] 4.9 CI confirmed green on the sha1-fix run: `build` 12m0s, SonarCloud pass. All four repos are now CI-verified green: `izgw-bom` #141, `izgw-core` #91, `izgw-hub` #179, `izgw-transform` #281.
+
+**Stage 4 complete. Overall change complete** — all four PRs CI-green, none yet merged (merge timing/order is a separate decision from CI verification).
 
 ---
 
@@ -255,9 +327,9 @@ _`izgw-core` has no `docker/` directory (library only, no runnable image) — th
 
 | Stage | Repo | Description | Status |
 |---|---|---|---|
-| 0 | — | Pre-flight / technical verification | Not Started |
-| 1 | izgw-bom | Bump version property + release | Not Started |
-| 2 | izgw-core | Consume new BOM, code/CVE review, release | Not Started |
-| 3 | izgw-hub | Consume new core/BOM, swap jars, verify deploy | Not Started |
-| 4 | izgw-transform | Consume new core/BOM, swap jars, fix hardcoded filenames, verify deploy | Not Started |
-| 5 | — | Cross-cutting cleanup and Jira closeout | Not Started |
+| 0 | — | Pre-flight / technical verification | Done |
+| 1 | izgw-bom | Bump version property + release | Done — PR [#141](https://github.com/IZGateway/izgw-bom/pull/141), CI green |
+| 2 | izgw-core | Consume new BOM, code/CVE review, release | Done — PR [#91](https://github.com/IZGateway/izgw-core/pull/91), CI green |
+| 3 | izgw-hub | Consume new core/BOM, swap jars, verify deploy | Done — PR [#179](https://github.com/IZGateway/izgw-hub/pull/179), CI green |
+| 4 | izgw-transform | Consume new core/BOM, swap jars, verify deploy (Dockerfile fix task turned out moot) | Done — PR [#281](https://github.com/IZGateway/izgw-transform/pull/281), CI green |
+| 5 | — | Cross-cutting cleanup and Jira closeout | Not Started — PRs open but none merged yet; see IGDD-3254 for closeout |

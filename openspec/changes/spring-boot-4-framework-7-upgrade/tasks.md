@@ -53,7 +53,8 @@ document_type:
 
 **Jira:** [IGDD-2353](https://izgateway.atlassian.net/browse/IGDD-2353) — single source of truth; all work below lands under this one ticket, not split into sub-tickets.
 **Primary repo:** izgw-core (this change) — also touches izgw-bom, izgw-hub, izgw-transform, v2tofhir
-**Overall Status:** In Progress (Stages 0–2 complete, locally committed and installed, not pushed)
+**Overall Status:** In Progress (Stages 0–3 complete locally; Stage 3's full DynamoDB-backed boot
+smoke test still needs CI/dev-deploy verification; nothing pushed)
 
 ---
 
@@ -256,30 +257,73 @@ copy (`xform/common/ContainerCustomizer.java`, different valve dependencies) —
 
 ## Stage 3 — izgw-hub
 
-- [ ] 3.0 Create working branch from a freshly-fetched `develop` in `izgw-hub`.
-- [ ] 3.1 Bump `izgw-hub/pom.xml` `<parent>` (`izgw-bom`) version to Stage 1's release.
-- [ ] 3.2 Bump the `izgw-core` dependency version to Stage 2's working version.
-- [ ] 3.3 Move `org.springframework.boot.web.embedded.tomcat.*` imports in `Application.java`:
-      `TomcatConnectorCustomizer`, `TomcatContextCustomizer`, `TomcatProtocolHandlerCustomizer` ->
-      `org.springframework.boot.tomcat.*`; **`TomcatServletWebServerFactory` -> the sub-package
-      `org.springframework.boot.tomcat.servlet.TomcatServletWebServerFactory`, not the same
-      top-level package** (verified directly against the `spring-boot-tomcat:4.1.1` jar contents
-      during Stage 2 — see that stage's correction note).
-- [ ] 3.4 Rename `AbstractHttp11JsseProtocol<?>` -> `AbstractHttp11Protocol<?>` in `Application.java`
-      (field `protocol`, the `instanceof` check in `customizeConnector`).
-- [ ] 3.5 Replace `javax.xml.ws.http.HTTPException` usage in `ADSController.java`,
-      `RestfulFileSender.java`, `AzureBlobStorageSender.java`, `DexFileUploadController.java` with the
-      custom exception from 2.2.
-- [ ] 3.6 Re-verify the `springdoc-openapi-starter-webflux-ui` exclusion (added to stop WebFlux
-      auto-config from breaking the MVC Swagger UI / TC_92a) still holds against springdoc 3.x.
-- [ ] 3.7 Run full build (`mvn clean package`) and unit test suite (`SPRING_DATABASE=jpa`).
-- [ ] 3.8 Boot smoke test — confirm the app starts cleanly (this is where any missed Tomcat-11
-      incompatibility would surface loudly, since the Tomcat-internals code isn't otherwise exercised
-      by real production traffic — see Background) and `ApplicationTests`/`AccessControlTests` pass.
-- [ ] 3.5a **New 2026-08-24** — remove the now-unused `spring-retry` dependency from `izgw-hub/pom.xml` entirely (confirmed dead code — see Stage 1, task 1.3).
-- [ ] 3.9 Run `mvn dependency-check:check`; review/update `dependency-suppression.xml`.
+**New finding while executing this stage (2026-08-24) — the Tomcat package move isn't just an import
+change, `TomcatServletWebServerFactory`'s own API surface changed too.** Verified directly against
+the `spring-boot-tomcat:4.1.1` jar via `javap`: `getTomcatConnectorCustomizers()` ->
+`getConnectorCustomizers()`, `getTomcatContextCustomizers()` -> `getContextCustomizers()`,
+`getTomcatProtocolHandlerCustomizers()` -> `getProtocolHandlerCustomizers()`,
+`addAdditionalTomcatConnectors(Connector)` -> `addAdditionalConnectors(Connector...)` (now varargs).
+These moved up to a new parent class, `org.springframework.boot.tomcat.TomcatWebServerFactory`. Not
+caught by Stage 2 since `izgw-core`'s `ContainerCustomizer` only implements the `customize(...)`
+callback — it's `izgw-hub`'s custom `tomcatServletWebServerFactory` bean (an anonymous subclass) that
+calls these methods directly to wire up the local management port and customizer lists.
+
+**Also confirmed while executing this stage — `ApplicationTests` needing a real DynamoDB table is a
+pre-existing characteristic of that test, not a migration regression.** `izgw-hub` has exactly one
+`RepositoryFactory` implementation in main source, `DynamoDbRepositoryFactory` — there is no separate
+JPA implementation of the factory itself. `ApplicationTests` does a real `SpringApplication.run(...)`
+(the actual production `main()`), so it always wires the real DynamoDB-backed factory regardless of
+`SPRING_DATABASE` — that property (per `.github/workflows/maven.yml`) is scoped to narrower
+repository-layer unit tests, not this end-to-end boot test. Verified this is identical on the
+unmigrated baseline (temporarily stashed all Stage 3 changes, reran the exact same command, got the
+exact same `Configured table does not exist in DynamoDB: izgw-hub` failure) before concluding it
+wasn't caused by this migration.
+
+- [x] 3.0 Create working branch from a freshly-fetched `develop` in `izgw-hub`. **Done earlier**
+      (same branch used for Stage 0).
+- [x] 3.1 Bump `izgw-hub/pom.xml` `<parent>` (`izgw-bom`) version to Stage 1's release
+      (`1.15.0-SNAPSHOT`). **Done 2026-08-24.**
+- [x] 3.2 Bump the `izgw-core` dependency version to Stage 2's working version
+      (`3.5.1-IGDD-2353_spring_upgrade-SNAPSHOT`). **Done 2026-08-24.**
+- [x] 3.3 Move `org.springframework.boot.web.embedded.tomcat.*` imports in `Application.java`:
+      customizer interfaces -> `org.springframework.boot.tomcat.*`; `TomcatServletWebServerFactory`
+      -> `org.springframework.boot.tomcat.servlet.TomcatServletWebServerFactory`. **Done 2026-08-24.**
+- [x] 3.3a **New 2026-08-24** — update the 4 `TomcatWebServerFactory` method calls in the
+      `tomcatServletWebServerFactory` bean per the API-rename note above (`getConnectorCustomizers()`,
+      `getContextCustomizers()`, `getProtocolHandlerCustomizers()`, `addAdditionalConnectors(...)`).
+      Not in the original plan — found only by attempting the build.
+- [x] 3.4 Rename `AbstractHttp11JsseProtocol<?>` -> `AbstractHttp11Protocol<?>` in `Application.java`
+      (field `protocol`, the `instanceof` check in `customizeConnector`). **Done 2026-08-24.**
+- [x] 3.5 Replace `javax.xml.ws.http.HTTPException` usage in `ADSController.java`,
+      `RestfulFileSender.java`, `AzureBlobStorageSender.java`, `DexFileUploadController.java` with
+      `gov.cdc.izgateway.common.HttpStatusException` from Stage 2. **Done 2026-08-24.** Confirmed
+      `RestfulFileSender.java`'s own unrelated nested `HttpException` class (single P, different
+      purpose, extends `IOException`) was left untouched — verified explicitly since both names are
+      superficially similar.
+- [x] 3.6 Re-verify the `springdoc-openapi-starter-webflux-ui` exclusion still holds against
+      springdoc 3.x. **Done 2026-08-24** — checked `izgw-core`'s dependency tree directly:
+      `springdoc-openapi-starter-webmvc-ui:3.1.0` no longer transitively pulls in `webflux-ui` at all
+      (only `webmvc-api` and `common`). The exclusion is now inert but harmless to leave in place;
+      not removed since that wasn't the task.
+- [x] 3.5a Remove the now-unused `spring-retry` dependency from `izgw-hub/pom.xml` entirely.
+      **Done 2026-08-24** — confirmed dead code, see Stage 1 task 1.3.
+- [x] 3.7 Run full build (`mvn clean package`) and unit test suite (`SPRING_DATABASE=jpa`).
+      **Done 2026-08-24.** First attempt caught the `TomcatWebServerFactory` API-rename issue above.
+      After fixing: **249 tests run, 0 failures, 0 errors, 7 skipped** (`ApplicationTests` and its
+      dependents — see the DynamoDB note above), BUILD SUCCESS.
+- [x] 3.8 Boot smoke test. **Partially done 2026-08-24.** The Tomcat/connector/SSL bean chain
+      (`tomcatServletWebServerFactory`, `reloadConnectorCustomizer`, `revocationChecker`) is confirmed
+      to construct successfully — visible in the `ApplicationTests` failure stack trace, which only
+      fails much later in an unrelated dependency chain (`certificateStatusService` ->
+      `dynamoDbRepositoryFactory` -> `dynamoDbClient` -> DynamoDB table check). **Full end-to-end boot
+      against a real DynamoDB table was NOT verified locally** (no AWS access in this environment) —
+      needs verification in CI or a dev deploy before calling this stage fully done.
+- [x] 3.9 Run `mvn dependency-check:check`. **Done 2026-08-24** — passed clean, no CVE >= 7.0 findings,
+      no `dependency-suppression.xml` changes needed.
 - [ ] **3.PR1** Open PR; do not merge until CI (build, unit tests, OWASP check, Docker build, Newman
-      integration tests against dev) passes.
+      integration tests against dev) passes. **Deferred** — user direction: local changes and local
+      testing only, no PRs yet. Also where the full DynamoDB-backed boot smoke test (3.8) actually
+      gets verified, since CI has real AWS access.
 - [ ] 3.10 After merge, monitor the dev ECS deployment through the `verify` CI job before considering
       this repo done.
 
@@ -370,7 +414,7 @@ _Confirmed low risk — no `@SpringBootApplication`, actuator, or Spring Securit
 | 0 | izgw-hub, v2tofhir | Immediate, independent fixes | Done (local, unpushed) |
 | 1 | izgw-bom | Coordinated version bump (Boot 4.1.1, Framework 7.0.9, Security 7.1.1, Tomcat 11.0.24, springdoc 3.1.0, Camel 4.20.0) + Jackson2 shim | Done (local, installed, unpushed) |
 | 2 | izgw-core | Consume new BOM, cleanup, Tomcat rename, release | Done (local, installed, unpushed) |
-| 3 | izgw-hub | Consume new core/BOM, Tomcat package move + rename, verify deploy | Not Started |
+| 3 | izgw-hub | Consume new core/BOM, Tomcat package move + rename, verify deploy | Done locally; DynamoDB-backed boot verification pending CI |
 | 4 | izgw-transform | Same Tomcat fixes as izgw-hub, Camel SPI review, verify deploy | Not Started |
 | 5 | v2tofhir | Consume new BOM, standard verification | Not Started |
 | 6 | — | Cross-cutting verification and Jira closeout | Not Started |

@@ -53,7 +53,7 @@ document_type:
 
 **Jira:** [IGDD-2353](https://izgateway.atlassian.net/browse/IGDD-2353) — single source of truth; all work below lands under this one ticket, not split into sub-tickets.
 **Primary repo:** izgw-core (this change) — also touches izgw-bom, izgw-hub, izgw-transform, v2tofhir
-**Overall Status:** In Progress (Stage 0 complete, locally committed, not pushed)
+**Overall Status:** In Progress (Stages 0–1 complete, locally committed and installed, not pushed)
 
 ---
 
@@ -163,18 +163,38 @@ _Not blocked on anything else in this change; safe to do first._
 _Everything downstream inherits from here. Must be released before izgw-core/izgw-hub/izgw-transform/
 v2tofhir can pick it up._
 
-- [ ] 1.0 Create working branch from a freshly-fetched `develop` in `izgw-bom`.
-- [ ] 1.1 Bump managed versions: `spring-boot.version` -> 4.x, `spring-framework.version` -> 7.x,
-      `spring-security.version` -> 7.x, `tomcat.version` -> 11.x, `springdoc.version` -> 3.x,
-      `camel.version` -> `4.20.0` (must land in this same commit — see Background).
-- [ ] 1.2 Add `spring-boot-jackson2` as a managed dependency.
-- [ ] 1.3 Add an explicit `spring-retry` version (Boot 4 removed it from its own dependency management).
-- [ ] 1.4 Bump `izgw-bom`'s own project `<version>`.
-- [ ] 1.5 Run `mvn validate` to confirm the new coordinates resolve.
+- [x] 1.0 Create working branch from a freshly-fetched `develop` in `izgw-bom`. **Done 2026-08-24.**
+      Branch `IGDD-2353_spring_upgrade`.
+- [x] 1.1 Bump managed versions. **Done 2026-08-24** (local commit `3a5a1c5`, not pushed). Exact
+      versions pinned to the combination `spring-boot-dependencies:4.1.1` itself was tested against,
+      verified directly against its published POM on Maven Central (not independently-latest patches
+      of each — e.g. Tomcat's own latest is `11.0.25`, but Boot 4.1.1 was tested against `11.0.24`,
+      so that's what's pinned): `spring-boot.version` -> `4.1.1`, `spring-framework.version` ->
+      `7.0.9`, `spring-security.version` -> `7.1.1`, `tomcat.version` -> `11.0.24`,
+      `springdoc.version` -> `3.1.0`, `camel.version` -> `4.20.0`.
+- [x] 1.2 Add `spring-boot-jackson2` as a managed dependency. **Done 2026-08-24**, same commit.
+      Verified the artifact exists at `4.1.1` (HTTP 200 from Maven Central) before adding. Confirmed
+      the existing explicit `com.fasterxml.jackson.*` version pins are unaffected and continue to win
+      over Boot's new Jackson-3 default via Maven's dependency-management precedence — no other
+      Jackson-related change was needed in `izgw-bom`.
+- [x] 1.3 ~~Add an explicit `spring-retry` version~~ **REVISED 2026-08-24** — checked actual usage first: `spring-retry` is declared only in `izgw-hub/pom.xml` (not `izgw-core`), and grepping the codebase found zero usage of `org.springframework.retry.*`/`@Retryable`/`@EnableRetry`/`RetryTemplate`. Every "retry"/"backoff" hit in `izgw-hub` (`ADSController.java`, `StatusCheckerService.java`, etc.) is a hand-rolled `gov.cdc.izgateway.model.RetryStrategy` enum and a manual `Thread.sleep(backoff)` loop — unrelated to Spring's retry library. **No action needed in izgw-bom.** Instead, remove the now-dead dependency entirely — see new Stage 3 task 3.5a. (Side note for awareness, not an action item: Spring Framework 7 also absorbed `@Retryable`/`RetryTemplate` natively via `@EnableResilientMethods`, so even if real retry needs come up later, re-adding the standalone `spring-retry` library wouldn't be the first choice.)
+- [x] 1.4 Bump `izgw-bom`'s own project `<version>`. **Done 2026-08-24**, same commit. Used a distinct
+      `1.15.0-SNAPSHOT` rather than reusing the current develop tip (`1.14.1-SNAPSHOT`) — same
+      rationale as the `bc-fips-2.1.3-upgrade` precedent: nightly dependency-update automation is
+      actively bumping properties on that live label (confirmed — `tomcat.version` and
+      `jackson.version` had already drifted between when this change was first scoped and when
+      Stage 1 was actually executed), so reusing it risked this change being silently superseded.
+- [x] 1.5 Run `mvn validate` to confirm the new coordinates resolve. **Done 2026-08-24** — passed
+      clean (exit 0) after fixing an XML comment syntax error (`--` inside a comment body, not
+      allowed by the XML spec) introduced while adding the rationale comments above.
 - [ ] **1.PR1** Open PR against `develop`; publish the SNAPSHOT to GitHub Packages so downstream repos
-      can consume it during validation.
+      can consume it during validation. **Not done — deliberately deferred.** User direction: make
+      all changes locally and test locally before creating any PRs.
 
 **Stage 1 complete when:** CI-verified green and published, not just locally assumed.
+**Current status:** local work done and validated; PR/publish deliberately deferred. Ran
+`mvn install` in `izgw-bom` so `1.15.0-SNAPSHOT` is available in the local Maven repository —
+Stages 2–5 will resolve it from there rather than GitHub Packages until this is pushed.
 
 ---
 
@@ -219,6 +239,7 @@ v2tofhir can pick it up._
 - [ ] 3.8 Boot smoke test — confirm the app starts cleanly (this is where any missed Tomcat-11
       incompatibility would surface loudly, since the Tomcat-internals code isn't otherwise exercised
       by real production traffic — see Background) and `ApplicationTests`/`AccessControlTests` pass.
+- [ ] 3.5a **New 2026-08-24** — remove the now-unused `spring-retry` dependency from `izgw-hub/pom.xml` entirely (confirmed dead code — see Stage 1, task 1.3).
 - [ ] 3.9 Run `mvn dependency-check:check`; review/update `dependency-suppression.xml`.
 - [ ] **3.PR1** Open PR; do not merge until CI (build, unit tests, OWASP check, Docker build, Newman
       integration tests against dev) passes.
@@ -308,7 +329,7 @@ _Confirmed low risk — no `@SpringBootApplication`, actuator, or Spring Securit
 | Stage | Repo | Description | Status |
 |---|---|---|---|
 | 0 | izgw-hub, v2tofhir | Immediate, independent fixes | Done (local, unpushed) |
-| 1 | izgw-bom | Coordinated version bump (Boot 4, Framework 7, Security 7, Tomcat 11, springdoc 3, Camel 4.20) + Jackson2 shim | Not Started |
+| 1 | izgw-bom | Coordinated version bump (Boot 4.1.1, Framework 7.0.9, Security 7.1.1, Tomcat 11.0.24, springdoc 3.1.0, Camel 4.20.0) + Jackson2 shim | Done (local, installed, unpushed) |
 | 2 | izgw-core | Consume new BOM, cleanup, Tomcat rename, release | Not Started |
 | 3 | izgw-hub | Consume new core/BOM, Tomcat package move + rename, verify deploy | Not Started |
 | 4 | izgw-transform | Same Tomcat fixes as izgw-hub, Camel SPI review, verify deploy | Not Started |

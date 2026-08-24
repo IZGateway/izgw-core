@@ -53,7 +53,7 @@ document_type:
 
 **Jira:** [IGDD-2353](https://izgateway.atlassian.net/browse/IGDD-2353) — single source of truth; all work below lands under this one ticket, not split into sub-tickets.
 **Primary repo:** izgw-core (this change) — also touches izgw-bom, izgw-hub, izgw-transform, v2tofhir
-**Overall Status:** In Progress (Stages 0–1 complete, locally committed and installed, not pushed)
+**Overall Status:** In Progress (Stages 0–2 complete, locally committed and installed, not pushed)
 
 ---
 
@@ -167,11 +167,15 @@ v2tofhir can pick it up._
       Branch `IGDD-2353_spring_upgrade`.
 - [x] 1.1 Bump managed versions. **Done 2026-08-24** (local commit `3a5a1c5`, not pushed). Exact
       versions pinned to the combination `spring-boot-dependencies:4.1.1` itself was tested against,
-      verified directly against its published POM on Maven Central (not independently-latest patches
-      of each — e.g. Tomcat's own latest is `11.0.25`, but Boot 4.1.1 was tested against `11.0.24`,
-      so that's what's pinned): `spring-boot.version` -> `4.1.1`, `spring-framework.version` ->
-      `7.0.9`, `spring-security.version` -> `7.1.1`, `tomcat.version` -> `11.0.24`,
+      verified directly against its published POM on Maven Central: `spring-boot.version` ->
+      `4.1.1`, `spring-framework.version` -> `7.0.9`, `spring-security.version` -> `7.1.1`,
       `springdoc.version` -> `3.1.0`, `camel.version` -> `4.20.0`.
+      **`tomcat.version` corrected 2026-08-24 (follow-up commit `a49152a`): `11.0.24` -> `11.0.25`.**
+      Discovered while building `izgw-core` in Stage 2 — Boot 4.1.1's own tested pin (`11.0.24`) has
+      a disclosed CVSS 7.5 DoS vulnerability (CVE-2026-66299, Tomcat's bundled WebSocket chat
+      example) that fails this repo's OWASP `failBuildOnCVSS>7` gate. `11.0.25` fixes it upstream.
+      So "match Boot's exact tested combination" isn't always the safest choice once this repo's own
+      CVE gate is factored in — same override pattern already used for `httpcore.version`.
 - [x] 1.2 Add `spring-boot-jackson2` as a managed dependency. **Done 2026-08-24**, same commit.
       Verified the artifact exists at `4.1.1` (HTTP 200 from Maven Central) before adding. Confirmed
       the existing explicit `com.fasterxml.jackson.*` version pins are unaffected and continue to win
@@ -200,23 +204,53 @@ Stages 2–5 will resolve it from there rather than GitHub Packages until this i
 
 ## Stage 2 — izgw-core
 
-- [ ] 2.0 Create working branch from a freshly-fetched `develop` in `izgw-core`.
-- [ ] 2.1 Bump `izgw-core/pom.xml` `<parent>` (`izgw-bom`) version to Stage 1's working version.
-- [ ] 2.2 Drop the `javax.xml.ws:jaxws-api:2.3.1` dependency; replace `javax.xml.ws.http.HTTPException`
-      usage in `ExternalTokenStore.java` with a small custom exception class.
-- [ ] 2.3 Fix `TrustManagerProvider.java`: `import javax.annotation.PostConstruct;` ->
-      `import jakarta.annotation.PostConstruct;`.
-- [ ] 2.4 Rename `AbstractHttp11JsseProtocol<?>` -> `AbstractHttp11Protocol<?>` in
-      `ClientTlsSupport.java` (`SslReloader.protocol`/`setProtocol`). Confirm with the team first
-      whether `SslReloader.setProtocol(...)` is dead code — no call sites were found anywhere in the
-      codebase during this review — it may be deletable instead of renamed.
-- [ ] 2.5 Run full build (`mvn clean install`) and unit test suite. Expect a mostly clean pass —
-      `JSSEImplementation`/`JSSEUtil`/`SSLUtil` are confirmed byte-for-byte identical between Tomcat
-      10.1.x and 11.0.x (see Background).
-- [ ] 2.6 Run `mvn dependency-check:check`; review/update `dependency-suppression.xml` for any new
-      CVEs surfaced by the version bumps.
-- [ ] 2.7 Bump `izgw-core`'s own project `<version>` per its documented working-branch convention.
-- [ ] **2.PR1** Open and merge PR before starting Stage 3.
+**Correction found while executing this stage (2026-08-24) — the Tomcat embedded-web-server package
+move is NOT a uniform `org.springframework.boot.tomcat.*` rename.** Verified directly against the
+contents of the `spring-boot-tomcat:4.1.1` jar: `TomcatConnectorCustomizer`, `TomcatContextCustomizer`,
+and `TomcatProtocolHandlerCustomizer` do move to the top-level `org.springframework.boot.tomcat`
+package, but **`TomcatServletWebServerFactory` moves one level deeper, to
+`org.springframework.boot.tomcat.servlet`** — a sub-package, not the same one. This correction applies
+everywhere `TomcatServletWebServerFactory` is imported across this whole change (Stages 2–4).
+
+**New finding — a third, previously-unknown occurrence of the embedded-Tomcat pattern**:
+`izgw-core/src/main/java/gov/cdc/izgateway/common/ContainerCustomizer.java` also implements
+`WebServerFactoryCustomizer<TomcatServletWebServerFactory>` and needed the same package fix.
+Confirmed `izgw-hub` has no `ContainerCustomizer` of its own — its `Application.java` uses
+`@SpringBootApplication`'s default component scan (both classes share the `gov.cdc.izgateway` root
+package), so it inherits `izgw-core`'s bean directly. `izgw-transform` does have its own separate
+copy (`xform/common/ContainerCustomizer.java`, different valve dependencies) — see Stage 4.
+
+- [x] 2.0 Create working branch from a freshly-fetched `develop` in `izgw-core`. **Done earlier**
+      (same branch used for the OpenSpec change commit).
+- [x] 2.1 Bump `izgw-core/pom.xml` `<parent>` (`izgw-bom`) version to Stage 1's working version
+      (`1.15.0-SNAPSHOT`). **Done 2026-08-24.**
+- [x] 2.2 Drop the `javax.xml.ws:jaxws-api:2.3.1` dependency; replace `javax.xml.ws.http.HTTPException`
+      usage in `ExternalTokenStore.java` with a small custom exception class. **Done 2026-08-24.**
+      Created `gov.cdc.izgateway.common.HttpStatusException` (matches the style of the existing
+      `BadRequestException`/`ResourceNotFoundException` in that package) and changed
+      `OAuthReportedHttpException` to extend it instead.
+- [x] 2.2a **New 2026-08-24** — fix `ContainerCustomizer.java`'s `TomcatServletWebServerFactory`
+      import to `org.springframework.boot.tomcat.servlet.TomcatServletWebServerFactory` (see
+      correction note above). Not in the original plan — found only by attempting the build.
+- [x] 2.3 Fix `TrustManagerProvider.java`: `import javax.annotation.PostConstruct;` ->
+      `import jakarta.annotation.PostConstruct;`. **Done 2026-08-24.**
+- [x] 2.4 Rename `AbstractHttp11JsseProtocol<?>` -> `AbstractHttp11Protocol<?>` in
+      `ClientTlsSupport.java` (`SslReloader.protocol`/`setProtocol`). **Done 2026-08-24 — renamed,
+      not deleted.** Dead-code status of `SslReloader.setProtocol(...)` still unconfirmed with the
+      team (no call sites found anywhere in the codebase); kept the conservative option since the
+      migration only requires this to compile, not a cleanup decision.
+- [x] 2.5 Run full build (`mvn clean install`) and unit test suite. **Done 2026-08-24.** Clean:
+      3 test classes, 19 tests, 0 failures/errors/skipped
+      (`CryptoSupportTests`/`IpAddressFilterTests`/`SecretHeaderFilterTests`) — confirms the
+      Tomcat-internals classes really were unaffected by the 10.1.x -> 11.0.x jump as predicted.
+- [x] 2.6 Run `mvn dependency-check:check`. **Done 2026-08-24** — this is where the `tomcat.version`
+      11.0.24 -> 11.0.25 CVE finding above was actually caught. Passed clean after that fix; no
+      `dependency-suppression.xml` changes needed.
+- [x] 2.7 Bump `izgw-core`'s own project `<version>` per its documented working-branch convention.
+      **Done 2026-08-24** — `3.5.1-IGDD-2353_spring_upgrade-SNAPSHOT`, matching the exact convention
+      documented in a pom comment (`<major>.<minor>.<patch>-IGDD-<ticket#>_<ticket-title>-SNAPSHOT`).
+- [ ] **2.PR1** Open and merge PR before starting Stage 3. **Deferred** — user direction: local
+      changes and local testing only, no PRs yet.
 
 ---
 
@@ -225,9 +259,12 @@ Stages 2–5 will resolve it from there rather than GitHub Packages until this i
 - [ ] 3.0 Create working branch from a freshly-fetched `develop` in `izgw-hub`.
 - [ ] 3.1 Bump `izgw-hub/pom.xml` `<parent>` (`izgw-bom`) version to Stage 1's release.
 - [ ] 3.2 Bump the `izgw-core` dependency version to Stage 2's working version.
-- [ ] 3.3 Move `org.springframework.boot.web.embedded.tomcat.*` imports in `Application.java`
-      (`TomcatConnectorCustomizer`, `TomcatContextCustomizer`, `TomcatProtocolHandlerCustomizer`,
-      `TomcatServletWebServerFactory`) to `org.springframework.boot.tomcat.*`.
+- [ ] 3.3 Move `org.springframework.boot.web.embedded.tomcat.*` imports in `Application.java`:
+      `TomcatConnectorCustomizer`, `TomcatContextCustomizer`, `TomcatProtocolHandlerCustomizer` ->
+      `org.springframework.boot.tomcat.*`; **`TomcatServletWebServerFactory` -> the sub-package
+      `org.springframework.boot.tomcat.servlet.TomcatServletWebServerFactory`, not the same
+      top-level package** (verified directly against the `spring-boot-tomcat:4.1.1` jar contents
+      during Stage 2 — see that stage's correction note).
 - [ ] 3.4 Rename `AbstractHttp11JsseProtocol<?>` -> `AbstractHttp11Protocol<?>` in `Application.java`
       (field `protocol`, the `instanceof` check in `customizeConnector`).
 - [ ] 3.5 Replace `javax.xml.ws.http.HTTPException` usage in `ADSController.java`,
@@ -260,7 +297,9 @@ Tomcat fixes as Stage 3, plus its own straggler and Camel-specific verification.
       `4.20.0` pin.
 - [ ] 4.4 Move `org.springframework.boot.web.embedded.tomcat.*` imports in both `xform/Application.java`
       **and** `xform/common/ContainerCustomizer.java` (implements
-      `WebServerFactoryCustomizer<TomcatServletWebServerFactory>`) to `org.springframework.boot.tomcat.*`.
+      `WebServerFactoryCustomizer<TomcatServletWebServerFactory>`) — same split as Stage 3.3:
+      customizer interfaces -> `org.springframework.boot.tomcat`, `TomcatServletWebServerFactory` ->
+      `org.springframework.boot.tomcat.servlet`.
 - [ ] 4.5 Rename `AbstractHttp11JsseProtocol<?>` -> `AbstractHttp11Protocol<?>` in `xform/Application.java`.
 - [ ] 4.6 Fix `javax.annotation.PostConstruct` -> `jakarta.annotation.PostConstruct` in
       `src/test/java/gov/cdc/izgateway/xform/XformApplicationTests.java`.
@@ -330,7 +369,7 @@ _Confirmed low risk — no `@SpringBootApplication`, actuator, or Spring Securit
 |---|---|---|---|
 | 0 | izgw-hub, v2tofhir | Immediate, independent fixes | Done (local, unpushed) |
 | 1 | izgw-bom | Coordinated version bump (Boot 4.1.1, Framework 7.0.9, Security 7.1.1, Tomcat 11.0.24, springdoc 3.1.0, Camel 4.20.0) + Jackson2 shim | Done (local, installed, unpushed) |
-| 2 | izgw-core | Consume new BOM, cleanup, Tomcat rename, release | Not Started |
+| 2 | izgw-core | Consume new BOM, cleanup, Tomcat rename, release | Done (local, installed, unpushed) |
 | 3 | izgw-hub | Consume new core/BOM, Tomcat package move + rename, verify deploy | Not Started |
 | 4 | izgw-transform | Same Tomcat fixes as izgw-hub, Camel SPI review, verify deploy | Not Started |
 | 5 | v2tofhir | Consume new BOM, standard verification | Not Started |

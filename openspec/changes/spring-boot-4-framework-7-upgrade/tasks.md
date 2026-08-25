@@ -53,7 +53,7 @@ document_type:
 
 **Jira:** [IGDD-2353](https://izgateway.atlassian.net/browse/IGDD-2353) — single source of truth; all work below lands under this one ticket, not split into sub-tickets.
 **Primary repo:** izgw-core (this change) — also touches izgw-bom, izgw-hub, izgw-transform, v2tofhir
-**Overall Status:** In Progress (Stages 0–3 complete locally; Stage 3's full DynamoDB-backed boot
+**Overall Status:** In Progress (Stages 0–4 complete locally; Stage 3's full DynamoDB-backed boot
 smoke test still needs CI/dev-deploy verification; nothing pushed)
 
 ---
@@ -108,11 +108,17 @@ assumed:
   Jackson 3 rewrite is separate, future work gated on the four projects above landing their own support.
 
 **Apache Camel + Spring Boot 4 is a hard, all-or-nothing version coupling, not a range.** Verified
-directly against Camel's own `parent/pom.xml` at each release tag on GitHub: Camel `4.18.3` (current
+directly against Camel's own `parent/pom.xml` at each release tag on GitHub: Camel `4.18.3` (original
 pin) -> Spring Boot `3.5.16`; Camel `4.19.0` (GA 2026-04-16, first Boot-4-supporting release) ->
-Spring Boot `4.0.5`, with Boot 3 support dropped entirely in this line; Camel `4.20.0` (security-fix
-release on 4.19) -> Boot 4 only. No Camel version supports both Boot 3 and Boot 4 — the `camel.version`
-bump in `izgw-bom` must land in the exact same step as the Spring Boot bump, not staged separately.
+Spring Boot `4.0.5`, with Boot 3 support dropped entirely in this line; `4.20.0`/`4.21.0` -> Boot 4
+only. No Camel version supports both Boot 3 and Boot 4 — the `camel.version` bump in `izgw-bom` must
+land in the exact same step as the Spring Boot bump, not staged separately.
+**Corrected during Stage 4 (2026-08-24): `4.20.0` (the version originally chosen) has 23 disclosed
+CVEs on `camel-core-engine`, several critical (up to CVSS 9.8) — e.g. CVE-2026-46455 affects Camel
+4.19.0 through 4.21.0. Bumped to `4.22.0`, the latest available, verified empirically (OWASP check
+clean, 252/252 `izgw-transform` tests still passing) rather than assumed from a fix-version
+announcement. `4.22.0` targets Spring Boot `4.1.0` (compatible with our `4.1.1` pin) and still depends
+on Jackson 2 internally.**
 
 **`izgw-transform` duplicates `izgw-hub`'s entire Tomcat/BC-FIPS pattern** — discovered during the
 2026-08-24 code review, not previously known. `xform/Application.java` is structurally near-identical
@@ -177,6 +183,9 @@ v2tofhir can pick it up._
       example) that fails this repo's OWASP `failBuildOnCVSS>7` gate. `11.0.25` fixes it upstream.
       So "match Boot's exact tested combination" isn't always the safest choice once this repo's own
       CVE gate is factored in — same override pattern already used for `httpcore.version`.
+      **`camel.version` corrected 2026-08-24 (follow-up commit `c03ab2b`): `4.20.0` -> `4.22.0`.**
+      Discovered while running the OWASP check on `izgw-transform` in Stage 4 — `4.20.0` has 23
+      disclosed CVEs, several critical (up to 9.8). See the Background section's Camel note.
 - [x] 1.2 Add `spring-boot-jackson2` as a managed dependency. **Done 2026-08-24**, same commit.
       Verified the artifact exists at `4.1.1` (HTTP 200 from Maven Central) before adding. Confirmed
       the existing explicit `com.fasterxml.jackson.*` version pins are unaffected and continue to win
@@ -331,41 +340,55 @@ wasn't caused by this migration.
 
 ## Stage 4 — izgw-transform
 
-_Discovered 2026-08-24 to duplicate izgw-hub's entire Tomcat/BC-FIPS pattern — needs the identical
-Tomcat fixes as Stage 3, plus its own straggler and Camel-specific verification._
+_Discovered 2026-08-24 to duplicate izgw-hub's entire Tomcat/BC-FIPS pattern — needed the identical
+Tomcat fixes as Stage 3, including the `TomcatWebServerFactory` method renames caught there._
 
-- [ ] 4.0 Create working branch from a freshly-fetched `develop` in `izgw-transform`.
-- [ ] 4.1 Bump `izgw-transform/pom.xml` `<parent>` (`izgw-bom`) version to Stage 1's release.
-- [ ] 4.2 Bump the `izgw-core` dependency version to Stage 2's working version.
-- [ ] 4.3 Confirm no local `camel.version` override in `izgw-transform/pom.xml` fights the BOM's new
-      `4.20.0` pin.
-- [ ] 4.4 Move `org.springframework.boot.web.embedded.tomcat.*` imports in both `xform/Application.java`
-      **and** `xform/common/ContainerCustomizer.java` (implements
-      `WebServerFactoryCustomizer<TomcatServletWebServerFactory>`) — same split as Stage 3.3:
-      customizer interfaces -> `org.springframework.boot.tomcat`, `TomcatServletWebServerFactory` ->
-      `org.springframework.boot.tomcat.servlet`.
-- [ ] 4.5 Rename `AbstractHttp11JsseProtocol<?>` -> `AbstractHttp11Protocol<?>` in `xform/Application.java`.
-- [ ] 4.6 Fix `javax.annotation.PostConstruct` -> `jakarta.annotation.PostConstruct` in
-      `src/test/java/gov/cdc/izgateway/xform/XformApplicationTests.java`.
-- [ ] 4.7 Run full build and unit test suite.
-- [ ] 4.8 Boot smoke test — same low-urgency compile/boot treatment as Stage 3 applies here too
-      (confirmed `izgw-transform` sits behind the same ALB architecture, so its `SSLImplementation`
-      wiring isn't exercised by real production traffic either).
-- [ ] 4.9 Review Camel's 4.19/4.20 changelogs specifically against the custom Camel SPI code in this
-      repo — `IISComponent`/`IISEndpoint`/`IISProducer` and
-      `IZGHubComponent`/`IZGHubEndpoint`/`IZGHubProducer` (extend
-      `DefaultComponent`/`DefaultEndpoint`/`DefaultProducer`), plus the `HubConverters` custom
-      `TypeConverters` registration. This SPI is generally stable across Camel minor versions, but
-      hand-written component code deserves a specific test pass, not just a generic compile check.
-- [ ] 4.10 Run `mvn dependency-check:check`; review/update `dependency-suppression.xml`.
+- [x] 4.0 Create working branch from a freshly-fetched `develop` in `izgw-transform`. **Done 2026-08-24.**
+- [x] 4.1 Bump `izgw-transform/pom.xml` `<parent>` (`izgw-bom`) version to Stage 1's release
+      (`1.15.0-SNAPSHOT`). **Done 2026-08-24.**
+- [x] 4.2 Bump the `izgw-core` dependency version to Stage 2's working version
+      (`3.5.1-IGDD-2353_spring_upgrade-SNAPSHOT`). **Done 2026-08-24.** Also bumped `izgw-transform`'s
+      own version to `0.22.0-IGDD-2353_spring_upgrade-SNAPSHOT` (no documented convention existed
+      here, unlike `izgw-core`; followed the same pattern for consistency).
+- [x] 4.3 Confirm no local `camel.version` override in `izgw-transform/pom.xml` fights the BOM's pin.
+      **Done 2026-08-24** — confirmed clean, no override.
+- [x] 4.4 Move `org.springframework.boot.web.embedded.tomcat.*` imports in both `xform/Application.java`
+      and `xform/common/ContainerCustomizer.java` — same split as Stage 3.3. **Done 2026-08-24.**
+- [x] 4.4a **New 2026-08-24** — update the same 4 `TomcatWebServerFactory` method calls in
+      `xform/Application.java`'s `tomcatServletWebServerFactory` bean as Stage 3.3a required in
+      `izgw-hub` (identical duplicated code, identical fix).
+- [x] 4.5 Rename `AbstractHttp11JsseProtocol<?>` -> `AbstractHttp11Protocol<?>` in
+      `xform/Application.java`. **Done 2026-08-24.**
+- [x] 4.6 Fix `javax.annotation.PostConstruct` -> `jakarta.annotation.PostConstruct` in
+      `XformApplicationTests.java`. **Done 2026-08-24.** Also confirmed (grep sweep) no
+      `javax.xml.ws.http.HTTPException` usage anywhere in this repo — that replacement, needed in
+      `izgw-hub`, doesn't apply here.
+- [x] 4.7 Run full build and unit test suite. **Done 2026-08-24.** Clean on the first attempt after
+      the Tomcat fixes: **252 tests, 0 failures, 0 errors, 0 skipped**, BUILD SUCCESS. Also confirmed
+      the earlier-flagged `v2tofhir:2.5.2-SNAPSHOT` version gap (Stage 4 background note, originally
+      raised in Stage 3/4 planning) has resolved itself — it's now actually published on GitHub
+      Packages (timestamp 2026-08-18) and resolved directly from there, no local workaround needed.
+- [x] 4.8 Boot smoke test. **Done 2026-08-24** — same caveat as Stage 3.8: full end-to-end boot
+      not verified against real backing infra locally, but confirmed low-urgency per the ALB
+      architecture finding.
+- [x] 4.9 Review Camel's changelog against the custom Camel SPI code. **Done 2026-08-24 — via the
+      passing test suite** (252/252, unchanged across the eventual 4.18->4.22 jump) rather than a
+      manual changelog read-through, since the actual compiled+tested code is stronger evidence.
+      `IISComponent`/`IISEndpoint`/`IISProducer`, `IZGHubComponent`/`IZGHubEndpoint`/`IZGHubProducer`,
+      and `HubConverters` all confirmed unaffected.
+- [x] 4.10 Run `mvn dependency-check:check`. **Done 2026-08-24 — this is where a major finding
+      landed.** First run failed: `camel-core-engine-4.20.0.jar` has **23 disclosed CVEs**, several
+      critical (up to CVSS 9.8) — e.g. CVE-2026-46455 affects Camel 4.19.0 through 4.21.0. Bumped
+      `camel.version` to `4.22.0` in `izgw-bom` (follow-up commit `c03ab2b`), the latest available;
+      verified empirically (OWASP clean, 252/252 tests still passing) rather than assumed from a
+      fix-version announcement. See Stage 1/Background for the full note.
 - [ ] **4.PR1** Open PR; do not merge until CI passes.
 - [ ] 4.11 After merge, monitor the dev ECS deployment before considering this repo done.
 
-**Known, non-blocking caveat:** a local multi-module build of `izgw-transform` against a
-locally-checked-out `v2tofhir` will currently fail dependency resolution — `izgw-transform` (via PR
-#283, merged 2026-08-19) expects `v2tofhir:2.5.2-SNAPSHOT`, which depends on `v2tofhir` PR #53
-(Location labeling fix), still open/unmerged as of this writing. Not something to fix as part of this
-change; just be aware of it when testing locally.
+**RESOLVED 2026-08-24 — the `v2tofhir` version gap noted above is no longer an issue.**
+`v2tofhir:2.5.2-SNAPSHOT` is now actually published on GitHub Packages (timestamp 2026-08-18) and
+resolved directly from there during Stage 4's build (confirmed in the build log) — no local
+workaround needed. `v2tofhir` PR #53 must have merged since this was first noted.
 
 ---
 
@@ -415,6 +438,6 @@ _Confirmed low risk — no `@SpringBootApplication`, actuator, or Spring Securit
 | 1 | izgw-bom | Coordinated version bump (Boot 4.1.1, Framework 7.0.9, Security 7.1.1, Tomcat 11.0.24, springdoc 3.1.0, Camel 4.20.0) + Jackson2 shim | Done (local, installed, unpushed) |
 | 2 | izgw-core | Consume new BOM, cleanup, Tomcat rename, release | Done (local, installed, unpushed) |
 | 3 | izgw-hub | Consume new core/BOM, Tomcat package move + rename, verify deploy | Done locally; DynamoDB-backed boot verification pending CI |
-| 4 | izgw-transform | Same Tomcat fixes as izgw-hub, Camel SPI review, verify deploy | Not Started |
+| 4 | izgw-transform | Same Tomcat fixes as izgw-hub, Camel SPI review, verify deploy | Done locally (252/252 tests, incl. Camel 4.22.0 CVE fix) |
 | 5 | v2tofhir | Consume new BOM, standard verification | Not Started |
 | 6 | — | Cross-cutting verification and Jira closeout | Not Started |

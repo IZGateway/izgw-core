@@ -53,8 +53,9 @@ document_type:
 
 **Jira:** [IGDD-2353](https://izgateway.atlassian.net/browse/IGDD-2353) — single source of truth; all work below lands under this one ticket, not split into sub-tickets.
 **Primary repo:** izgw-core (this change) — also touches izgw-bom, izgw-hub, izgw-transform, v2tofhir
-**Overall Status:** In Progress (Stages 0–4 complete locally; Stage 3's full DynamoDB-backed boot
-smoke test still needs CI/dev-deploy verification; nothing pushed)
+**Overall Status:** In Progress (Stages 0–5 complete locally; Stage 3's full DynamoDB-backed boot
+smoke test still needs CI/dev-deploy verification; `v2tofhir`'s pre-existing unrelated OWASP finding
+(kotlin-stdlib CVE-2026-53914) knowingly left unaddressed per user direction; nothing pushed)
 
 ---
 
@@ -396,17 +397,31 @@ workaround needed. `v2tofhir` PR #53 must have merged since this was first noted
 
 _Confirmed low risk — no `@SpringBootApplication`, actuator, or Spring Security config of its own._
 
-- [ ] 5.0 Create working branch from a freshly-fetched `develop` in `v2tofhir`.
-- [ ] 5.1 Bump `v2tofhir/pom.xml` `<parent>` (`izgw-bom`) version to Stage 1's release (may already be
-      done via Stage 0.2, depending on timing — confirm it points at the final Stage 1 version, not
-      just "current at the time").
-- [ ] 5.2 Run full build and unit test suite. `spring-boot-starter-web` is used solely for foundational
-      `HttpMessageConverter`/`HttpHeaders`/`MediaType` classes in `FhirConverter.java`/`ContentUtils.java`
-      (a custom FHIR content-negotiation converter) — these are stable Framework APIs, standard pass
-      should suffice.
-- [ ] 5.3 Run `mvn dependency-check:check`; review/update `dependency-suppression.xml`.
-- [ ] **5.PR1** Open PR; merge before or alongside Stage 4 depending on the `v2tofhir` PR #53 timing
-      noted above.
+- [x] 5.0 Create working branch from a freshly-fetched `develop` in `v2tofhir`. **Done earlier**
+      (same branch used for Stage 0).
+- [x] 5.1 Bump `v2tofhir/pom.xml` `<parent>` (`izgw-bom`) version to Stage 1's final release.
+      **Done 2026-08-24.** Was still at the interim `1.14.1-SNAPSHOT` from Stage 0 (Stage 1's later
+      bump to `1.15.0-SNAPSHOT` happened after Stage 0 closed) — bumped to the final version here.
+      Also bumped `v2tofhir`'s own version to `2.5.1-IGDD-2353_spring_upgrade-SNAPSHOT` for
+      consistency with the other repos (no documented convention existed here either).
+- [x] 5.2 Run full build and unit test suite. **Done 2026-08-24.** Clean on the first attempt:
+      **24,517 tests, 0 failures, 0 errors, 3 skipped**, BUILD SUCCESS — matches the exact test count
+      cited in the `v2tofhir` PR #52 description, confirming this is the full HL7-to-FHIR conversion
+      suite. `spring-boot-starter-web` usage (`HttpMessageConverter`/`HttpHeaders`/`MediaType` in
+      `FhirConverter.java`/`ContentUtils.java`) confirmed unaffected, as predicted.
+- [x] 5.3 Run `mvn dependency-check:check`. **Done 2026-08-24 — found a real, but pre-existing and
+      unrelated, CVE.** `kotlin-stdlib-2.3.21.jar` (transitively via `hapi-fhir-structures-r4` ->
+      `org.hl7.fhir.utilities` -> `okhttp-jvm`) has CVE-2026-53914 (CVSS 9.8). Verified via the same
+      baseline-comparison method as Stage 3's DynamoDB finding (`git stash`, rerun): **this CVE exists
+      on unmigrated `develop` too** (with an even older `kotlin-stdlib:1.9.25`) — `hapi-fhir.version`/
+      `hl7-fhir.version` were never touched by this migration. **User decision (2026-08-24): leave it
+      alone** — not fixed as part of this change, since remediation (bumping HAPI/HL7 versions or
+      adding a suppression) is genuinely out of scope for a Spring Boot migration and carries its own
+      separate risk/compatibility questions. `v2tofhir`'s OWASP gate was already failing on `develop`
+      before this work started, independent of anything here — worth its own ticket if not already
+      tracked, but not this one.
+- [ ] **5.PR1** Open PR. **Deferred** — user direction: local changes and local testing only, no PRs
+      yet.
 
 ---
 
@@ -439,5 +454,5 @@ _Confirmed low risk — no `@SpringBootApplication`, actuator, or Spring Securit
 | 2 | izgw-core | Consume new BOM, cleanup, Tomcat rename, release | Done (local, installed, unpushed) |
 | 3 | izgw-hub | Consume new core/BOM, Tomcat package move + rename, verify deploy | Done locally; DynamoDB-backed boot verification pending CI |
 | 4 | izgw-transform | Same Tomcat fixes as izgw-hub, Camel SPI review, verify deploy | Done locally (252/252 tests, incl. Camel 4.22.0 CVE fix) |
-| 5 | v2tofhir | Consume new BOM, standard verification | Not Started |
+| 5 | v2tofhir | Consume new BOM, standard verification | Done locally (24,517/24,517 tests; pre-existing unrelated CVE knowingly left unaddressed) |
 | 6 | — | Cross-cutting verification and Jira closeout | Not Started |

@@ -1,3 +1,9 @@
+## [3.5.0] - 2026-08-26
+
+### Changes
+- fix: OWASP dependeny check ([#94](https://github.com/IZGateway/izgw-core/pull/94))
+- chore: Update OpenSpec to 1.10.0 ([#93](https://github.com/IZGateway/izgw-core/pull/93))
+
 ## [3.4.0] - 2026-08-04
 
 ### Changes

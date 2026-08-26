@@ -381,6 +381,7 @@ jobs:
             --ossIndexPassword ${{ secrets.OSS_INDEX_PASSWORD }}        
             --failOnCVSS 7
             --suppression ./dependency-suppression.xml
+            --nvdApiKey ${{ secrets.NVDAPIKEY }}
             --disableNuspec    
             --disableNugetconf  
             --disableAssembly      

@@ -106,8 +106,6 @@ jobs:
         echo IMAGE_TAG=`mvn help:evaluate -Dexpression=project.version -q -DforceStdout | sed "s/-SNAPSHOT$/-SNAPSHOT-${{github.run_number}}/"` >> $GITHUB_ENV
         # default to force a revision check unless releasing
         echo DO_REVISION_CHECK=true >> $GITHUB_ENV
-        # Skip dependency check
-        echo SKIP_DEPENDENCY_CHECK=true >> $GITHUB_ENV
 
     # If pulling to main branch (cutting a release), set branch tag appropriately  
     - name: Sets env vars for pull to main 
@@ -121,8 +119,6 @@ jobs:
 
         # Skip revision check on merge
         echo DO_REVISION_CHECK=false >> $GITHUB_ENV
-        # Skip dependency check
-        echo SKIP_DEPENDENCY_CHECK=true >> $GITHUB_ENV
 
     # If pushing to main branch (cutting a release), set branch tag appropriately  
     - name: Sets env vars for pull to main 
@@ -145,10 +141,8 @@ jobs:
             git push
           fi
         fi
-        # Disable revision check on push to main. 
+        # Disable revision check on push to main.
         echo DO_REVISION_CHECK=false >> $GITHUB_ENV
-        # But enable dependency check
-        echo SKIP_DEPENDENCY_CHECK=false >> $GITHUB_ENV
 
     - name: List m2
       shell: bash
@@ -160,9 +154,8 @@ jobs:
         echo REF: ${{ github.ref }}
         echo EVENT_NAME ${{ github.event_name }}
         echo TAG: $BASE_TAG
-        echo DO_REVISION_CHECK: $DO_REVISION_CHECK 
-        echo SKIP_DEPENDENCY_CHECK: $SKIP_DEPENDENCY_CHECK
-        echo IMAGE_TAG: $IMAGE_TAG 
+        echo DO_REVISION_CHECK: $DO_REVISION_CHECK
+        echo IMAGE_TAG: $IMAGE_TAG
         echo IMAGE_BRANCH_TAG: $IMAGE_BRANCH_TAG 
         cd ~/.m2
         ls -l
@@ -183,9 +176,9 @@ jobs:
       run: |
         env && mvn -B -U clean package install site deploy -Dbuildno=${{github.run_number}} \
             -DdoRevisionCheck=${{env.DO_REVISION_CHECK}} \
-            -DskipDependencyCheck=${{env.SKIP_DEPENDENCY_CHECK}} \
-            -Dimage.tag=$IMAGE_BRANCH_TAG 
-            
+            -DskipDependencyCheck=true \
+            -Dimage.tag=$IMAGE_BRANCH_TAG
+
     - name: Upload build environment as artifact for failed build
       uses: actions/upload-artifact@v7
       if: ${{ failure() }}
@@ -193,12 +186,47 @@ jobs:
         name: build-failure
         path: .
 
+    - name: Get current date for cache key
+      id: date
+      run: echo "date=$(date +'%Y-%m-%d')" >> $GITHUB_OUTPUT
+
+    - name: Cache Dependency-Check NVD data
+      uses: actions/cache@v6
+      with:
+        path: ~/dependency-check-data
+        key: dependency-check-nvd-${{ runner.os }}-${{ steps.date.outputs.date }}
+        restore-keys: |
+          dependency-check-nvd-${{ runner.os }}-
+
+    - name: Dependency Check
+      env:
+        # Per https://github.com/marketplace/actions/dependency-check, fix JAVA_HOME location for action
+        JAVA_HOME: /opt/jdk
+      uses: dependency-check/Dependency-Check_Action@main
+      continue-on-error: false
+      timeout-minutes: 15
+      with:
+        project: IZG Core
+        path: target
+        format: 'HTML'
+        out: 'target/site'
+        args: >
+          --disableOssIndex
+          --failOnCVSS 7
+          --suppression ./dependency-suppression.xml
+          --nvdApiKey ${{ secrets.NVDAPIKEY }}
+          --disableNuspec
+          --disableNugetconf
+          --disableAssembly
+          --disableCentral
+
     - name: Upload dependency check log
       uses: actions/upload-artifact@v7
-      if: ${{ ! env.SKIP_DEPENDENCY_CHECK }}
+      if: always()
       with:
         name: DependencyCheck
         path: ./target/site/dependency-check-report.html
+        if-no-files-found: ignore
 
     - name: Publish Site (Develop)
       # Publish to /develop/ for: push to develop, PRs targeting develop, scheduled runs, manual dispatch

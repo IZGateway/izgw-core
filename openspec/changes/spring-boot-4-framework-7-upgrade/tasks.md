@@ -434,7 +434,12 @@ _Confirmed low risk — no `@SpringBootApplication`, actuator, or Spring Securit
 - [ ] 6.4 Manual verification: Swagger UI renders correctly (springdoc 3.x) on `izgw-hub`; the
       header-based cert/OCSP path (`CertificatePrincipalProviderImpl` + `AuthenticationEnforcementFilter`)
       still works correctly with a real test certificate, since that's the path carrying actual
-      production weight.
+      production weight. **Update:** the Swagger UI half of this check surfaced a pre-existing bug
+      (IGDD-3084 — `springdoc.swagger-ui.version` hand-pinned in `izgw-hub`'s `application.yml` had
+      drifted from the actual `org.webjars:swagger-ui` version on the classpath, unrelated to this
+      migration but exposed sooner by this migration's `izgw-bom` bump). That bug and its fix are now
+      tracked separately in `igdd-3084-swagger-ui-version-sync/tasks.md` (this directory) — re-run this
+      half of 6.4 once that change's Stage 2 (`izgw-hub`) lands, rather than against the current pin.
 - [ ] 6.5 Update IGDD-2353 with final notes and test results per the IZ Gateway Definition of Done.
 - [ ] 6.6 Separately resolve the open architecture question — is `SSLImplementation`/
       `RevocationTrustManager` (in both `izgw-hub` and `izgw-transform`) fully removable, given it's

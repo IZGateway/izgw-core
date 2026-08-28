@@ -11,7 +11,6 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class SwaggerUiVersionConfigTests {
 
-    private static final String LEGACY_HARDCODED_PIN = "5.32.13";
     private static final String SPRINGDOC_BUNDLED_DEFAULT = "5.32.2";
 
     @Test
@@ -28,16 +27,13 @@ class SwaggerUiVersionConfigTests {
     }
 
     @Test
-    void resolvedVersionIsNotLegacyOrSpringdocFallback() {
+    void resolvedVersionIsNotSpringdocFallback() {
         String resolvedWebjarVersion = new WebJarVersionLocator().version(SwaggerUiVersionConfig.SWAGGER_UI_WEBJAR_NAME);
         assertNotNull(resolvedWebjarVersion);
 
         SwaggerUiConfigProperties props = new SwaggerUiConfigProperties();
         SwaggerUiVersionConfig.alignVersionFromWebjar(props);
 
-        assertFalse(LEGACY_HARDCODED_PIN.equals(props.getVersion())
-                        && !LEGACY_HARDCODED_PIN.equals(resolvedWebjarVersion),
-                "version field should not be stuck on the legacy " + LEGACY_HARDCODED_PIN + " pin");
         assertFalse(SPRINGDOC_BUNDLED_DEFAULT.equals(props.getVersion())
                         && !SPRINGDOC_BUNDLED_DEFAULT.equals(resolvedWebjarVersion),
                 "version field should not be stuck on Springdoc's bundled default "

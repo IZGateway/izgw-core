@@ -356,7 +356,11 @@ public class HubClientFault extends Fault implements HasDestinationUri {
 	 * @return true if the document element indicates an error text
 	 */
 	public static boolean documentElementIsError(Document originalError) {
-		return originalError != null && "ErrorText".equals(originalError.getFirstChild().getNodeName());
+		if (originalError == null) {
+			return false;
+		}
+		Node firstChild = originalError.getFirstChild();
+		return firstChild != null && "ErrorText".equals(firstChild.getNodeName());
 	}
 
 	private static String getDetail(Element documentElement) {

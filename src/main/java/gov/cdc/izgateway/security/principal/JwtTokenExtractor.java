@@ -14,6 +14,11 @@ public class JwtTokenExtractor {
     		log.trace("No JWT token found in Authorization header");
             throw new InvalidJwtTokenException("No valid JWT token in Authorization header");
         }
-        return authHeader.substring(7);
+        String token = authHeader.substring(7).trim();
+        if (token.isEmpty()) {
+    		log.trace("No JWT token found in Authorization header");
+            throw new InvalidJwtTokenException("No valid JWT token in Authorization header");
+        }
+        return token;
     }
 }

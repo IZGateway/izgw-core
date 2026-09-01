@@ -83,4 +83,16 @@ class SwaggerUiVersionConfigTests {
 
         assertEquals("preserved-on-failure", props.getVersion());
     }
+
+    @Test
+    void linkageErrorDuringDetectionLeavesVersionUntouchedAndDoesNotPropagate() {
+        SwaggerUiConfigProperties props = new SwaggerUiConfigProperties();
+        props.setVersion("preserved-on-failure");
+
+        SwaggerUiVersionConfig.alignVersion(props, () -> {
+            throw new NoClassDefFoundError("org/webjars/WebJarVersionLocator");
+        });
+
+        assertEquals("preserved-on-failure", props.getVersion());
+    }
 }

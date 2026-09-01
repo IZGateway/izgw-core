@@ -68,7 +68,7 @@ public final class SwaggerUiVersionConfig {
             }
             props.setVersion(detected);
             log.info("Detected {} webjar version: {}", SWAGGER_UI_WEBJAR_NAME, detected);
-        } catch (Throwable e) {
+        } catch (Exception | LinkageError e) {
             log.warn("Failed to detect {} webjar version; leaving existing Springdoc swagger-ui version in place", SWAGGER_UI_WEBJAR_NAME, e);
         }
     }

@@ -18,12 +18,12 @@ public class JwtTokenExtractor {
         String authHeader = request.getHeader("Authorization");
         if (authHeader == null || !authHeader.startsWith("Bearer ")) {
     		log.trace("No JWT token found in Authorization header");
-            throw new InvalidJwtTokenException("No valid JWT token in Authorization header");
+            throw new MissingJwtTokenException("No valid JWT token in Authorization header");
         }
         String token = authHeader.substring(7).trim();
         if (token.isEmpty() || !isJwtFormat(token)) {
     		log.trace("No JWT token found in Authorization header");
-            throw new InvalidJwtTokenException("No valid JWT token in Authorization header");
+            throw new MissingJwtTokenException("No valid JWT token in Authorization header");
         }
         return token;
     }

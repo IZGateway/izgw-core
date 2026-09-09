@@ -124,7 +124,7 @@ public abstract class AbstractJwtPrincipalProvider implements JwtPrincipalProvid
                     scopeToRoleMapper
             );
 
-        } catch (InvalidJwtTokenException e) {
+        } catch (MissingJwtTokenException e) {
         	// Logged when originally thrown, no need to log again
             return null;
         } catch (Exception e) {

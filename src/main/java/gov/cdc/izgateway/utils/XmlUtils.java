@@ -28,12 +28,16 @@ import org.w3c.dom.Node;
 import org.xml.sax.InputSource;
 
 public class XmlUtils {
-	private static DocumentBuilder documentBuilder = getDocumentBuilder();
+	// DocumentBuilder is not guaranteed thread-safe by the JAXP spec. A single shared static
+	// instance can corrupt its internal DOM-building state under concurrent parse() calls,
+	// e.g., returning a Document that appears successfully parsed but has no children.
+	// Give each thread its own instance instead of sharing one across all request threads.
+	private static final ThreadLocal<DocumentBuilder> DOCUMENT_BUILDER = ThreadLocal.withInitial(XmlUtils::getDocumentBuilder);
 	private XmlUtils() {}
 	/**
      * Get a properly configured DocumentBuilder that is not subject to
      * 1000 laughs attack.
-     * 
+     *
      */
     static DocumentBuilder getDocumentBuilder() {
         try {
@@ -44,7 +48,7 @@ public class XmlUtils {
             factory.setCoalescing(true);
             return factory.newDocumentBuilder();
         } catch (ParserConfigurationException e) {
-            return null;                
+            return null;
         }
     }
 
@@ -54,6 +58,7 @@ public class XmlUtils {
      * @return	The parsed document, or null if the string was empty, or there was any sort of error
      */
     public static Document parseDocument(String s) {
+        DocumentBuilder documentBuilder = DOCUMENT_BUILDER.get();
         if (documentBuilder == null || StringUtils.isBlank(s)) {
             return null;
         }

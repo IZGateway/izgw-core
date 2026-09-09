@@ -1,3 +1,11 @@
+## [3.6.0] - 2026-09-09
+
+### Changes
+- chore: Bump izgw-bom to 1.15.0 for release ([#100](https://github.com/IZGateway/izgw-core/pull/100))
+- IGDD-3372 Changing an exception name to be more applicable to its purpose. ([#99](https://github.com/IZGateway/izgw-core/pull/99))
+- chore(deps): bump actions/setup-java from 5 to 6 ([#96](https://github.com/IZGateway/izgw-core/pull/96))
+- IGDD-3372 Code change to only consider a Bearer token if it has a valid JWT structure. ([#98](https://github.com/IZGateway/izgw-core/pull/98))
+
 ## [3.5.0] - 2026-08-26
 
 ### Changes

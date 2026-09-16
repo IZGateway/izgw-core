@@ -241,10 +241,16 @@ copy (`xform/common/ContainerCustomizer.java`, different valve dependencies) —
       freshly-fetched `izgw-core` develop (29 commits behind; `pom.xml` was the only conflict).
       The published `1.17.0-SNAPSHOT` resolves from GitHub Packages, so the local `mvn install` of
       `izgw-bom` noted under Stage 1 is no longer required. `izgw-core`'s own version moved with
-      develop's new baseline: `3.5.1-IGDD-2353_spring_upgrade-SNAPSHOT` ->
-      `3.7.0-IGDD-2353_spring_upgrade-SNAPSHOT`. Stages 3-5 still pin the retired
-      `1.15.0-SNAPSHOT` (tasks 3.1, 4.1, 5.1) and the retired `izgw-core` label (task 3.2) — those
-      repos are being updated separately.
+      develop's new baseline (`3.5.1-IGDD-2353_spring_upgrade-SNAPSHOT` ->
+      `3.7.0-IGDD-2353_spring_upgrade-SNAPSHOT`), then was **manually bumped to `3.8.0-SNAPSHOT`**
+      (user direction 2026-09-16) — a minor bump past develop's `3.7.0-SNAPSHOT`, deliberately
+      without the ticket suffix the pom comment's working-branch convention calls for. Downstream
+      repos must pin `izgw-core 3.8.0-SNAPSHOT`. Note for Stage 6: because the suffix is dropped,
+      this label is no longer branch-isolated — if `develop` also reaches `3.8.0-SNAPSHOT` before
+      this merges, both would publish to the same snapshot coordinates. Stages 3-5 still pin the
+      retired `1.15.0-SNAPSHOT` (tasks 3.1, 4.1, 5.1) and a stale `izgw-core` version (task 3.2,
+      and `izgw-hub`/`izgw-transform` are currently on `3.6.0-SNAPSHOT`, which predates
+      `HttpStatusException` and will not compile) — those repos are being updated separately.
 - [x] 2.2 Drop the `javax.xml.ws:jaxws-api:2.3.1` dependency; replace `javax.xml.ws.http.HTTPException`
       usage in `ExternalTokenStore.java` with a small custom exception class. **Done 2026-08-24.**
       Created `gov.cdc.izgateway.common.HttpStatusException` (matches the style of the existing

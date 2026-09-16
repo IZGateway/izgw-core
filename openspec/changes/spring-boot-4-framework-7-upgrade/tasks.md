@@ -235,6 +235,16 @@ copy (`xform/common/ContainerCustomizer.java`, different valve dependencies) —
       (same branch used for the OpenSpec change commit).
 - [x] 2.1 Bump `izgw-core/pom.xml` `<parent>` (`izgw-bom`) version to Stage 1's working version
       (`1.15.0-SNAPSHOT`). **Done 2026-08-24.**
+      **Corrected 2026-09-16: now `1.17.0-SNAPSHOT`.** Stage 1 merged to `izgw-bom` develop
+      (PR #182) and was renumbered `1.15.0-SNAPSHOT` -> `1.17.0-SNAPSHOT` in the process, so the
+      interim local-only label no longer exists. Picked up while rebasing this branch onto a
+      freshly-fetched `izgw-core` develop (29 commits behind; `pom.xml` was the only conflict).
+      The published `1.17.0-SNAPSHOT` resolves from GitHub Packages, so the local `mvn install` of
+      `izgw-bom` noted under Stage 1 is no longer required. `izgw-core`'s own version moved with
+      develop's new baseline: `3.5.1-IGDD-2353_spring_upgrade-SNAPSHOT` ->
+      `3.7.0-IGDD-2353_spring_upgrade-SNAPSHOT`. Stages 3-5 still pin the retired
+      `1.15.0-SNAPSHOT` (tasks 3.1, 4.1, 5.1) and the retired `izgw-core` label (task 3.2) — those
+      repos are being updated separately.
 - [x] 2.2 Drop the `javax.xml.ws:jaxws-api:2.3.1` dependency; replace `javax.xml.ws.http.HTTPException`
       usage in `ExternalTokenStore.java` with a small custom exception class. **Done 2026-08-24.**
       Created `gov.cdc.izgateway.common.HttpStatusException` (matches the style of the existing
@@ -455,7 +465,7 @@ _Confirmed low risk — no `@SpringBootApplication`, actuator, or Spring Securit
 | Stage | Repo | Description | Status |
 |---|---|---|---|
 | 0 | izgw-hub, v2tofhir | Immediate, independent fixes | Done (local, unpushed) |
-| 1 | izgw-bom | Coordinated version bump (Boot 4.1.1, Framework 7.0.9, Security 7.1.1, Tomcat 11.0.24, springdoc 3.1.0, Camel 4.20.0) + Jackson2 shim | Done (local, installed, unpushed) |
+| 1 | izgw-bom | Coordinated version bump (Boot 4.1.1, Framework 7.0.9, Security 7.1.1, Tomcat 11.0.25, springdoc 3.1.0, Camel 4.22.0) + Jackson2 shim | Done (local, installed, unpushed) |
 | 2 | izgw-core | Consume new BOM, cleanup, Tomcat rename, release | Done (local, installed, unpushed) |
 | 3 | izgw-hub | Consume new core/BOM, Tomcat package move + rename, verify deploy | Done locally; DynamoDB-backed boot verification pending CI |
 | 4 | izgw-transform | Same Tomcat fixes as izgw-hub, Camel SPI review, verify deploy | Done locally (252/252 tests, incl. Camel 4.22.0 CVE fix) |

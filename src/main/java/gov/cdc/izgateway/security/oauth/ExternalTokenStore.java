@@ -3,6 +3,7 @@ package gov.cdc.izgateway.security.oauth;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
+import gov.cdc.izgateway.common.HttpStatusException;
 import gov.cdc.izgateway.logging.markers.Markers2;
 import gov.cdc.izgateway.security.ClientTlsSupport;
 import gov.cdc.izgateway.utils.CapturingSSLSocketFactory;
@@ -26,7 +27,6 @@ import java.util.Map;
 import java.util.TreeMap;
 import javax.net.ssl.HttpsURLConnection;
 import javax.net.ssl.SSLSocketFactory;
-import javax.xml.ws.http.HTTPException;
 
 @Slf4j
 @Data
@@ -83,7 +83,7 @@ public class ExternalTokenStore extends SimpleTokenStore {
 	}
     
     @SuppressWarnings("serial")
-    public static class OAuthReportedHttpException extends HTTPException { // NOSONAR, depth of class hierarchy OK
+    public static class OAuthReportedHttpException extends HttpStatusException { // NOSONAR, depth of class hierarchy OK
         private final String body;
         private final String msg;
         private OAuthReportedHttpException(int responseCode, String body) {

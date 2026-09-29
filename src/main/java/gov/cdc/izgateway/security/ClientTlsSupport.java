@@ -29,7 +29,7 @@ import javax.net.ssl.X509ExtendedTrustManager;
 
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.Strings;
-import org.apache.coyote.http11.AbstractHttp11JsseProtocol;
+import org.apache.coyote.http11.AbstractHttp11Protocol;
 import org.bouncycastle.jsse.util.URLConnectionUtil;
 import org.springframework.beans.factory.InitializingBean;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -62,12 +62,12 @@ public class ClientTlsSupport implements InitializingBean {
      */
     public static class SslReloader {
     	private SslReloader() {}
-    	private static AbstractHttp11JsseProtocol<?> protocol;
+    	private static AbstractHttp11Protocol<?> protocol;
     	/** 
     	 * Set the protocol to be reloaded when SSL material changes.
     	 * @param protocol	The protocol to be reloaded.
     	 */
-    	public static void setProtocol(AbstractHttp11JsseProtocol<?> protocol) {
+    	public static void setProtocol(AbstractHttp11Protocol<?> protocol) {
     		SslReloader.protocol = protocol;
     	}
     	/**

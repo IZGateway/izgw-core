@@ -230,7 +230,7 @@ public abstract class SoapControllerBase {
 			value = h.getHl7Message();
 			tData.setResponseHL7Message(value);
 		}
-		tData.setResponsePayloadSize(value.length());
+		tData.setResponsePayloadSize(StringUtils.length(value));
 		tData.getServerResponse().setWs_response_message(new MessageInfo(body, EndpointType.SERVER, Direction.OUTBOUND, AppProperties.isProduction()));
 	}
 

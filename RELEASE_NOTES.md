@@ -1,3 +1,13 @@
+## [3.8.0] - 2026-09-29
+
+### Changes
+- Allow release-note fallback when no PRs match (#103) (b0eef1c91)
+- Update pom.xml to use bom 1.17.0 (a5fecbe1f)
+- Migrate izgw-core to Spring Boot 4 / Framework 7 / Tomcat 11 (IGDD-2353) (#102) (f9586e3f2)
+- fix: update response payload size calculation to use StringUtils.length (#101) (39bb81ad4)
+- chore: Bump izgw-bom to latest snapshot post-release (71443b6b4)
+- chore: bump version to 3.7.0-SNAPSHOT (90daa74bf)
+
 ## [3.6.0] - 2026-09-09
 
 ### Changes

@@ -15,6 +15,48 @@ created:
     design.md for IGDD-3582: connector-customizer approach, izgw-hub cleanup
     scope, 3-checkpoint verification
 updated:
+  - date: '2026-10-14T23:16:16.419Z'
+    user: boonek
+    agent:
+      name: claude-code
+      version: '2.0'
+    llm:
+      name: claude-sonnet-5
+      version: claude-sonnet-5
+    prompt_uri: >-
+      prompt:/claude-code/7b62e482-c255-4291-b97d-980994f07e6c/~d5068f81-ab71-437d-9280-82b52d488ea5
+    summary: >-
+      Document the SSLImplementation correction in Decision 4: why hub's cleanup
+      is still fully safe; Retry stale @TempDir reference fix that silently
+      failed in background earlier
+  - date: '2026-10-14T23:02:04.005Z'
+    user: boonek
+    agent:
+      name: claude-code
+      version: '2.0'
+    llm:
+      name: claude-sonnet-5
+      version: claude-sonnet-5
+    prompt_uri: >-
+      prompt:/claude-code/7b62e482-c255-4291-b97d-980994f07e6c/~f23c6b4e-d333-4cbb-b6c8-2137fd86d225
+    summary: >-
+      Document the concrete ticket-qualified SNAPSHOT versioning mechanism in
+      Migration Plan
+  - date: '2026-10-14T22:48:50.258Z'
+    user: boonek
+    agent:
+      name: claude-code
+      version: '2.0'
+    llm:
+      name: claude-sonnet-5
+      version: claude-sonnet-5
+    prompt_uri: >-
+      prompt:/claude-code/7b62e482-c255-4291-b97d-980994f07e6c/~22667ddd-2adf-4255-bb6b-cb94ef730d23
+    summary: >-
+      Correct design.md: only override server.ssl.*, not client.ssl.* which
+      broke the Elastic status checker in CI; Correct design.md: manual temp dir
+      creation, not @TempDir annotation, due to DynamicPropertySource timing;
+      Correct HTTP method: /rest/trust?reload=true is GET, not POST
   - date: '2026-10-14T22:27:59.529Z'
     user: boonek
     agent:
@@ -183,12 +225,26 @@ itself adopted in 3.4.2 for the identical Tomcat 11 removal of
 `AbstractHttp11JsseProtocol` (spring-boot#43849). Reusing an already-validated
 pattern rather than inventing a new one.
 
-### 4. `izgw-hub` cleanup scope is narrow and mechanical
+### 4. `izgw-hub` cleanup scope is narrow and mechanical — with one correction
 Remove exactly: the `protocol` field, `reloadSsl()` method, `customizeConnector()`
 method, and the `reloadConnectorCustomizer` `@Bean` method in `Application.java`,
 plus any imports that become unused as a result. Leave the rest of the Tomcat
 factory wiring (`getConnectorCustomizers().addAll(...)` and friends) untouched —
 that machinery is exactly what picks up `izgw-core`'s new bean.
+
+**Correction found while implementing Decision 1's bean (not while planning
+this one):** `customizeConnector()` is not purely dead code — alongside the
+dead `Application.protocol = jsse` assignment, it also calls
+`jsse.setSslImplementationName(SSLImplementation.class.getName())`, the only
+place that wires the server's connector to this library's OCSP-aware
+`SSLImplementation`/`RevocationTrustManager` for inbound client-cert
+validation. Deleting the whole method as originally scoped would have quietly
+regressed that live behavior. Since `SSLImplementation` already lives in
+`izgw-core` (same package as `ClientTlsSupport`), `sslReloadConnectorCustomizer()`
+absorbs both responsibilities — it sets the SSL implementation name *and*
+registers the reload hook — so `izgw-hub`'s version really is now fully,
+safely removable exactly as this decision originally described; the removal
+scope itself didn't change, only the justification for why it's safe.
 
 ### 5. Verification is a JUnit test, not a script — modeled on `ApplicationTests`
 `izgw-hub` already has a proven pattern for booting the *real* application in a
@@ -215,9 +271,14 @@ Sequence, performed inside the single `@Test` method:
    self-signed server keystores and one self-signed admin client cert — all
    pure Java via BC-FIPS (`TlsTestKeystoreFactory`, backed by
    `JcaX509v3CertificateBuilder`/`JcaContentSignerBuilder`, no `keytool`/`openssl`
-   subprocess) — and overrides `server.ssl.key-store`/`trust-store` and
-   `client.ssl.key-store`/`trust-store` to all point at the one generated
-   baseline keystore file in a JUnit `@TempDir`, with a harness-local password.
+   subprocess) — and overrides only `server.ssl.key-store`/`trust-store` to
+   point at the one generated baseline keystore file in a manually-created temp
+   directory, with a harness-local password. Deliberately *not* overriding
+   `client.ssl.*`: that governs the application's own outbound calls to other
+   services (confirmed the hard way — overriding it broke
+   `ElasticStatusRepository`'s unrelated background status check, which the
+   app treated as fatal). `client.ssl.*` keeps using its real, CI-provided
+   configuration, same as `ApplicationTests` already relies on.
 2. The real application boots against that file (same mechanism `ApplicationTests`
    already relies on for everything else, including whatever lets it avoid
    needing a *second* real environment's worth of config).
@@ -228,7 +289,7 @@ Sequence, performed inside the single `@Test` method:
    `Files.move(..., ATOMIC_MOVE, REPLACE_EXISTING)`) with a second, freshly
    generated keystore (same DN, new key pair/serial) — a plain local file
    operation, since the JUnit process itself owns the temp directory.
-5. Call `POST /rest/trust?reload=true` (mTLS, presenting the generated admin
+5. Call `GET /rest/trust?reload=true` (mTLS, presenting the generated admin
    client cert) to force immediate change-detection, exactly as a real operator
    forcing a reload would — this calls `tlsSupport.updateTrust()` directly
    rather than waiting out the scheduler's monitoring period.
@@ -255,7 +316,12 @@ Windows dev loop and Linux CI containers).
 
 ### 6. Test key material is generated fresh on every run, never checked in
 No new binary fixture files are added to `conf/ssl/`, and nothing is written
-outside the JUnit `@TempDir`. Checking in static pre-generated keystores would
+outside a temp directory created and cleaned up by the test itself (`Files.createTempDirectory`,
+not JUnit's `@TempDir` annotation — that field-injection extension runs too late
+to be available to `@DynamicPropertySource`, which executes earlier during
+Spring's context-preparation phase; confirmed by an earlier version of this test
+writing its keystore into the project's working directory instead). Checking in
+static pre-generated keystores would
 just reintroduce this CR's own bug class into the test itself — a fixed-validity
 cert that, given enough time, expires and starts failing the test for the wrong
 reason, with nobody noticing until it does.
@@ -268,7 +334,7 @@ reason, with nobody noticing until it does.
   attribute is omitted as not behaviorally relevant), so each run gets fresh,
   distinct serials.
 - Both share one harness-local, intentionally trivial password (`password`) —
-  used only within that run's `@TempDir`, never the real `awsdev_keystore.bcfks`'s
+  used only within that run's temp directory, never the real `awsdev_keystore.bcfks`'s
   `COMMON_PASS` (a CI-only secret this test has no business needing).
 - `TlsTestKeystoreFactoryTests` is a standalone JUnit test (no Spring context, no
   AWS dependency) that exercises the factory directly — generate, write, reload,
@@ -320,8 +386,22 @@ suite, which it does not touch.
 ## Migration Plan
 
 - Code-only change. No data migration, no new config/env vars, no schema changes.
-- Deploy order: merge `izgw-core` first (new version published), then bump
-  `izgw-hub`'s `izgw-core` dependency to that version before merging the
+- Versioning during this CR's verification: `izgw-core`'s `pom.xml` follows an
+  existing documented convention (`pom.xml` lines 13-15) where a working branch
+  is versioned `<major>.<minor>.<patch>-IGDD-<ticket#>_<ticket-title>-SNAPSHOT`.
+  This branch is bumped to `3.9.1-IGDD-3582_Fix_Private_Key_Update_Bug-SNAPSHOT`
+  (develop is currently `3.9.0-SNAPSHOT`). `izgw-core`'s CI (`maven.yml`) runs
+  `mvn ... deploy` on every `push` *and* `pull_request` against `develop`, so
+  opening a PR for this branch publishes that exact coordinate to GitHub
+  Packages — uniquely qualified, so it can't collide with `develop`'s own
+  SNAPSHOT or any other ticket branch's build. `izgw-hub` pins an explicit
+  released `izgw-core` version (`3.8.0`), not a floating SNAPSHOT, so a local
+  `mvn install` can never substitute for this — CI always resolves fresh from
+  GitHub Packages.
+- Deploy order (matches this project's established cross-repo pattern, e.g.
+  `IGDD-3089`): merge `izgw-core` first, then point `izgw-hub` at the real
+  released version (not the ticket-qualified verification SNAPSHOT, which gets
+  reset once `izgw-core`'s fix is actually merged/released) before merging the
   `izgw-hub` cleanup + verification-test PR.
 - Rollback: the two PRs can be reverted independently if needed — the removed
   `izgw-hub` dead code was never reachable, so reverting just the `izgw-core`

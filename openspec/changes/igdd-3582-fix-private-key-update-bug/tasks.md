@@ -15,6 +15,50 @@ created:
     tasks.md for IGDD-3582: 3-checkpoint verification sequence interleaved with
     fix and cleanup
 updated:
+  - date: '2026-10-14T23:16:27.242Z'
+    user: boonek
+    agent:
+      name: claude-code
+      version: '2.0'
+    llm:
+      name: claude-sonnet-5
+      version: claude-sonnet-5
+    prompt_uri: >-
+      prompt:/claude-code/7b62e482-c255-4291-b97d-980994f07e6c/~d5068f81-ab71-437d-9280-82b52d488ea5
+    summary: >-
+      Check off tasks 2.1-2.2: core fix implemented and tested, with the
+      SSLImplementation scope correction documented; Remove Group 6: superfluous
+      now that TlsCertHotReloadTests runs automatically via Surefire's
+      **/*Tests.java convention, confirmed by CI already running it with no
+      extra wiring
+  - date: '2026-10-14T23:01:44.681Z'
+    user: boonek
+    agent:
+      name: claude-code
+      version: '2.0'
+    llm:
+      name: claude-sonnet-5
+      version: claude-sonnet-5
+    prompt_uri: >-
+      prompt:/claude-code/7b62e482-c255-4291-b97d-980994f07e6c/~f23c6b4e-d333-4cbb-b6c8-2137fd86d225
+    summary: >-
+      Document real versioning/publishing mechanism for checkpoint 2/3:
+      ticket-qualified SNAPSHOT per repo convention, izgw-hub pom bump, standard
+      cross-repo merge-core-first pattern
+  - date: '2026-10-14T22:51:31.008Z'
+    user: boonek
+    agent:
+      name: claude-code
+      version: '2.0'
+    llm:
+      name: claude-sonnet-5
+      version: claude-sonnet-5
+    prompt_uri: >-
+      prompt:/claude-code/7b62e482-c255-4291-b97d-980994f07e6c/~22667ddd-2adf-4255-bb6b-cb94ef730d23
+    summary: >-
+      Correct HTTP method: /rest/trust?reload=true is GET, not POST; Check off
+      task 1.4: checkpoint 1 (red) confirmed cleanly in CI after fixing 3 real
+      test bugs
   - date: '2026-10-14T22:29:05.055Z'
     user: boonek
     agent:
@@ -93,40 +137,80 @@ document_type:
       client cert into a `@TempDir` and points `server.ssl.*`/`client.ssl.*` at
       them; the test connects over HTTPS, captures the served certificate's
       serial, atomically rotates the keystore file, calls
-      `POST /rest/trust?reload=true` (mTLS, admin client cert) to force
+      `GET /rest/trust?reload=true` (mTLS, admin client cert) to force
       detection, reconnects, and asserts the newly served serial matches the
       rotated keystore. Verify: compiles (`mvn test-compile`) — confirmed.
-- [ ] 1.4 Run `TlsCertHotReloadTests` against the current, unmodified `develop`
-      tip of both repos. **Checkpoint 1 (red):** attempted locally — confirmed
-      it fails for the expected reason (`Application.main()`'s own
-      `System.exit(1)` on the real app's `BeanCreationException` when DynamoDB
-      credentials aren't available locally, the same requirement
-      `ApplicationTests` already has — no surefire report/dump written,
-      consistent with an abrupt JVM exit rather than a bug in the new test).
-      This specific checkpoint's clean red signal (assertion failure showing the
-      serial unchanged, not an environment crash) requires CI, which already has
-      the AWS/Elastic access this needs — record the actual CI run result here
-      once the PR in Group 6 is open.
+- [x] 1.4 Run `TlsCertHotReloadTests` against the current, unmodified `develop`
+      tip of both repos. **Checkpoint 1 (red): confirmed in CI**
+      ([izgw-hub#202](https://github.com/IZGateway/izgw-hub/pull/202), run
+      [38650130755](https://github.com/IZGateway/izgw-hub/actions/runs/38650130755)):
+      `org.opentest4j.AssertionFailedError: Server is still presenting the
+      pre-rotation certificate -- hot reload did not happen ==> expected: not
+      equal but was: <333026737942>`. The admin reload call itself returned
+      `200 OK` (auth and trigger both worked); the server's next TLS handshake
+      still presented the pre-rotation serial — reproduces IGDD-3582 exactly.
+      Took 3 iterations to reach this clean signal in CI (each fixed a real,
+      unrelated bug in the test itself, not the application): a port collision
+      with `ApplicationTests` on the fixed `server.local-port` (9081) under
+      Surefire's `reuseForks=true`; an over-broad `client.ssl.*` override that
+      broke `ElasticStatusRepository`'s unrelated outbound status check; and a
+      wrong HTTP method (`TrustController.getTrust()` is `@GetMapping`, not
+      POST). Local attempts never got this far — they fail earlier, via
+      `Application.main()`'s `System.exit(1)` on missing local AWS credentials
+      (the same requirement `ApplicationTests` already has).
 
 ## 2. Implement the izgw-core fix
 
-- [ ] 2.1 Add `sslReloadConnectorCustomizer()` `@Bean` to `ClientTlsSupport`
+- [x] 2.1 Add `sslReloadConnectorCustomizer()` `@Bean` to `ClientTlsSupport`
       (guard on `"https".equals(connector.getScheme())`, cast
       `connector.getProtocolHandler()` to `AbstractHttp11Protocol<?>`, call
       `SslReloader.setProtocol(...)`), with Javadoc per `java-maven-style`.
-      Verify: `mvn clean package` compiles.
-- [ ] 2.2 Add a unit test asserting the customizer calls
-      `SslReloader.setProtocol(...)` with the connector's protocol handler when
-      given an HTTPS connector, and does nothing for a non-HTTPS connector.
-      Verify: `mvn test -Dtest=<NewTestClass>` passes.
-- [ ] 2.3 `mvn install` this branch locally so `izgw-hub` can build against the
-      fixed snapshot. Verify: updated jar timestamp in the local `.m2` repo.
+      **Scope correction found while implementing:** `izgw-hub`'s
+      `Application.customizeConnector()` (the method Group 4 planned to delete
+      outright) is not purely dead — it also calls
+      `jsse.setSslImplementationName(SSLImplementation.class.getName())`,
+      the *only* place that wires the server's connector to this library's
+      OCSP-aware `SSLImplementation`/`RevocationTrustManager` for inbound
+      client-cert validation. Deleting the whole method per the original plan
+      would have silently regressed that. Since `SSLImplementation` already
+      lives in `izgw-core`, the new customizer absorbs both responsibilities
+      (sets the SSL implementation name *and* registers the reload hook),
+      making `izgw-hub`'s version fully, safely removable in Group 4 after
+      all. Verify: `mvn compile` succeeds — confirmed.
+- [x] 2.2 Add `ClientTlsSupportTests` (3 cases, Mockito): HTTPS connector gets
+      both `setSslImplementationName(...)` and the reload hook wired (verified
+      indirectly — `SslReloader` has no getter by design, so confirmed by
+      calling `reloadSsl()` afterward and verifying it delegates to the same
+      mock handler); non-HTTPS connector is ignored (`getProtocolHandler()`
+      never called); HTTPS connector with a non-`AbstractHttp11Protocol`
+      handler is ignored without throwing. Verify: `mvn test
+      -Dtest=ClientTlsSupportTests` passes — confirmed (3/3, 0 failures).
+- [x] 2.3 Bump `izgw-core`'s `pom.xml` `<version>` to
+      `3.9.1-IGDD-3582_Fix_Private_Key_Update_Bug-SNAPSHOT`, per this repo's own
+      documented convention (`pom.xml` lines 13-15: working branches are
+      labeled `<major>.<minor>.<patch>-IGDD-<ticket#>_<ticket-title>-SNAPSHOT`).
+      `izgw-hub` pins an explicit released version (`3.8.0`), not a floating
+      SNAPSHOT, so a local `mvn install` alone can never make CI pick up the
+      fix — CI resolves `izgw-core` fresh from GitHub Packages on every run.
+      `izgw-core`'s own CI (`maven.yml`) runs `mvn ... deploy` on every `push`
+      *and* `pull_request` against `develop`, so opening a PR for this branch
+      publishes this exact, uniquely-qualified SNAPSHOT coordinate to GitHub
+      Packages automatically — distinct from `develop`'s own `3.9.0-SNAPSHOT`,
+      so it can't collide with that or any other ticket branch's build. Verify:
+      PR opened for this branch; confirm the new version appears under
+      `gov.cdc.izgw.izgw-core` in GitHub Packages after CI runs.
 
 ## 3. Prove the core fix alone (izgw-hub, cleanup not yet applied)
 
-- [ ] 3.1 Point `izgw-hub`'s `pom.xml`/dependency resolution at the fixed
-      `izgw-core` snapshot from 2.3, without touching `Application.java` yet.
-      Verify: `mvn clean package` succeeds.
+- [ ] 3.1 Point `izgw-hub`'s `pom.xml` `izgw-core` dependency at
+      `3.9.1-IGDD-3582_Fix_Private_Key_Update_Bug-SNAPSHOT` (from 2.3), without
+      touching `Application.java` yet. This is a temporary pin for this CR's
+      verification only — per this project's established cross-repo pattern
+      (see `IGDD-3089` in `projects-in-progress.md`: merge `izgw-core` first,
+      then point `izgw-hub` at the real released version, then merge `izgw-hub`),
+      `izgw-hub`'s dependency gets reset to a proper released version once
+      `izgw-core`'s fix is actually merged and released. Verify: `mvn clean
+      package` succeeds, and CI resolves the new coordinate successfully.
 - [ ] 3.2 Re-run `TlsCertHotReloadTests` (via CI, same as 1.4). **Checkpoint 2
       (green):** verify the test passes — the post-rotation serial now matches
       the rotated keystore — record the CI run result as evidence.
@@ -147,13 +231,6 @@ document_type:
       fix and the hub cleanup applied. **Checkpoint 3 (green):** verify the
       post-rotation serial still matches the rotated keystore's serial —
       record the result as evidence that the cleanup is safe.
-
-## 6. Wire the verification into CI as a standalone step
-
-- [ ] 6.1 Add a new, separate job/step (not folded into the existing `verify`
-      job) in `izgw-hub`'s CI that runs `tls_hot_reload_test.sh` against an
-      ephemeral local/Docker instance. Verify: the new job runs green on this
-      branch's own PR.
 
 ## Workflow follow-up
 

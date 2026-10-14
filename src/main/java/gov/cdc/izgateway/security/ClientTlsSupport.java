@@ -27,12 +27,16 @@ import javax.net.ssl.TrustManager;
 import javax.net.ssl.TrustManagerFactory;
 import javax.net.ssl.X509ExtendedTrustManager;
 
+import org.apache.catalina.connector.Connector;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.Strings;
+import org.apache.coyote.ProtocolHandler;
 import org.apache.coyote.http11.AbstractHttp11Protocol;
 import org.bouncycastle.jsse.util.URLConnectionUtil;
 import org.springframework.beans.factory.InitializingBean;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.tomcat.TomcatConnectorCustomizer;
+import org.springframework.context.annotation.Bean;
 import org.springframework.stereotype.Component;
 
 import gov.cdc.izgateway.logging.markers.Markers2;
@@ -121,6 +125,32 @@ public class ClientTlsSupport implements InitializingBean {
 			config.getMonitoringPeriod(), 		// Initially wait for one monitoring period
 			config.getMonitoringPeriod(), 		// But then monitoring at usual rate
 			TimeUnit.SECONDS);					// specified in sections
+	}
+
+	/**
+	 * Customizes the embedded Tomcat HTTPS connector: wires this library's OCSP-aware
+	 * {@link SSLImplementation}, and registers the connector's real protocol handler with
+	 * {@link SslReloader} so a later keystore change can be hot-reloaded without a restart.
+	 * Applied automatically by Spring Boot's {@code TomcatServletWebServerFactory}, which
+	 * collects every {@code TomcatConnectorCustomizer} bean in the application context --
+	 * no wiring is required in any consuming application.
+	 *
+	 * @return The connector customizer.
+	 */
+	@Bean
+	public TomcatConnectorCustomizer sslReloadConnectorCustomizer() {
+		return ClientTlsSupport::customizeConnector;
+	}
+
+	private static void customizeConnector(Connector connector) {
+		if (!"https".equals(connector.getScheme())) {
+			return;
+		}
+		ProtocolHandler handler = connector.getProtocolHandler();
+		if (handler instanceof AbstractHttp11Protocol<?> jsse) {
+			jsse.setSslImplementationName(SSLImplementation.class.getName());
+			SslReloader.setProtocol(jsse);
+		}
 	}
 
     /**

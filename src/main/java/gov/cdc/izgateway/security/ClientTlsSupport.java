@@ -72,12 +72,14 @@ public class ClientTlsSupport implements InitializingBean {
     	 * @param protocol	The protocol to be reloaded.
     	 */
     	public static void setProtocol(AbstractHttp11Protocol<?> protocol) {
+    		log.info("DIAGNOSTIC: SslReloader.setProtocol called with {}", protocol);
     		SslReloader.protocol = protocol;
     	}
     	/**
-    	 * Reload 
+    	 * Reload
     	 */
     	public static void reloadSsl() {
+    		log.info("DIAGNOSTIC: SslReloader.reloadSsl called, protocol={}", protocol);
     		if (protocol != null) {
     			protocol.reloadSslHostConfigs();
     		}
@@ -143,10 +145,13 @@ public class ClientTlsSupport implements InitializingBean {
 	}
 
 	private static void customizeConnector(Connector connector) {
+		log.info("DIAGNOSTIC: customizeConnector called, scheme={}", connector.getScheme());
 		if (!"https".equals(connector.getScheme())) {
 			return;
 		}
 		ProtocolHandler handler = connector.getProtocolHandler();
+		log.info("DIAGNOSTIC: customizeConnector handler={}, isAbstractHttp11Protocol={}",
+				handler, handler instanceof AbstractHttp11Protocol<?>);
 		if (handler instanceof AbstractHttp11Protocol<?> jsse) {
 			jsse.setSslImplementationName(SSLImplementation.class.getName());
 			SslReloader.setProtocol(jsse);

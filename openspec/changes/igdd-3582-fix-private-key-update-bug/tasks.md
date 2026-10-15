@@ -15,6 +15,21 @@ created:
     tasks.md for IGDD-3582: 3-checkpoint verification sequence interleaved with
     fix and cleanup
 updated:
+  - date: '2026-10-15T02:31:59.385Z'
+    user: boonek
+    agent:
+      name: claude-code
+      version: '2.0'
+    llm:
+      name: claude-sonnet-5
+      version: claude-sonnet-5
+    prompt_uri: >-
+      prompt:/claude-code/7b62e482-c255-4291-b97d-980994f07e6c/~2f25ea5d-4fc6-4e50-8a60-b12d27bb3dc5
+    summary: >-
+      Mark checkpoint 1 accepted from the pre-rewrite run per explicit user
+      decision, not re-confirmed against the rewritten test; Mark Groups 3-5
+      complete with CI evidence; document the TrustManagerProvider and CodeQL
+      regressions found and fixed during verification
   - date: '2026-10-15T00:47:56.628Z'
     user: boonek
     agent:
@@ -166,19 +181,20 @@ document_type:
       (see design.md Context) made that mechanism provably unfixable; see
       task 1.4 for why checkpoint 1 had to be re-run against this rewritten
       test. Verify: compiles (`mvn test-compile`) — confirmed.
-- [ ] 1.4 Run the rewritten `TlsCertHotReloadTests` (task 1.3) against the
-      current, unmodified `develop` tip of both repos (legacy
-      `server.ssl.key-store` properties, no bundle). **Checkpoint 1 (red) --
-      needs re-confirmation**: an earlier checkpoint-1 run was recorded against
-      the pre-rewrite test (the `server.ssl.*`/`client.ssl.*` +
-      `GET /rest/trust?reload=true` version), which did correctly reproduce
-      IGDD-3582 under its own (also-broken) mechanism, but that evidence no
-      longer applies to the test as it will actually ship -- it must be
-      re-established against the rewritten test described in 1.3. Expect the
-      post-rotation serial to still match the baseline even after the full
-      10s poll timeout, since legacy `server.ssl.key-store` properties get no
-      update-handler wiring from Spring Boot at all. Verify: CI run recorded
-      as evidence.
+- [x] 1.4 **Checkpoint 1 (red): accepted from the pre-rewrite run, not
+      re-confirmed against the rewritten test.** An earlier run
+      ([izgw-hub#202](https://github.com/IZGateway/izgw-hub/pull/202), run
+      [38650130755](https://github.com/IZGateway/izgw-hub/actions/runs/38650130755))
+      correctly reproduced IGDD-3582 against the pre-rewrite test (the
+      `server.ssl.*`/`client.ssl.*` + `GET /rest/trust?reload=true` version):
+      the post-rotation serial still matched the baseline. Explicitly decided
+      not to spend a further CI cycle re-running this against the rewritten
+      test (task 1.3) against unfixed code -- the discriminating logic is
+      structurally identical (capture baseline -> rotate -> capture again ->
+      assert equals the rotated serial, not just "changed"), only the trigger
+      mechanism differs (manual call vs. polling), so a re-run would reconfirm
+      the same fact rather than surface new information. User decision, not a
+      gap that was missed.
 
 ## 2. Implement the izgw-core fix
 
@@ -225,16 +241,17 @@ document_type:
 
 ## 3. Prove the core fix alone (izgw-hub, cleanup not yet applied)
 
-- [ ] 3.1 Point `izgw-hub`'s `pom.xml` `izgw-core` dependency at
+- [x] 3.1 Point `izgw-hub`'s `pom.xml` `izgw-core` dependency at
       `3.9.1-IGDD-3582_Fix_Private_Key_Update_Bug-SNAPSHOT` (from 2.3), without
       touching `Application.java` yet. This is a temporary pin for this CR's
       verification only — per this project's established cross-repo pattern
       (see `IGDD-3089` in `projects-in-progress.md`: merge `izgw-core` first,
       then point `izgw-hub` at the real released version, then merge `izgw-hub`),
       `izgw-hub`'s dependency gets reset to a proper released version once
-      `izgw-core`'s fix is actually merged and released. Verify: `mvn clean
-      package` succeeds, and CI resolves the new coordinate successfully.
-- [ ] 3.1a Migrate `izgw-hub`'s `src/main/resources/application.yml`: replace
+      `izgw-core`'s fix is actually merged and released (see Workflow
+      follow-up). Verify: `mvn clean package` succeeds — confirmed, both
+      locally and in CI.
+- [x] 3.1a Migrate `izgw-hub`'s `src/main/resources/application.yml`: replace
       `server.ssl.key-store`/`trust-store`/`*-password`/`*-provider`/`*-type`
       with `server.ssl.bundle: izgw-server` and a new
       `spring.ssl.bundle.jks.izgw-server` block (`reload-on-update: true`,
@@ -244,29 +261,53 @@ document_type:
       stay where they are — behaviorally a no-op outside of enabling reload.
       This is the change that actually makes reload possible at all; the core
       fix in Group 2 only restores the (separate) `SSLImplementation` wiring.
-      Verify: `mvn clean package` succeeds; `ApplicationTests` and the existing
-      Newman suite still pass (no regression to the pre-rotation case).
-- [ ] 3.2 Re-run `TlsCertHotReloadTests` (via CI, same as 1.4). **Checkpoint 2
-      (green):** verify the test passes — the post-rotation serial now matches
-      the rotated keystore, picked up by Spring's `FileWatcher` with no manual
-      trigger — record the CI run result as evidence.
+      **Regression found and fixed during this task:** `izgw-core`'s
+      `TrustManagerProvider` read `server.ssl.trust-store`/`type`/`provider`
+      directly via `@Value` — a second, independent consumer of the legacy
+      properties this migration removed, caught by CI as a
+      `BeanCreationException` ("missing provider") on startup. Fixed by
+      sourcing its trust store from the same `izgw-server` bundle via
+      `SslBundles` instead (`izgw-core` commit `36192adc6`). Verify: `mvn
+      clean package` succeeds; `ApplicationTests` and the existing Newman
+      suite pass — confirmed in CI (`hub: build` and `hub: verify` both
+      green).
+- [x] 3.2 Re-run `TlsCertHotReloadTests` (via CI). **Checkpoint 2 (green):
+      confirmed in CI** ([izgw-hub#202](https://github.com/IZGateway/izgw-hub/pull/202),
+      `hub: build` check on commit `c83a347c2`): the test passes — the
+      post-rotation serial now matches the rotated keystore, picked up by
+      Spring's `FileWatcher` with no manual trigger. Also fixed two real
+      CodeQL findings surfaced on the test file in the same CI pass
+      (`java/insecure-trustmanager`, high; `java/unsafe-hostname-verification`,
+      medium) — pinned the client's trust store to the two generated certs
+      instead of a blanket trust-all `TrustManager` (resolves the first
+      legitimately), and suppressed the second with inline justification
+      (unavoidable given the test connects via loopback to a cert carrying
+      the real server DN). `hub: CodeQL` is green after the fix.
 
 ## 4. Remove izgw-hub's dead code
 
-- [ ] 4.1 Remove `Application.protocol`, `Application.reloadSsl()`,
+- [x] 4.1 Removed `Application.protocol`, `Application.reloadSsl()`,
       `Application.customizeConnector()`, and the `reloadConnectorCustomizer`
-      `@Bean` method, plus any now-unused imports. Verify: `mvn clean package`
-      compiles with no unused-import warnings.
-- [ ] 4.2 Run the full existing unit test suite and the existing
-      `IZGW_2.0_Integration_Test.postman_collection.json` Newman suite. Verify:
-      both green, no regressions from the removal.
+      `@Bean` method, plus the now-unused `Connector`/`ProtocolHandler`/
+      `AbstractHttp11Protocol`/`SSLImplementation`/`RevocationChecker` imports
+      (`izgw-hub` commit `586660b4a`). Verify: `mvn clean package` compiles —
+      confirmed.
+- [x] 4.2 Ran the full existing unit test suite and the existing
+      `IZGW_2.0_Integration_Test.postman_collection.json` Newman suite via CI
+      (`hub: build` and `hub: verify`, same run as 3.2 — the cleanup landed in
+      the same commits as the fix, so this and Group 3's verification share
+      one CI run). Verify: both green, no regressions from the removal.
 
 ## 5. Prove the cleanup didn't break anything
 
-- [ ] 5.1 Re-run the harness from Group 1 a third time, now with both the core
-      fix and the hub cleanup applied. **Checkpoint 3 (green):** verify the
-      post-rotation serial still matches the rotated keystore's serial —
-      record the result as evidence that the cleanup is safe.
+- [x] 5.1 **Checkpoint 3 (green): confirmed in the same CI run as checkpoint
+      2** — this CR's core fix (Group 2), `application.yml` migration (3.1a),
+      and `izgw-hub` dead-code removal (Group 4) were all implemented and
+      pushed together rather than in the originally-planned staged sequence,
+      so the single green run on commit `c83a347c2` (`hub: build`, `hub:
+      verify`) proves both checkpoint 2 and checkpoint 3 at once: the
+      post-rotation serial matches the rotated keystore's serial with the
+      cleanup already applied.
 
 ## Workflow follow-up
 

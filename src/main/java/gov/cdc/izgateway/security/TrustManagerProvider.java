@@ -4,7 +4,10 @@ import gov.cdc.izgateway.logging.markers.Markers2;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.ssl.NoSuchSslBundleException;
+import org.springframework.boot.ssl.SslBundles;
 import org.springframework.stereotype.Component;
+import org.springframework.util.StringUtils;
 
 import jakarta.annotation.PostConstruct;
 import javax.net.ssl.TrustManager;
@@ -22,11 +25,22 @@ import java.util.ServiceConfigurationError;
 
 /**
  * This class provides the server trust manager for SSL connections.
- * It loads the trust store from the specified path and initializes the trust manager.
+ * When {@code server.ssl.bundle} names a Spring Boot {@code SslBundle}, the trust store is
+ * read from that bundle; otherwise, falls back to loading the legacy
+ * {@code server.ssl.trust-store}/{@code -type}/{@code -provider} properties directly, for
+ * consumers that have not migrated to a named bundle. Either way, the trust store is loaded
+ * once at startup and does not itself refresh on a later bundle update -- that is a known,
+ * pre-existing limitation of this class (tracked separately), not something this reload fix
+ * (IGDD-3582) changes in either direction.
  */
 @Slf4j
 @Component
 public class TrustManagerProvider {
+
+    private final SslBundles sslBundles;
+
+    @Value("${server.ssl.bundle:}")
+    private String sslBundleName;
 
     @Value("${server.ssl.trust-store:}")
     private String trustStorePath;
@@ -46,14 +60,19 @@ public class TrustManagerProvider {
     @Getter
     private KeyStore trustStore;
 
+    /**
+     * Create the trust manager provider.
+     * @param sslBundles The application's registered SSL bundles, used to resolve
+     * {@code server.ssl.bundle} when a named bundle is configured.
+     */
+    public TrustManagerProvider(SslBundles sslBundles) {
+        this.sslBundles = sslBundles;
+    }
+
     @PostConstruct
     private void initializeTrustManager() {
         try {
-            this.trustStore = KeyStore.getInstance(trustStoreType, trustStoreProvider);
-
-            try (FileInputStream fis = new FileInputStream(trustStorePath)) {
-                trustStore.load(fis, trustStorePassword.toCharArray());
-            }
+            this.trustStore = StringUtils.hasText(sslBundleName) ? loadFromBundle() : loadFromLegacyProperties();
 
             TrustManagerFactory tmf = TrustManagerFactory.getInstance("PKIX", "BCJSSE");
             tmf.init(trustStore);
@@ -64,11 +83,25 @@ public class TrustManagerProvider {
                     return;
                 }
             }
-        } catch (GeneralSecurityException | IOException e) {
-            log.error(Markers2.append(e), "Cannot create Trust Manager from {}: {}", trustStorePath, e.getMessage());
+        } catch (GeneralSecurityException | IOException | NoSuchSslBundleException e) {
+            log.error(Markers2.append(e), "Cannot create Trust Manager from {}: {}",
+                    StringUtils.hasText(sslBundleName) ? "SSL bundle " + sslBundleName : trustStorePath,
+                    e.getMessage());
             throw new ServiceConfigurationError(e.getMessage(), e);
         }
         throw new ServiceConfigurationError("No ServerTrustManager could be found.");
+    }
+
+    private KeyStore loadFromBundle() {
+        return sslBundles.getBundle(sslBundleName).getStores().getTrustStore();
+    }
+
+    private KeyStore loadFromLegacyProperties() throws GeneralSecurityException, IOException {
+        KeyStore ks = KeyStore.getInstance(trustStoreType, trustStoreProvider);
+        try (FileInputStream fis = new FileInputStream(trustStorePath)) {
+            ks.load(fis, trustStorePassword.toCharArray());
+        }
+        return ks;
     }
 
     /**

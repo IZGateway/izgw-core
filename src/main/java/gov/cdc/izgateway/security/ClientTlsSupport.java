@@ -27,12 +27,16 @@ import javax.net.ssl.TrustManager;
 import javax.net.ssl.TrustManagerFactory;
 import javax.net.ssl.X509ExtendedTrustManager;
 
+import org.apache.catalina.connector.Connector;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.Strings;
+import org.apache.coyote.ProtocolHandler;
 import org.apache.coyote.http11.AbstractHttp11Protocol;
 import org.bouncycastle.jsse.util.URLConnectionUtil;
 import org.springframework.beans.factory.InitializingBean;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.tomcat.TomcatConnectorCustomizer;
+import org.springframework.context.annotation.Bean;
 import org.springframework.stereotype.Component;
 
 import gov.cdc.izgateway.logging.markers.Markers2;
@@ -53,32 +57,9 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 public class ClientTlsSupport implements InitializingBean {
 	private static final String BCJSSE = "BCJSSE";
-    private static ScheduledExecutorService tse = 
+    private static ScheduledExecutorService tse =
     		Executors.newSingleThreadScheduledExecutor(r -> new Thread(r, "Background-Scheduler-Trust"));
 
-    /**
-     * A class to support SSL Context Reloading in Tomcat when key/trust material changes.
-     * @author Audacious Inquiry
-     */
-    public static class SslReloader {
-    	private SslReloader() {}
-    	private static AbstractHttp11Protocol<?> protocol;
-    	/** 
-    	 * Set the protocol to be reloaded when SSL material changes.
-    	 * @param protocol	The protocol to be reloaded.
-    	 */
-    	public static void setProtocol(AbstractHttp11Protocol<?> protocol) {
-    		SslReloader.protocol = protocol;
-    	}
-    	/**
-    	 * Reload 
-    	 */
-    	public static void reloadSsl() {
-    		if (protocol != null) {
-    			protocol.reloadSslHostConfigs();
-    		}
-    	}
-    }
 	@Getter
 	private final ClientTlsConfiguration config;
 
@@ -113,7 +94,6 @@ public class ClientTlsSupport implements InitializingBean {
 		sslContext = getSSLContext();
 		SSLContext.setDefault(sslContext);
 		
-		this.addSslTrustChangedListener(SslReloader::reloadSsl);  // Force server content update
 		this.addSslTrustChangedListener(this::getSSLContext);
 		
 		tse.scheduleAtFixedRate(
@@ -121,6 +101,34 @@ public class ClientTlsSupport implements InitializingBean {
 			config.getMonitoringPeriod(), 		// Initially wait for one monitoring period
 			config.getMonitoringPeriod(), 		// But then monitoring at usual rate
 			TimeUnit.SECONDS);					// specified in sections
+	}
+
+	/**
+	 * Customizes the embedded Tomcat HTTPS connector to use this library's OCSP-aware
+	 * {@link SSLImplementation}. Applied automatically by Spring Boot's
+	 * {@code TomcatServletWebServerFactory}, which collects every
+	 * {@code TomcatConnectorCustomizer} bean in the application context -- no wiring is
+	 * required in any consuming application.
+	 * <p>
+	 * Hot-reload of a rotated server keystore is handled separately by Spring Boot's own
+	 * {@code SslBundle} machinery (see {@code spring.ssl.bundle.jks.*.reload-on-update}),
+	 * not by this customizer.
+	 *
+	 * @return The connector customizer.
+	 */
+	@Bean
+	public TomcatConnectorCustomizer sslImplementationConnectorCustomizer() {
+		return ClientTlsSupport::customizeConnector;
+	}
+
+	private static void customizeConnector(Connector connector) {
+		if (!"https".equals(connector.getScheme())) {
+			return;
+		}
+		ProtocolHandler handler = connector.getProtocolHandler();
+		if (handler instanceof AbstractHttp11Protocol<?> jsse) {
+			jsse.setSslImplementationName(SSLImplementation.class.getName());
+		}
 	}
 
     /**

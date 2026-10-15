@@ -4,14 +4,13 @@ import gov.cdc.izgateway.logging.markers.Markers2;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.ssl.SslBundles;
 import org.springframework.stereotype.Component;
 
 import jakarta.annotation.PostConstruct;
 import javax.net.ssl.TrustManager;
 import javax.net.ssl.TrustManagerFactory;
 import javax.net.ssl.X509TrustManager;
-import java.io.FileInputStream;
-import java.io.IOException;
 import java.security.GeneralSecurityException;
 import java.security.KeyStore;
 import java.security.KeyStoreException;
@@ -22,23 +21,18 @@ import java.util.ServiceConfigurationError;
 
 /**
  * This class provides the server trust manager for SSL connections.
- * It loads the trust store from the specified path and initializes the trust manager.
+ * It reads the trust store from the same {@code SslBundle} backing the embedded
+ * HTTPS listener ({@code server.ssl.bundle}), so it always reflects whatever
+ * material that bundle currently holds -- including after a hot reload.
  */
 @Slf4j
 @Component
 public class TrustManagerProvider {
 
-    @Value("${server.ssl.trust-store:}")
-    private String trustStorePath;
+    private final SslBundles sslBundles;
 
-    @Value("${server.ssl.trust-store-password:}")
-    private String trustStorePassword;
-
-    @Value("${server.ssl.trust-store-type:}")
-    private String trustStoreType;
-
-    @Value("${server.ssl.trust-store-provider:}")
-    private String trustStoreProvider;
+    @Value("${server.ssl.bundle:}")
+    private String sslBundleName;
 
     @Getter
     private X509TrustManager serverTrustManager;
@@ -46,14 +40,14 @@ public class TrustManagerProvider {
     @Getter
     private KeyStore trustStore;
 
+    public TrustManagerProvider(SslBundles sslBundles) {
+        this.sslBundles = sslBundles;
+    }
+
     @PostConstruct
     private void initializeTrustManager() {
         try {
-            this.trustStore = KeyStore.getInstance(trustStoreType, trustStoreProvider);
-
-            try (FileInputStream fis = new FileInputStream(trustStorePath)) {
-                trustStore.load(fis, trustStorePassword.toCharArray());
-            }
+            this.trustStore = sslBundles.getBundle(sslBundleName).getStores().getTrustStore();
 
             TrustManagerFactory tmf = TrustManagerFactory.getInstance("PKIX", "BCJSSE");
             tmf.init(trustStore);
@@ -64,8 +58,8 @@ public class TrustManagerProvider {
                     return;
                 }
             }
-        } catch (GeneralSecurityException | IOException e) {
-            log.error(Markers2.append(e), "Cannot create Trust Manager from {}: {}", trustStorePath, e.getMessage());
+        } catch (GeneralSecurityException e) {
+            log.error(Markers2.append(e), "Cannot create Trust Manager from SSL bundle {}: {}", sslBundleName, e.getMessage());
             throw new ServiceConfigurationError(e.getMessage(), e);
         }
         throw new ServiceConfigurationError("No ServerTrustManager could be found.");

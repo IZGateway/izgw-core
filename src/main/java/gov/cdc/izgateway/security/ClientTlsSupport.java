@@ -57,34 +57,9 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 public class ClientTlsSupport implements InitializingBean {
 	private static final String BCJSSE = "BCJSSE";
-    private static ScheduledExecutorService tse = 
+    private static ScheduledExecutorService tse =
     		Executors.newSingleThreadScheduledExecutor(r -> new Thread(r, "Background-Scheduler-Trust"));
 
-    /**
-     * A class to support SSL Context Reloading in Tomcat when key/trust material changes.
-     * @author Audacious Inquiry
-     */
-    public static class SslReloader {
-    	private SslReloader() {}
-    	private static AbstractHttp11Protocol<?> protocol;
-    	/** 
-    	 * Set the protocol to be reloaded when SSL material changes.
-    	 * @param protocol	The protocol to be reloaded.
-    	 */
-    	public static void setProtocol(AbstractHttp11Protocol<?> protocol) {
-    		log.info("DIAGNOSTIC: SslReloader.setProtocol called with {}", protocol);
-    		SslReloader.protocol = protocol;
-    	}
-    	/**
-    	 * Reload
-    	 */
-    	public static void reloadSsl() {
-    		log.info("DIAGNOSTIC: SslReloader.reloadSsl called, protocol={}", protocol);
-    		if (protocol != null) {
-    			protocol.reloadSslHostConfigs();
-    		}
-    	}
-    }
 	@Getter
 	private final ClientTlsConfiguration config;
 
@@ -119,7 +94,6 @@ public class ClientTlsSupport implements InitializingBean {
 		sslContext = getSSLContext();
 		SSLContext.setDefault(sslContext);
 		
-		this.addSslTrustChangedListener(SslReloader::reloadSsl);  // Force server content update
 		this.addSslTrustChangedListener(this::getSSLContext);
 		
 		tse.scheduleAtFixedRate(
@@ -130,31 +104,30 @@ public class ClientTlsSupport implements InitializingBean {
 	}
 
 	/**
-	 * Customizes the embedded Tomcat HTTPS connector: wires this library's OCSP-aware
-	 * {@link SSLImplementation}, and registers the connector's real protocol handler with
-	 * {@link SslReloader} so a later keystore change can be hot-reloaded without a restart.
-	 * Applied automatically by Spring Boot's {@code TomcatServletWebServerFactory}, which
-	 * collects every {@code TomcatConnectorCustomizer} bean in the application context --
-	 * no wiring is required in any consuming application.
+	 * Customizes the embedded Tomcat HTTPS connector to use this library's OCSP-aware
+	 * {@link SSLImplementation}. Applied automatically by Spring Boot's
+	 * {@code TomcatServletWebServerFactory}, which collects every
+	 * {@code TomcatConnectorCustomizer} bean in the application context -- no wiring is
+	 * required in any consuming application.
+	 * <p>
+	 * Hot-reload of a rotated server keystore is handled separately by Spring Boot's own
+	 * {@code SslBundle} machinery (see {@code spring.ssl.bundle.jks.*.reload-on-update}),
+	 * not by this customizer.
 	 *
 	 * @return The connector customizer.
 	 */
 	@Bean
-	public TomcatConnectorCustomizer sslReloadConnectorCustomizer() {
+	public TomcatConnectorCustomizer sslImplementationConnectorCustomizer() {
 		return ClientTlsSupport::customizeConnector;
 	}
 
 	private static void customizeConnector(Connector connector) {
-		log.info("DIAGNOSTIC: customizeConnector called, scheme={}", connector.getScheme());
 		if (!"https".equals(connector.getScheme())) {
 			return;
 		}
 		ProtocolHandler handler = connector.getProtocolHandler();
-		log.info("DIAGNOSTIC: customizeConnector handler={}, isAbstractHttp11Protocol={}",
-				handler, handler instanceof AbstractHttp11Protocol<?>);
 		if (handler instanceof AbstractHttp11Protocol<?> jsse) {
 			jsse.setSslImplementationName(SSLImplementation.class.getName());
-			SslReloader.setProtocol(jsse);
 		}
 	}
 

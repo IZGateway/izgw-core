@@ -15,10 +15,10 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.boot.tomcat.TomcatConnectorCustomizer;
 
 /**
- * Regression coverage for IGDD-3582: {@link ClientTlsSupport#sslReloadConnectorCustomizer()}
- * must wire the embedded HTTPS connector's real protocol handler into
- * {@link ClientTlsSupport.SslReloader}, closing the dead-wiring gap where
- * {@code SslReloader.setProtocol(...)} was never called by anything.
+ * Regression coverage for IGDD-3582: {@link ClientTlsSupport#sslImplementationConnectorCustomizer()}
+ * must wire the embedded HTTPS connector's real protocol handler to this library's OCSP-aware
+ * {@link SSLImplementation}. (Hot-reload of a rotated server keystore is handled separately by
+ * Spring Boot's own {@code SslBundle}/{@code reload-on-update} machinery, not by this customizer.)
  */
 @ExtendWith(MockitoExtension.class)
 class ClientTlsSupportTests {
@@ -27,11 +27,11 @@ class ClientTlsSupportTests {
 	private ClientTlsConfiguration config;
 
 	private TomcatConnectorCustomizer customizer() {
-		return new ClientTlsSupport(config).sslReloadConnectorCustomizer();
+		return new ClientTlsSupport(config).sslImplementationConnectorCustomizer();
 	}
 
 	@Test
-	void httpsConnectorIsWiredToSslImplementationAndReloader() {
+	void httpsConnectorIsWiredToSslImplementation() {
 		Connector connector = mock(Connector.class);
 		AbstractHttp11Protocol<?> handler = mock(AbstractHttp11Protocol.class);
 		when(connector.getScheme()).thenReturn("https");
@@ -40,11 +40,6 @@ class ClientTlsSupportTests {
 		customizer().customize(connector);
 
 		verify(handler).setSslImplementationName(SSLImplementation.class.getName());
-
-		// SslReloader.protocol has no getter by design (it's an internal accumulator) --
-		// confirm it captured this exact handler by observing reloadSsl() delegate to it.
-		ClientTlsSupport.SslReloader.reloadSsl();
-		verify(handler).reloadSslHostConfigs();
 	}
 
 	@Test

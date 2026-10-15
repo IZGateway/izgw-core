@@ -12,7 +12,21 @@ created:
   prompt_uri: >-
     prompt:/claude-code/7b62e482-c255-4291-b97d-980994f07e6c/~25fad386-db4e-40e6-80e2-df970b3d4527
   summary: tls-cert-hot-reload capability spec for IGDD-3582
-updated: []
+updated:
+  - date: '2026-10-15T00:48:16.652Z'
+    user: boonek
+    agent:
+      name: claude-code
+      version: '2.0'
+    llm:
+      name: claude-sonnet-5
+      version: claude-sonnet-5
+    prompt_uri: >-
+      prompt:/claude-code/7b62e482-c255-4291-b97d-980994f07e6c/~ea48f90f-a9b3-4f92-b1de-1d1ddda10af8
+    summary: >-
+      Correct requirement: reload needs standard SslBundle config from
+      consumers, not literally zero config, since legacy server.ssl.* properties
+      get no Spring Boot reload wiring at all
 change_request: igdd-3582-fix-private-key-update-bug
 ticket: IGDD-3582
 document_type:
@@ -45,18 +59,27 @@ detection interval, without requiring the process to be restarted.
 - **THEN** the embedded HTTPS listener continues presenting the certificate already
   in use, and no reload is performed
 
-### Requirement: Certificate hot-reload requires no action from consuming applications
-Any application that embeds this library's TLS support and starts an embedded
-HTTPS server through the standard mechanism SHALL receive the certificate
-hot-reload behavior automatically, without registering, configuring, or wiring
-anything itself.
+### Requirement: Certificate hot-reload requires only standard Spring Boot SSL configuration, no custom code
+Any application that embeds this library's TLS support and configures its
+embedded HTTPS server's TLS material as a named Spring Boot SSL bundle with
+reload enabled SHALL receive the certificate hot-reload behavior automatically,
+without writing, registering, or wiring any application-specific reload code.
 
-#### Scenario: Consuming application performs no explicit registration
-- **WHEN** an application embeds this library's TLS support and starts its own
-  embedded HTTPS server through the standard mechanism, without any
+#### Scenario: Consuming application uses standard SSL bundle configuration
+- **WHEN** an application embeds this library's TLS support and configures its
+  embedded HTTPS server's TLS material via a named `spring.ssl.bundle.jks.<name>`
+  (or `.pem.<name>`) bundle with reload enabled, without any
   application-specific registration code for certificate reload
 - **THEN** the certificate hot-reload behavior described above is active for that
   application's embedded HTTPS listener
+
+#### Scenario: Consuming application uses legacy, non-bundle SSL configuration
+- **WHEN** an application embeds this library's TLS support but configures its
+  embedded HTTPS server's TLS material via legacy, non-bundle properties
+  (e.g. `server.ssl.key-store`) instead of a named SSL bundle
+- **THEN** the certificate hot-reload behavior described above is NOT active for
+  that application's embedded HTTPS listener, since Spring Boot does not wire a
+  reload mechanism for legacy, non-bundle SSL configuration
 
 ### Requirement: Outbound client TLS behavior is unaffected
 This capability SHALL NOT change how outbound client connections select, cache,

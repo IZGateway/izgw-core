@@ -15,6 +15,33 @@ created:
     design.md for IGDD-3582: connector-customizer approach, izgw-hub cleanup
     scope, 3-checkpoint verification
 updated:
+  - date: '2026-10-15T00:45:48.161Z'
+    user: boonek
+    agent:
+      name: claude-code
+      version: '2.0'
+    llm:
+      name: claude-sonnet-5
+      version: claude-sonnet-5
+    prompt_uri: >-
+      prompt:/claude-code/7b62e482-c255-4291-b97d-980994f07e6c/~ea48f90f-a9b3-4f92-b1de-1d1ddda10af8
+    summary: >-
+      Rewrite design.md to describe the SslBundle/reload-on-update mechanism
+      replacing the architecturally-insufficient
+      SslReloader/reloadSslHostConfigs approach
+  - date: '2026-10-14T23:39:37.385Z'
+    user: boonek
+    agent:
+      name: claude-code
+      version: '2.0'
+    llm:
+      name: claude-sonnet-5
+      version: claude-sonnet-5
+    prompt_uri: >-
+      prompt:/claude-code/7b62e482-c255-4291-b97d-980994f07e6c/~c595235b-b98f-4f25-aece-579343c5c226
+    summary: >-
+      Document the client.ssl.key-store fix: updateTrust() only checks
+      client.ssl.*, so rotating only server.ssl.* was invisible to it
   - date: '2026-10-14T23:16:16.419Z'
     user: boonek
     agent:
@@ -152,136 +179,171 @@ document_type:
 
 ## Context
 
-See `proposal.md` - Why for the root-cause narrative. Current state, in brief:
-`ClientTlsSupport` (izgw-core) already has a background scheduler, change-detection
-logic, and an `SslReloader` helper whose `reloadSsl()` calls
+See `proposal.md` for the root-cause narrative. Current state, in brief:
+`ClientTlsSupport` (izgw-core) has a background scheduler, change-detection logic,
+and an `SslReloader` helper whose `reloadSsl()` calls
 `AbstractHttp11Protocol.reloadSslHostConfigs()` — but `SslReloader.setProtocol(...)`
 is never called, so `reloadSsl()` is permanently a no-op. `izgw-hub` separately has
 its own parallel, equally dead `Application.protocol` / `Application.reloadSsl()` /
 `reloadConnectorCustomizer` bean — a second, independent, never-invoked attempt at
-the same thing. Spring Boot's `TomcatServletWebServerFactory` already collects every
+the same thing.
+
+**A deeper problem surfaced while implementing and testing the `SslReloader` fix
+directly:** even with `setProtocol(...)` correctly wired, `reloadSslHostConfigs()`
+cannot work under Spring Boot 4. Spring Boot's own
+`org.springframework.boot.tomcat.SslConnectorCustomizer` always configures the
+Tomcat connector's `SSLHostConfigCertificate` via
+`certificate.setCertificateKeystore(stores.getKeyStore())` — an in-memory `KeyStore`
+object built once at startup, never a file path. `reloadSslHostConfigs()` just
+re-applies that same in-memory object; it has no way to re-read the keystore file
+from disk. The `SslReloader`/connector-customizer approach, however correctly
+wired, was never going to fix this bug in production — only in a test that doesn't
+actually exercise Spring Boot 4's real SSL configuration path faithfully enough to
+notice.
+
+The correct mechanism is Spring Boot's own `SslBundle` machinery
+(`org.springframework.boot.ssl`, since 3.1.0). `TomcatWebServerFactory.customizeSsl()`
+only wires an `SslBundles.addBundleUpdateHandler(name, ...)` when the connector is
+configured via a **named bundle** (`server.ssl.bundle: <name>` +
+`spring.ssl.bundle.jks.<name>.*`) — legacy `server.ssl.key-store`/`trust-store`
+properties never get any update-handler wiring at all, from Spring Boot, under any
+circumstances. Once a bundle is named, setting
+`spring.ssl.bundle.jks.<name>.reload-on-update: true` causes
+`SslPropertiesBundleRegistrar` to register a `FileWatcher` (a real NIO
+`WatchService` on the keystore/truststore's parent directory, debounced by
+`spring.ssl.bundle.watch.file.quiet-period`, default 10s) that rebuilds the bundle
+and calls `SslBundleRegistry.updateBundle(name, freshBundle)` automatically whenever
+the watched file changes — exactly the "switch it out on change" behavior this
+bug needs, implemented entirely by Spring Boot with zero custom polling/listener
+code. `JksSslStoreBundle`/`JksSslStoreDetails` build their `KeyStore` generically via
+`KeyStore.getInstance(type, provider)`, so BCFKS/BCFIPS works under this mechanism
+exactly as it does today under the legacy properties — confirmed by reading
+`spring-boot`/`spring-boot-autoconfigure` 4.1.1 sources directly, not just docs.
+
+Spring Boot's `TomcatServletWebServerFactory` already collects every
 `TomcatConnectorCustomizer` bean present in the application context via
 `ObjectProvider<TomcatConnectorCustomizer>` and applies all of them
 (`izgw-hub/Application.java:521`, `factory.getConnectorCustomizers().addAll(...)`).
+That collection point is unrelated to bundle reload (it runs once, at connector
+creation) but remains the correct way to wire this library's OCSP-aware
+`SSLImplementation` into the connector's protocol handler — a separate concern
+this CR must not regress while removing the ineffective reload code.
 
 ## Goals / Non-Goals
 
 **Goals:**
-- Wire `SslReloader.setProtocol(...)` to the real embedded HTTPS connector's
-  protocol handler, automatically, with zero required code in any consuming repo.
+- Make the embedded Tomcat HTTPS listener pick up a rotated server keystore file
+  without a process restart, using Spring Boot's own `SslBundle`/`reload-on-update`
+  mechanism — not a hand-rolled polling/listener replacement for it.
+- Remove the now-fully-dead `SslReloader` mechanism from `izgw-core` (confirmed
+  architecturally incapable of working under Spring Boot 4's in-memory-`KeyStore`
+  connector configuration, independent of whether `setProtocol(...)` is wired).
 - Remove `izgw-hub`'s redundant dead code with no behavior change.
-- Produce one repeatable regression test (Newman collection + companion script)
-  that demonstrably fails before the fix and passes after it, runnable at the
-  three checkpoints agreed on (see Decisions).
+- Produce one repeatable regression test (`TlsCertHotReloadTests`) that
+  demonstrably fails before the fix and passes after it, runnable at the three
+  checkpoints agreed on (see Decisions).
 
 **Non-Goals:**
 - Changing `KeyStoreLoader.isOutOfDate()` or its `File.lastModified()`-based
   change-detection logic — dropped from scope entirely (unconfirmed as relevant;
-  see proposal history).
+  see proposal history). It remains in use only for the still-unrelated,
+  already-correct client-side outbound reload path below.
 - Changing the client-side keystore/truststore reload path used for outbound calls
-  (`ClientTlsSupport.getSSLContext()` / `getSNIEnabledConnection()`) — already
-  correct today (see `tls-cert-hot-reload` spec, "Outbound client TLS behavior is
-  unaffected").
-- Adopting Spring Boot 4's native SSL-bundle hot-reload as a replacement mechanism
-  (considered and rejected for this CR — see Decisions).
+  (`ClientTlsSupport.getSSLContext()` / `getSNIEnabledConnection()` /
+  `updateTrust()`) — already correct today, and not driven by `SslBundle` at all
+  (it builds its own `SSLContext` directly from the keystore files for outbound
+  HTTP calls, not through Tomcat). See `tls-cert-hot-reload` spec, "Outbound
+  client TLS behavior is unaffected."
 - Reconciling `izgw-core`'s other stale/un-archived OpenSpec changes — tracked
   separately in `projects-in-progress.md`.
 
 ## Decisions
 
-### 1. The fix lives entirely in `izgw-core`, as a self-registering bean
-Add `@Bean public TomcatConnectorCustomizer sslReloadConnectorCustomizer()` directly
-inside `ClientTlsSupport`. Because Spring Boot already gathers every
-`TomcatConnectorCustomizer` bean from the context (confirmed call site above), a
-bean defined in `izgw-core` is picked up automatically by any consumer with an
-embedded Tomcat servlet container — no consumer-side registration needed.
-**Alternative considered:** keep requiring each consumer to explicitly call
-`SslReloader.setProtocol(...)` from its own customizer. Rejected — that's the exact
-per-consumer manual-wiring pattern that silently went unwired for over two years;
-moving it into the library removes the possibility of a future consumer forgetting
-to wire it again.
+### 1. Use Spring Boot's native `SslBundle` reload, not a custom mechanism
+Migrate `izgw-hub`'s `server.ssl.key-store`/`trust-store`/`*-password`/`*-provider`/
+`*-type` properties to a named bundle (`spring.ssl.bundle.jks.izgw-server`) with
+`reload-on-update: true`, and point `server.ssl.bundle: izgw-server` at it. This is
+not optional scaffolding alongside a custom fix — it is the only mechanism Spring
+Boot exposes that can reload the embedded connector's TLS material from a changed
+file at all (see Context). `server.ssl.enabled`, `client-auth`, `enabled-protocols`,
+and `ciphers` stay exactly where they are; only the keystore/truststore fields move
+into the bundle.
+**Alternative considered:** keep `ClientTlsSupport`'s own scheduler/listener
+machinery and manually call `SslBundleRegistry.updateBundle(...)` from it when a
+change is detected. Rejected — it would duplicate file-watching and debounce logic
+Spring Boot already implements and ships, for no behavioral benefit; reusing the
+existing, already-tested mechanism is strictly simpler and has no incremental
+maintenance cost for this project.
 
-### 2. Reuse the existing `SslReloader` mechanism; don't replace it
-Keep `ClientTlsSupport.SslReloader` and its existing trust-changed-listener
-registration in `afterPropertiesSet()` as-is; add only the missing
-`setProtocol(...)` call. The scheduler/listener machinery itself already works
-correctly — this is how we diagnosed the bug in the first place (the client-side
-store, served by this same machinery, showed the correct rotated certificate via
-`/rest/trust`). **Alternative considered:** adopt Spring Boot 4's native SSL-bundle
-hot-reload (`spring.ssl.bundle...reload-on-update=true`), replacing this mechanism
-outright. Rejected for this CR — it only covers the embedded-server side (not the
-client-side outbound path), requires migrating every consumer's `server.ssl.*`
-config to the SSL-bundle style, and needs separate verification against this
-project's BCFKS/BC-FIPS provider setup before it could be trusted. Worth a future,
-separately-scoped CR; not pursued here to keep this fix minimal and scoped to the
-confirmed bug.
+### 2. Remove `SslReloader` entirely; keep only the `SSLImplementation` wiring
+Delete `ClientTlsSupport.SslReloader` and its `addSslTrustChangedListener(
+SslReloader::reloadSsl)` registration. Simplify the `TomcatConnectorCustomizer`
+bean (renamed `sslImplementationConnectorCustomizer()`, from
+`sslReloadConnectorCustomizer()`) down to only
+`jsse.setSslImplementationName(SSLImplementation.class.getName())` — the one part
+of the old customizer unrelated to reload, still needed for OCSP-aware revocation
+checking on inbound client certs. **Alternative considered:** finish wiring
+`SslReloader.setProtocol(...)` as originally planned (Decision 2 in an earlier
+version of this design). Rejected once the in-memory-`KeyStore` root cause was
+confirmed — it compiles, the unit test for it passes, and it still does not fix the
+bug in a real Spring Boot 4 application, because `reloadSslHostConfigs()` has
+nothing on disk to re-read.
 
-### 3. Protocol-handler capture pattern matches Spring Boot's own fix for this exact break
-Guard on `"https".equals(connector.getScheme())`, then
-`connector.getProtocolHandler() instanceof AbstractHttp11Protocol<?> jsse` before
-calling `SslReloader.setProtocol(jsse)` — the same cast `izgw-hub`'s (soon-removed)
-`Application.customizeConnector()` already used, and the same widening Spring Boot
-itself adopted in 3.4.2 for the identical Tomcat 11 removal of
-`AbstractHttp11JsseProtocol` (spring-boot#43849). Reusing an already-validated
-pattern rather than inventing a new one.
-
-### 4. `izgw-hub` cleanup scope is narrow and mechanical — with one correction
+### 3. `izgw-hub` cleanup scope is narrow and mechanical — with one correction
 Remove exactly: the `protocol` field, `reloadSsl()` method, `customizeConnector()`
 method, and the `reloadConnectorCustomizer` `@Bean` method in `Application.java`,
 plus any imports that become unused as a result. Leave the rest of the Tomcat
 factory wiring (`getConnectorCustomizers().addAll(...)` and friends) untouched —
-that machinery is exactly what picks up `izgw-core`'s new bean.
+that machinery is exactly what picks up `izgw-core`'s `SSLImplementation`-wiring
+bean.
 
-**Correction found while implementing Decision 1's bean (not while planning
-this one):** `customizeConnector()` is not purely dead code — alongside the
-dead `Application.protocol = jsse` assignment, it also calls
-`jsse.setSslImplementationName(SSLImplementation.class.getName())`, the only
-place that wires the server's connector to this library's OCSP-aware
-`SSLImplementation`/`RevocationTrustManager` for inbound client-cert
-validation. Deleting the whole method as originally scoped would have quietly
-regressed that live behavior. Since `SSLImplementation` already lives in
-`izgw-core` (same package as `ClientTlsSupport`), `sslReloadConnectorCustomizer()`
-absorbs both responsibilities — it sets the SSL implementation name *and*
-registers the reload hook — so `izgw-hub`'s version really is now fully,
-safely removable exactly as this decision originally described; the removal
-scope itself didn't change, only the justification for why it's safe.
+**Correction found while implementing Decision 1's original (now-superseded)
+bean:** `customizeConnector()` is not purely dead code — alongside the dead
+`Application.protocol = jsse` assignment, it also calls
+`jsse.setSslImplementationName(SSLImplementation.class.getName())`, the only place
+that wires the server's connector to this library's OCSP-aware
+`SSLImplementation`/`RevocationTrustManager` for inbound client-cert validation.
+Deleting the whole method as originally scoped would have quietly regressed that
+live behavior. Since `SSLImplementation` already lives in `izgw-core` (same package
+as `ClientTlsSupport`), `sslImplementationConnectorCustomizer()` absorbs that
+responsibility, so `izgw-hub`'s version really is fully, safely removable exactly
+as this decision describes.
 
-### 5. Verification is a JUnit test, not a script — modeled on `ApplicationTests`
+### 4. Verification is a JUnit test, not a script — modeled on `ApplicationTests`
 `izgw-hub` already has a proven pattern for booting the *real* application in a
 test (`ApplicationTests`, `@SpringBootTest(webEnvironment = RANDOM_PORT,
 useMainMethod = UseMainMethod.ALWAYS)`, full `@ComponentScan`), including real
-Tomcat/SSL wiring. The new regression test, `TlsCertHotReloadTests`, follows the
-exact same pattern rather than shelling out to `curl`/`openssl`/`keytool` from a
-bash script: a real embedded Tomcat really starts, with the real
-`ClientTlsSupport`/`SslReloader` wiring under test, and the test drives it
-entirely in-process via the JDK's own `HttpsURLConnection`/`SSLSession` APIs.
-This was a direct pivot away from an earlier bash-script design once attempting
-to actually run it locally surfaced that booting the real application (needed
-either way, to exercise the real Tomcat wiring) pulls in `RevocationChecker` →
+Tomcat/SSL wiring. The regression test, `TlsCertHotReloadTests`, follows the exact
+same pattern rather than shelling out to `curl`/`openssl`/`keytool` from a bash
+script: a real embedded Tomcat really starts, with the real `izgw-server`
+`SslBundle` under test, and the test drives it entirely in-process via the JDK's
+own `HttpsURLConnection` APIs. Booting the real application (needed either way, to
+exercise the real Tomcat wiring) pulls in `RevocationChecker` →
 `CertificateStatusService` → a real DynamoDB client — a requirement that exists
-regardless of script-vs-JUnit, but a JUnit test lets `izgw-hub` reuse exactly the
-mechanism `ApplicationTests` already has for it (see Risks: this test needs the
-same real AWS/Elastic access `ApplicationTests` already requires — confirmed by
-attempting a local run, which aborts the JVM via `Application.main()`'s own
-`System.exit(1)` on the resulting `BeanCreationException`, not a bug in the new
-test).
+regardless of script-vs-JUnit (see Risks: this test needs the same real AWS/Elastic
+access `ApplicationTests` already requires).
 
 Sequence, performed inside the single `@Test` method:
 1. `@DynamicPropertySource` (runs once, before context startup) generates two
-   self-signed server keystores and one self-signed admin client cert — all
-   pure Java via BC-FIPS (`TlsTestKeystoreFactory`, backed by
+   self-signed server keystores and one self-signed admin client cert — all pure
+   Java via BC-FIPS (`TlsTestKeystoreFactory`, backed by
    `JcaX509v3CertificateBuilder`/`JcaContentSignerBuilder`, no `keytool`/`openssl`
-   subprocess) — and overrides only `server.ssl.key-store`/`trust-store` to
-   point at the one generated baseline keystore file in a manually-created temp
-   directory, with a harness-local password. Deliberately *not* overriding
-   `client.ssl.*`: that governs the application's own outbound calls to other
-   services (confirmed the hard way — overriding it broke
-   `ElasticStatusRepository`'s unrelated background status check, which the
-   app treated as fatal). `client.ssl.*` keeps using its real, CI-provided
-   configuration, same as `ApplicationTests` already relies on.
+   subprocess) — and overrides `spring.ssl.bundle.jks.izgw-server.keystore.location`/
+   `.password` and `.truststore.location`/`.password` (type/provider stay
+   `bcfks`/`BCFIPS` from `application.yml`) to point at one generated baseline
+   keystore file in a manually-created temp directory, plus
+   `spring.ssl.bundle.jks.izgw-server.key.alias` (the same server alias
+   `application.yml` otherwise has no reason to default away from). It also
+   shortens `spring.ssl.bundle.watch.file.quiet-period` (default 10s) to 200ms so
+   the test doesn't have to wait out the production debounce window.
+   `client.ssl.*` is left completely untouched — that's a separate, hand-rolled
+   property namespace `ClientTlsSupport` uses only for the application's own
+   *outbound* calls (e.g. `ElasticStatusRepository`'s background status check),
+   unrelated to `SslBundle`/Tomcat and already confirmed working; overriding it
+   broke that unrelated subsystem in an earlier version of this test (Elastic
+   Cloud's cert wasn't trusted by a narrow test-only trust store).
 2. The real application boots against that file (same mechanism `ApplicationTests`
-   already relies on for everything else, including whatever lets it avoid
-   needing a *second* real environment's worth of config).
+   already relies on for everything else).
 3. Connect over HTTPS to the running embedded server (`local.server.port`) and
    capture the presented certificate's serial via
    `HttpsURLConnection.getServerCertificates()` — the baseline.
@@ -289,22 +351,26 @@ Sequence, performed inside the single `@Test` method:
    `Files.move(..., ATOMIC_MOVE, REPLACE_EXISTING)`) with a second, freshly
    generated keystore (same DN, new key pair/serial) — a plain local file
    operation, since the JUnit process itself owns the temp directory.
-5. Call `GET /rest/trust?reload=true` (mTLS, presenting the generated admin
-   client cert) to force immediate change-detection, exactly as a real operator
-   forcing a reload would — this calls `tlsSupport.updateTrust()` directly
-   rather than waiting out the scheduler's monitoring period.
-6. Reconnect and re-capture the served certificate's serial; assert it now
-   matches the rotated keystore's serial (not just "changed," to rule out a
-   false pass from an unrelated restart) — the behavior under test is reload
-   *without* a restart.
+5. There is no manual trigger endpoint to call anymore, and none is needed: Spring
+   Boot's own `FileWatcher` detects the `ENTRY_MODIFY` event on its own NIO
+   `WatchService` thread, waits out the (shortened) quiet period, then rebuilds
+   and pushes the bundle into the live connector automatically. The test polls
+   (`capturePresentedCertSerial()` every 100ms, 10s overall timeout) rather than
+   sleeping a fixed amount, since the watcher's reaction is asynchronous relative
+   to the test thread.
+6. Assert the served certificate's serial now matches the rotated keystore's exact
+   serial (not just "changed," to rule out a false pass from an unrelated restart)
+   — the behavior under test is reload *without* a restart.
 
 Run manually at three points during implementation (evidence recorded in
 `tasks.md`, not a feature the shipped test needs to preserve):
 1. **Checkpoint 1 (red)** — current `develop` tip, both repos, unmodified → expect
-   the post-rotation serial to still match the *baseline* (reproduces the bug).
-2. **Checkpoint 2 (green)** — `izgw-hub` built against the fixed `izgw-core`
-   snapshot, `Application.java` not yet cleaned up → expect it to match the
-   *rotated* serial.
+   the post-rotation serial to still match the *baseline* serial even after the
+   full poll timeout (reproduces the bug: legacy `server.ssl.key-store` properties
+   get no reload wiring from Spring Boot at all).
+2. **Checkpoint 2 (green)** — `izgw-hub`'s `application.yml` migrated to the named
+   `izgw-server` bundle with `reload-on-update: true`, `Application.java` not yet
+   cleaned up → expect it to match the *rotated* serial.
 3. **Checkpoint 3 (green)** — same, plus the `izgw-hub` dead-code removal applied
    → expect it to still match the rotated serial (proves the cleanup didn't
    regress anything).
@@ -312,19 +378,20 @@ Run manually at three points during implementation (evidence recorded in
 Because none of this depends on filesystem semantics outside the JVM's own temp
 directory, there's no cross-platform file-locking/atomic-rename risk to manage
 separately (`Files.move` with `ATOMIC_MOVE` behaves consistently across the
-Windows dev loop and Linux CI containers).
+Windows dev loop and Linux CI containers, and Spring's `FileWatcher` watches the
+containing directory rather than assuming any particular rename semantics).
 
-### 6. Test key material is generated fresh on every run, never checked in
+### 5. Test key material is generated fresh on every run, never checked in
 No new binary fixture files are added to `conf/ssl/`, and nothing is written
-outside a temp directory created and cleaned up by the test itself (`Files.createTempDirectory`,
-not JUnit's `@TempDir` annotation — that field-injection extension runs too late
-to be available to `@DynamicPropertySource`, which executes earlier during
-Spring's context-preparation phase; confirmed by an earlier version of this test
-writing its keystore into the project's working directory instead). Checking in
-static pre-generated keystores would
-just reintroduce this CR's own bug class into the test itself — a fixed-validity
-cert that, given enough time, expires and starts failing the test for the wrong
-reason, with nobody noticing until it does.
+outside a temp directory created and cleaned up by the test itself
+(`Files.createTempDirectory`, not JUnit's `@TempDir` annotation — that
+field-injection extension runs too late to be available to `@DynamicPropertySource`,
+which executes earlier during Spring's context-preparation phase; confirmed by an
+earlier version of this test writing its keystore into the project's working
+directory instead). Checking in static pre-generated keystores would just
+reintroduce this CR's own bug class into the test itself — a fixed-validity cert
+that, given enough time, expires and starts failing the test for the wrong reason,
+with nobody noticing until it does.
 
 - `TlsTestKeystoreFactory` generates two independent key pairs/self-signed certs
   (RSA 2048 / SHA256withRSA, 30-day validity — short is fine, nothing persists
@@ -344,40 +411,49 @@ reason, with nobody noticing until it does.
 
 **Admin client trust (mutual TLS):** `server.ssl.client-auth: need` means the
 embedded server also requires and validates a client certificate on every
-connection, including the test's own call to `/rest/trust?reload=true`.
+connection, including the test's own call to `/rest/trust`.
 `CertificatePrincipalProviderImpl` reads that client cert's CN as the principal
 name, and the H2/JPA test seed data (`src/test/resources/data.sql`) grants the
-`admin` group to any CN matching `*.testing.izgateway.org` — so a client cert
-with that CN suffix gets ADMIN access under the test backend with no extra role
-wiring. `TlsTestKeystoreFactory` generates one such self-signed client cert/key
-pair (CN `tls-hot-reload-test.testing.izgateway.org`) and its public cert is
-added as a `trustedCertEntry` to *both* generated server keystores — the same
-client stays trusted across the simulated rotation, exactly as a real admin's
-client cert would not need to change just because the server renewed its own.
-The client key/cert are held purely in memory (an in-memory PKCS12 `KeyStore`,
-never written to disk) and used to build the `SSLSocketFactory` passed to
-`HttpsURLConnection` directly.
+`admin` group to any CN matching `*.testing.izgateway.org` — so a client cert with
+that CN suffix gets ADMIN access under the test backend with no extra role wiring.
+`TlsTestKeystoreFactory` generates one such self-signed client cert/key pair (CN
+`tls-hot-reload-test.testing.izgateway.org`) and its public cert is added as a
+`trustedCertEntry` to *both* generated server keystores — the same client stays
+trusted across the simulated rotation, exactly as a real admin's client cert would
+not need to change just because the server renewed its own. The client key/cert are
+held purely in memory (an in-memory PKCS12 `KeyStore`, never written to disk) and
+used to build the `SSLSocketFactory` passed to `HttpsURLConnection` directly.
 
-### 7. Verification artifact location
-Three new classes under `izgw-hub/src/test/java/gov/cdc/izgateway/`:
+### 6. Verification artifact location
+Three classes under `izgw-hub/src/test/java/gov/cdc/izgateway/`:
 `TlsTestKeystoreFactory`, `TlsTestKeystoreFactoryTests`, and
-`TlsCertHotReloadTests`. No shell script, no Postman collection. Because the
-class name matches the project's `**/*Tests.java` Surefire include pattern, it
-runs automatically as part of the existing `mvn clean package`/CI build —
-alongside, but independent of, the existing
-`testing/scripts/IZGW_2.0_Integration_Test.postman_collection.json` Newman
-suite, which it does not touch.
+`TlsCertHotReloadTests`. No shell script, no Postman collection. Because the class
+name matches the project's `**/*Tests.java` Surefire include pattern, it runs
+automatically as part of the existing `mvn clean package`/CI build — alongside, but
+independent of, the existing
+`testing/scripts/IZGW_2.0_Integration_Test.postman_collection.json` Newman suite,
+which it does not touch.
 
 ## Risks / Trade-offs
 
+- **[Risk]** In production, a rotated keystore file takes up to the configured
+  `spring.ssl.bundle.watch.file.quiet-period` (default 10s) to be picked up, not
+  instantly → **Mitigation:** acceptable for this use case (certificate rotation is
+  a planned, infrequent operation, not a latency-sensitive path); the prior
+  behavior required a full process restart, so any bounded delay under a restart's
+  downtime is already a strict improvement. Not overridden from the default in
+  production `application.yml` — only shortened in the test, to keep the test fast.
 - **[Risk]** Removing `izgw-hub`'s dead `Application.protocol`/`reloadSsl()` could
   theoretically miss some other caller → **Mitigation:** already grep-confirmed
   zero other references repo-wide; full existing Newman suite plus this CR's new
   test must stay green after removal (checkpoint 3 explicitly re-proves it).
-- **[Risk]** A future consumer of `izgw-core` could add its own redundant
-  `TomcatConnectorCustomizer` calling `SslReloader.setProtocol(...)` again →
-  **Mitigation:** harmless — the setter is a plain last-write-wins static field;
-  redundant calls from multiple customizers don't conflict.
+- **[Risk]** Migrating `server.ssl.*` to a named bundle changes the shape of
+  production configuration (`application.yml`), not just adding new code →
+  **Mitigation:** `server.ssl.enabled`, `client-auth`, `enabled-protocols`, and
+  `ciphers` are left exactly as they were; only the keystore/truststore
+  location/password/provider/type fields move into the bundle block, with
+  identical values (including the existing `PHIZ_CRYPTO_STORE_*_FILE`/`SSL_SHARE`
+  env var indirection) — behaviorally a no-op outside of the new reload capability.
 - **[Risk]** The dropped `KeyStoreLoader.isOutOfDate()` mtime-staleness concern
   could still be a real, separate bug → **Mitigation:** explicitly not addressed
   here; if it resurfaces, it gets diagnosed and scoped on its own, not folded into
@@ -385,7 +461,10 @@ suite, which it does not touch.
 
 ## Migration Plan
 
-- Code-only change. No data migration, no new config/env vars, no schema changes.
+- Code and configuration change; no data migration, no new env vars, no schema
+  changes. The `SSL_SHARE`/`PHIZ_CRYPTO_STORE_*_FILE` env vars that already govern
+  the keystore file's location are unchanged — the bundle config reads the same
+  values through the same indirection.
 - Versioning during this CR's verification: `izgw-core`'s `pom.xml` follows an
   existing documented convention (`pom.xml` lines 13-15) where a working branch
   is versioned `<major>.<minor>.<patch>-IGDD-<ticket#>_<ticket-title>-SNAPSHOT`.
@@ -402,8 +481,10 @@ suite, which it does not touch.
   `IGDD-3089`): merge `izgw-core` first, then point `izgw-hub` at the real
   released version (not the ticket-qualified verification SNAPSHOT, which gets
   reset once `izgw-core`'s fix is actually merged/released) before merging the
-  `izgw-hub` cleanup + verification-test PR.
+  `izgw-hub` cleanup + verification-test + `application.yml` migration PR.
 - Rollback: the two PRs can be reverted independently if needed — the removed
-  `izgw-hub` dead code was never reachable, so reverting just the `izgw-core`
-  change (if a problem is found there) doesn't require reverting the `izgw-hub`
-  cleanup, and vice versa. Reviewed and merged together under this CR regardless.
+  `izgw-hub` dead code was never reachable, and the `application.yml` bundle
+  migration is behaviorally a no-op outside of reload, so reverting just the
+  `izgw-core` change (if a problem is found there) doesn't require reverting the
+  `izgw-hub` cleanup, and vice versa. Reviewed and merged together under this CR
+  regardless.

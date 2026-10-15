@@ -15,6 +15,23 @@ created:
     tasks.md for IGDD-3582: 3-checkpoint verification sequence interleaved with
     fix and cleanup
 updated:
+  - date: '2026-10-15T00:47:56.628Z'
+    user: boonek
+    agent:
+      name: claude-code
+      version: '2.0'
+    llm:
+      name: claude-sonnet-5
+      version: claude-sonnet-5
+    prompt_uri: >-
+      prompt:/claude-code/7b62e482-c255-4291-b97d-980994f07e6c/~ea48f90f-a9b3-4f92-b1de-1d1ddda10af8
+    summary: >-
+      Rewrite tasks 1.3-1.4 to describe the rewritten SslBundle-based test and
+      un-check checkpoint 1, which needs re-confirmation against the rewritten
+      test; Document that the SslReloader approach was removed and replaced with
+      Spring Boot's native SslBundle reload mechanism in tasks 2.1-2.2; Add task
+      3.1a for the application.yml SslBundle migration and update checkpoint 2
+      description
   - date: '2026-10-14T23:16:27.242Z'
     user: boonek
     agent:
@@ -134,57 +151,63 @@ document_type:
 - [x] 1.3 Add `TlsCertHotReloadTests`, modeled on `ApplicationTests`
       (`@SpringBootTest(webEnvironment = RANDOM_PORT, useMainMethod = ALWAYS)`):
       `@DynamicPropertySource` generates the baseline/rotated keystores + admin
-      client cert into a `@TempDir` and points `server.ssl.*`/`client.ssl.*` at
-      them; the test connects over HTTPS, captures the served certificate's
-      serial, atomically rotates the keystore file, calls
-      `GET /rest/trust?reload=true` (mTLS, admin client cert) to force
-      detection, reconnects, and asserts the newly served serial matches the
-      rotated keystore. Verify: compiles (`mvn test-compile`) — confirmed.
-- [x] 1.4 Run `TlsCertHotReloadTests` against the current, unmodified `develop`
-      tip of both repos. **Checkpoint 1 (red): confirmed in CI**
-      ([izgw-hub#202](https://github.com/IZGateway/izgw-hub/pull/202), run
-      [38650130755](https://github.com/IZGateway/izgw-hub/actions/runs/38650130755)):
-      `org.opentest4j.AssertionFailedError: Server is still presenting the
-      pre-rotation certificate -- hot reload did not happen ==> expected: not
-      equal but was: <333026737942>`. The admin reload call itself returned
-      `200 OK` (auth and trigger both worked); the server's next TLS handshake
-      still presented the pre-rotation serial — reproduces IGDD-3582 exactly.
-      Took 3 iterations to reach this clean signal in CI (each fixed a real,
-      unrelated bug in the test itself, not the application): a port collision
-      with `ApplicationTests` on the fixed `server.local-port` (9081) under
-      Surefire's `reuseForks=true`; an over-broad `client.ssl.*` override that
-      broke `ElasticStatusRepository`'s unrelated outbound status check; and a
-      wrong HTTP method (`TrustController.getTrust()` is `@GetMapping`, not
-      POST). Local attempts never got this far — they fail earlier, via
-      `Application.main()`'s `System.exit(1)` on missing local AWS credentials
-      (the same requirement `ApplicationTests` already has).
+      client cert into a manually-created temp dir and points
+      `spring.ssl.bundle.jks.izgw-server.keystore/truststore.location`/`.password`
+      and `.key.alias` at them (type/provider stay `bcfks`/`BCFIPS` from
+      `application.yml`), plus shortens
+      `spring.ssl.bundle.watch.file.quiet-period` to 200ms; the test connects
+      over HTTPS, captures the served certificate's serial, atomically rotates
+      the keystore file, then polls (no manual trigger exists anymore --
+      Spring's own `FileWatcher` picks up the change asynchronously) until the
+      served serial changes or a 10s timeout elapses, and asserts it matches
+      the rotated keystore. **Rewritten from an earlier version that overrode
+      legacy `server.ssl.*`/`client.ssl.*` properties and called
+      `GET /rest/trust?reload=true`** once the in-memory-`KeyStore` root cause
+      (see design.md Context) made that mechanism provably unfixable; see
+      task 1.4 for why checkpoint 1 had to be re-run against this rewritten
+      test. Verify: compiles (`mvn test-compile`) — confirmed.
+- [ ] 1.4 Run the rewritten `TlsCertHotReloadTests` (task 1.3) against the
+      current, unmodified `develop` tip of both repos (legacy
+      `server.ssl.key-store` properties, no bundle). **Checkpoint 1 (red) --
+      needs re-confirmation**: an earlier checkpoint-1 run was recorded against
+      the pre-rewrite test (the `server.ssl.*`/`client.ssl.*` +
+      `GET /rest/trust?reload=true` version), which did correctly reproduce
+      IGDD-3582 under its own (also-broken) mechanism, but that evidence no
+      longer applies to the test as it will actually ship -- it must be
+      re-established against the rewritten test described in 1.3. Expect the
+      post-rotation serial to still match the baseline even after the full
+      10s poll timeout, since legacy `server.ssl.key-store` properties get no
+      update-handler wiring from Spring Boot at all. Verify: CI run recorded
+      as evidence.
 
 ## 2. Implement the izgw-core fix
 
-- [x] 2.1 Add `sslReloadConnectorCustomizer()` `@Bean` to `ClientTlsSupport`
-      (guard on `"https".equals(connector.getScheme())`, cast
-      `connector.getProtocolHandler()` to `AbstractHttp11Protocol<?>`, call
-      `SslReloader.setProtocol(...)`), with Javadoc per `java-maven-style`.
-      **Scope correction found while implementing:** `izgw-hub`'s
-      `Application.customizeConnector()` (the method Group 4 planned to delete
-      outright) is not purely dead — it also calls
-      `jsse.setSslImplementationName(SSLImplementation.class.getName())`,
-      the *only* place that wires the server's connector to this library's
-      OCSP-aware `SSLImplementation`/`RevocationTrustManager` for inbound
-      client-cert validation. Deleting the whole method per the original plan
-      would have silently regressed that. Since `SSLImplementation` already
-      lives in `izgw-core`, the new customizer absorbs both responsibilities
-      (sets the SSL implementation name *and* registers the reload hook),
-      making `izgw-hub`'s version fully, safely removable in Group 4 after
-      all. Verify: `mvn compile` succeeds — confirmed.
-- [x] 2.2 Add `ClientTlsSupportTests` (3 cases, Mockito): HTTPS connector gets
-      both `setSslImplementationName(...)` and the reload hook wired (verified
-      indirectly — `SslReloader` has no getter by design, so confirmed by
-      calling `reloadSsl()` afterward and verifying it delegates to the same
-      mock handler); non-HTTPS connector is ignored (`getProtocolHandler()`
-      never called); HTTPS connector with a non-`AbstractHttp11Protocol`
-      handler is ignored without throwing. Verify: `mvn test
-      -Dtest=ClientTlsSupportTests` passes — confirmed (3/3, 0 failures).
+- [x] 2.1 **Superseded design, then corrected:** originally added a
+      `sslReloadConnectorCustomizer()` `@Bean` that called
+      `SslReloader.setProtocol(...)`. Confirmed afterward (see design.md
+      Context) that `reloadSslHostConfigs()` cannot work under Spring Boot 4
+      regardless of wiring, since `SslConnectorCustomizer` always configures
+      Tomcat from an in-memory `KeyStore`, never a file path. Removed
+      `SslReloader` entirely (the class, its trust-changed-listener
+      registration in `afterPropertiesSet()`, and the `setProtocol(...)` call)
+      and renamed/simplified the bean to `sslImplementationConnectorCustomizer()`,
+      which now only calls
+      `jsse.setSslImplementationName(SSLImplementation.class.getName())` --
+      the one responsibility of the old customizer that was never about
+      reload (OCSP-aware inbound client-cert validation, still needed; see
+      design.md Decision 3 for why `izgw-hub`'s `Application.customizeConnector()`
+      remains fully, safely removable in Group 4). The actual reload mechanism
+      is now entirely Spring Boot's own `SslBundle`/`reload-on-update`
+      machinery, configured in `izgw-hub`'s `application.yml` (task 3.1), not
+      any code in `izgw-core`. Verify: `mvn compile` succeeds — confirmed.
+- [x] 2.2 Rewrote `ClientTlsSupportTests` (3 cases, Mockito) for the
+      simplified customizer from 2.1: HTTPS connector gets
+      `setSslImplementationName(...)` wired; non-HTTPS connector is ignored
+      (`getProtocolHandler()` never called); HTTPS connector with a
+      non-`AbstractHttp11Protocol` handler is ignored without throwing. Dropped
+      the reload-specific assertion (`SslReloader` no longer exists). Verify:
+      `mvn test -Dtest=ClientTlsSupportTests` passes — confirmed (3/3, 0
+      failures).
 - [x] 2.3 Bump `izgw-core`'s `pom.xml` `<version>` to
       `3.9.1-IGDD-3582_Fix_Private_Key_Update_Bug-SNAPSHOT`, per this repo's own
       documented convention (`pom.xml` lines 13-15: working branches are
@@ -211,9 +234,22 @@ document_type:
       `izgw-hub`'s dependency gets reset to a proper released version once
       `izgw-core`'s fix is actually merged and released. Verify: `mvn clean
       package` succeeds, and CI resolves the new coordinate successfully.
+- [ ] 3.1a Migrate `izgw-hub`'s `src/main/resources/application.yml`: replace
+      `server.ssl.key-store`/`trust-store`/`*-password`/`*-provider`/`*-type`
+      with `server.ssl.bundle: izgw-server` and a new
+      `spring.ssl.bundle.jks.izgw-server` block (`reload-on-update: true`,
+      same keystore/truststore `location`/`password`/`provider`/`type` values,
+      same `PHIZ_CRYPTO_STORE_*_FILE`/`SSL_SHARE` env var indirection).
+      `server.ssl.enabled`, `client-auth`, `enabled-protocols`, and `ciphers`
+      stay where they are — behaviorally a no-op outside of enabling reload.
+      This is the change that actually makes reload possible at all; the core
+      fix in Group 2 only restores the (separate) `SSLImplementation` wiring.
+      Verify: `mvn clean package` succeeds; `ApplicationTests` and the existing
+      Newman suite still pass (no regression to the pre-rotation case).
 - [ ] 3.2 Re-run `TlsCertHotReloadTests` (via CI, same as 1.4). **Checkpoint 2
       (green):** verify the test passes — the post-rotation serial now matches
-      the rotated keystore — record the CI run result as evidence.
+      the rotated keystore, picked up by Spring's `FileWatcher` with no manual
+      trigger — record the CI run result as evidence.
 
 ## 4. Remove izgw-hub's dead code
 

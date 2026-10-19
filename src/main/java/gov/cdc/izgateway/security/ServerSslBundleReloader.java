@@ -84,9 +84,12 @@ public class ServerSslBundleReloader {
 	public void reloadIfChanged() {
 		String bundleName = bundleName();
 		if (bundleName == null) {
+			log.info("DIAGNOSTIC: reloadIfChanged no-op, bundleName is null");
 			return;
 		}
 		long modified = currentModified();
+		log.info("DIAGNOSTIC: reloadIfChanged bundleName={}, modified={}, lastSeenModified={}, keystoreLocation={}",
+				bundleName, modified, lastSeenModified, environment.getProperty(propertyPrefix(bundleName) + ".keystore.location"));
 		if (modified <= 0 || modified <= lastSeenModified) {
 			return;
 		}
@@ -139,8 +142,12 @@ public class ServerSslBundleReloader {
 		try {
 			Resource resource = resourceLoader.getResource(location);
 			File file = resource.getFile();
-			return file.exists() ? file.lastModified() : 0;
+			long result = file.exists() ? file.lastModified() : 0;
+			log.info("DIAGNOSTIC: lastModified location={}, file={}, exists={}, result={}",
+					location, file, file.exists(), result);
+			return result;
 		} catch (Exception ex) {
+			log.warn("DIAGNOSTIC: lastModified threw for location={}: {}", location, ex.toString());
 			return 0;
 		}
 	}

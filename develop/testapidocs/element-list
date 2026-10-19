@@ -1,5 +1,4 @@
 gov.cdc.izgateway.configuration
-gov.cdc.izgateway.logging
 gov.cdc.izgateway.logging.event
 gov.cdc.izgateway.security
 gov.cdc.izgateway.security.crypto

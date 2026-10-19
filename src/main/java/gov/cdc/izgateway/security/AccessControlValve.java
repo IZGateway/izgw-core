@@ -42,6 +42,8 @@ public class AccessControlValve extends ValveBase {
 
 	private static boolean NON_LOCAL_TESTING = false; // NOSONAR for debugging
     private static final List<String> LOCAL_HOST_IPS = Arrays.asList(HostInfo.LOCALHOST_IP4, "0:0:0:0:0:0:0:1", HostInfo.LOCALHOST_IP6);
+    /** Health check endpoints that load balancer and container probes reach without a credential. */
+    private static final Set<String> HEALTH_CHECK_PATHS = Set.of("/rest/health", "/rest/healthy");
     
     private final IAccessControlService accessControls;
 
@@ -167,8 +169,25 @@ public class AccessControlValve extends ValveBase {
 		return path != null && path.startsWith("/swagger/") && accessControls.isUserInRole(user, Roles.ADMIN);
 	}
     
+    /**
+     * Returns true if the path is one of the health check endpoints that infrastructure
+     * probes unauthenticated.
+     * <p>
+     * Matched exactly rather than by suffix. A suffix match grants this bypass to any path
+     * that happens to end in {@code /health} or {@code /healthy}, including ones added later
+     * under another controller, which is more than the probes need.
+     * <p>
+     * The Hub is the only application that installs this valve, so the set holds only its two
+     * paths. The Transformation Service has its own valve
+     * ({@code gov.cdc.izgateway.xform.security.AccessControlValve}) and no health bypass; add
+     * entries here only for an application that actually installs this one. The Hub sets no
+     * servlet context path, so the request URI matches the controller mapping.
+     *
+     * @param path the request path
+     * @return true if the path is a health check endpoint
+     */
     private boolean isHealthCheck(String path) {
-		return path != null && (path.endsWith("/health") || path.endsWith("/healthy"));
+		return HEALTH_CHECK_PATHS.contains(path);
 	}
 
 	/**

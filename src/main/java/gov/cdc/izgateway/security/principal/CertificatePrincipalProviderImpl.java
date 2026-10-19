@@ -30,7 +30,10 @@ public class CertificatePrincipalProviderImpl implements CertificatePrincipalPro
 
     @Autowired
     public CertificatePrincipalProviderImpl(TrustManagerProvider provider) {
-        this.validator = new CertificateValidator(provider.getServerTrustManager());
+        // provider::getServerTrustManager, not provider.getServerTrustManager(): the latter would
+        // freeze whichever trust manager existed at construction time, so a later trust-store
+        // reload (TrustManagerProvider's own SslBundles update handler) would never be seen here.
+        this.validator = new CertificateValidator(provider::getServerTrustManager);
         this.trustManagerProvider = provider;
     }
 

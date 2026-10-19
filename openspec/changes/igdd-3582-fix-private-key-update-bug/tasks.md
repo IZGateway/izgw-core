@@ -15,6 +15,19 @@ created:
     tasks.md for IGDD-3582: 3-checkpoint verification sequence interleaved with
     fix and cleanup
 updated:
+  - date: '2026-10-19T14:32:31.369Z'
+    user: boonek
+    agent:
+      name: claude-code
+      version: '2.0'
+    llm:
+      name: claude-sonnet-5
+      version: claude-sonnet-5
+    prompt_uri: >-
+      prompt:/claude-code/7b62e482-c255-4291-b97d-980994f07e6c/~77f4fc9a-9006-4c57-9c5e-372b98907ac2
+    summary: >-
+      Add tasks Group 6 documenting the EFS/inotify discovery and the
+      ServerSslBundleReloader poller replacing reload-on-update
   - date: '2026-10-15T02:31:59.385Z'
     user: boonek
     agent:
@@ -308,6 +321,57 @@ document_type:
       verify`) proves both checkpoint 2 and checkpoint 3 at once: the
       post-rotation serial matches the rotated keystore's serial with the
       cleanup already applied.
+
+## 6. EFS-safe reload mechanism (replaces `reload-on-update`)
+
+- [x] 6.1 **Discovery:** a second `/code-review` + Copilot review pass on
+      `izgw-hub`#202 found that `server.ssl.bundle`'s `options` (ciphers/protocols)
+      are read exclusively from the bundle itself once a bundle is selected —
+      leaving `enabled-protocols`/`ciphers` under legacy `server.ssl.*` (as the
+      original migration did) silently ignores them. Separately, Copilot flagged
+      that `reload-on-update`'s `WatchService`/inotify mechanism does not detect
+      changes from other clients on a network filesystem. Verified both:
+      confirmed via `spring-boot-tomcat`'s `SslConnectorCustomizer` source
+      (protocol/cipher claim) and via `iz-gateway-terraform/hub/service/ecs.tf`
+      plus web research (EFS/inotify claim — `dev.izgateway.org`'s keystore is
+      confirmed mounted from EFS `fs-0c76fe796cfc1d1e8`/`fsap-0c8cf40dbde770a68`,
+      and AWS has not finished implementing NFSv4.1 delegation callbacks for
+      Linux clients on EFS). See design.md Context.
+- [x] 6.2 Moved `enabled-protocols`/`ciphers` into
+      `spring.ssl.bundle.jks.izgw-server.options.*`; removed the now-dead copies
+      under `server.ssl.*`. Verify: `mvn clean package` succeeds.
+- [x] 6.3 Added `ServerSslBundleReloader` (izgw-core): polls the named bundle's
+      keystore/truststore mtime and calls `SslBundleRegistry.updateBundle(...)`
+      on a change, reusing `TomcatWebServerFactory`'s existing connector-update
+      wiring (traced directly from `spring-boot`/`spring-boot-tomcat` 4.1.1
+      sources) rather than Spring's non-functional-on-EFS `FileWatcher`. Added
+      `ServerSslBundleReloaderTests` (4 cases, Mockito, no Spring context):
+      no-ops without a configured bundle name; no-ops when the file hasn't
+      changed; reloads and preserves key/options/protocol when it has; does not
+      propagate an exception from a failed reload. Verify: `mvn test
+      -Dtest=ServerSslBundleReloaderTests` passes (4/4) — confirmed.
+- [x] 6.4 Added `ServerSslBundleReloadScheduler` (izgw-hub): a `@Scheduled` bean
+      (same shape as the existing `GracePeriodRevocationScheduler`) owning the
+      polling cadence (`server.ssl.bundle-reload.interval`, default `PT10S`),
+      delegating to `ServerSslBundleReloader.reloadIfChanged()`. Deliberately
+      not scheduled from inside izgw-core's existing `ClientTlsSupport`
+      scheduler — polling cadence is an application deployment decision, not a
+      shared-library concern (see design.md Decision 3).
+- [x] 6.5 Extended `TrustController.getTrust(reload=true)` to also call
+      `ServerSslBundleReloader.reloadIfChanged()`, giving an operator (and this
+      CR's test) a way to force the server listener's reload immediately
+      instead of waiting out the scheduler's interval.
+- [x] 6.6 Set `reload-on-update: false` in `application.yml` (it cannot work on
+      this application's EFS-mounted keystore) and rewrote `TlsCertHotReloadTests`
+      to force reload via `GET /rest/trust?reload=true` rather than relying on
+      Spring's `FileWatcher` (which would have kept passing on local-disk CI
+      runners even if the production-path poller were broken, since local disk
+      inotify works fine). Verify: `mvn test-compile` succeeds locally (the full
+      `@SpringBootTest` run itself needs the same real AWS/Elastic access
+      `ApplicationTests` already requires, so it's verified via CI).
+- [ ] 6.7 Verify in CI: `izgw-core` build/tests green (including
+      `ServerSslBundleReloaderTests`); `izgw-hub` `build`/`verify` green with
+      `TlsCertHotReloadTests` passing against the new forced-reload mechanism.
 
 ## Workflow follow-up
 

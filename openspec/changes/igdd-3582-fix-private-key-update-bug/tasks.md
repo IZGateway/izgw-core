@@ -15,6 +15,20 @@ created:
     tasks.md for IGDD-3582: 3-checkpoint verification sequence interleaved with
     fix and cleanup
 updated:
+  - date: '2026-10-20T12:57:42.863Z'
+    user: boonek
+    agent:
+      name: claude-code
+      version: '2.0'
+    llm:
+      name: claude-sonnet-5
+      version: claude-sonnet-5
+    prompt_uri: >-
+      prompt:/claude-code/7b62e482-c255-4291-b97d-980994f07e6c/~2fa7690d-1b42-4fef-9ad4-44a9caafc4d8
+    summary: >-
+      Check off task 6.7 (CI verification confirmed on both repos) and add task
+      6.8 documenting the TrustManagerProvider live-reload regression found and
+      fixed during Copilot review
   - date: '2026-10-19T14:32:31.369Z'
     user: boonek
     agent:
@@ -369,9 +383,33 @@ document_type:
       inotify works fine). Verify: `mvn test-compile` succeeds locally (the full
       `@SpringBootTest` run itself needs the same real AWS/Elastic access
       `ApplicationTests` already requires, so it's verified via CI).
-- [ ] 6.7 Verify in CI: `izgw-core` build/tests green (including
-      `ServerSslBundleReloaderTests`); `izgw-hub` `build`/`verify` green with
-      `TlsCertHotReloadTests` passing against the new forced-reload mechanism.
+- [x] 6.7 Verify in CI: confirmed. `izgw-core` commit `35fd64ffc` (which also
+      includes the `TrustManagerProvider` live-reload fix below) is green on
+      `build`, `CodeQL`, `SonarCloud`, and `Analyze` -- `ServerSslBundleReloaderTests`
+      passing among them. `izgw-hub` commit `2b9cda612` is green on `build` and
+      `verify` (`TlsCertHotReloadTests` passing against the forced-reload
+      mechanism); re-ran that same CI build after `izgw-core`'s fix published a
+      fresh SNAPSHOT to confirm `izgw-hub` still resolves and builds cleanly
+      against it.
+
+- [x] 6.8 **Regression found and fixed during Copilot review of `izgw-core`#104:**
+      `TrustManagerProvider` loaded its trust store once at `@PostConstruct` and
+      never refreshed it, so a keystore/truststore rotation pushed by
+      `ServerSslBundleReloader` updated the embedded Tomcat connector but left
+      the ALB-header certificate validation path
+      (`CertificatePrincipalProviderImpl`) checking against stale trust anchors.
+      Initially mis-judged this as out of scope and documented it as a known
+      limitation instead of fixing it; corrected after push-back, since the
+      exact mechanism needed (`SslBundles.addBundleUpdateHandler`) had already
+      been built and proven for `ServerSslBundleReloader` in this same change,
+      making the fix small and bounded, not a new investigation. Registered an
+      update handler in `TrustManagerProvider` and changed `CertificateValidator`
+      to take a `Supplier<X509TrustManager>` instead of a frozen instance, so
+      `CertificatePrincipalProviderImpl` always validates against the current
+      trust manager. Added `TrustManagerProviderTests` and
+      `CertificateValidatorTests` (8 cases total). Verify: `mvn test` passes
+      (izgw-core full suite, 0 failures); confirmed green in CI on commit
+      `35fd64ffc` (same run as 6.7).
 
 ## Workflow follow-up
 

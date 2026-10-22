@@ -2,6 +2,7 @@ package gov.cdc.izgateway.security;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -9,6 +10,7 @@ import static org.mockito.Mockito.when;
 
 import java.io.File;
 import java.nio.file.Files;
+import java.util.ServiceConfigurationError;
 
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -124,5 +126,26 @@ class ServerSslBundleReloaderTests {
 		reloader.reloadIfChanged();
 
 		verify(sslBundleRegistry, never()).updateBundle(anyString(), any());
+	}
+
+	@Test
+	void doesNotPropagateServiceConfigurationErrorWhenBundleUpdateFails(@TempDir File dir) throws Exception {
+		File keystoreFile = new File(dir, "awsdev_keystore.bcfks");
+		Files.writeString(keystoreFile.toPath(), "initial");
+		String path = "file:" + keystoreFile.getAbsolutePath();
+		stubBundleProperties(path, path);
+
+		SslBundle current = SslBundle.of(null, SslBundleKey.of("key-password", "dev.izgateway.org"),
+				SslOptions.of(new String[] { "TLS_AES_256_GCM_SHA384" }, new String[] { "TLSv1.3" }), "TLS");
+		when(sslBundles.getBundle(BUNDLE_NAME)).thenReturn(current);
+		doThrow(new ServiceConfigurationError("boom")).when(sslBundleRegistry).updateBundle(anyString(), any());
+
+		ServerSslBundleReloader reloader = newReloader();
+		reloader.primeLastSeenModified();
+		keystoreFile.setLastModified(System.currentTimeMillis() + 5000);
+
+		reloader.reloadIfChanged();
+
+		verify(sslBundleRegistry).updateBundle(anyString(), any());
 	}
 }

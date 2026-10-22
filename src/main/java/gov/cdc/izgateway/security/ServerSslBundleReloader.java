@@ -1,6 +1,7 @@
 package gov.cdc.izgateway.security;
 
 import java.io.File;
+import java.util.ServiceConfigurationError;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.ssl.SslBundle;
@@ -108,7 +109,7 @@ public class ServerSslBundleReloader {
 			sslBundleRegistry.updateBundle(bundleName, updated);
 			lastSeenModified = modified;
 			log.info("Reloaded SSL bundle {} after keystore/truststore change", bundleName);
-		} catch (Exception ex) {
+		} catch (Exception | ServiceConfigurationError ex) {
 			log.error(Markers2.append(ex), "Failed to reload SSL bundle {}: {}", bundleName, ex.getMessage());
 		}
 	}

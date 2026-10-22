@@ -124,4 +124,11 @@ class AccessControlValveHealthCheckTests {
         assertFalse(accessAllowedFor("/health"));
         verify(response).setStatus(HttpServletResponse.SC_UNAUTHORIZED);
     }
+
+    @Test
+    void pathWithMatrixParametersIsRejected() {
+        assertFalse(accessAllowedFor("/rest/health;param=value"));
+        verify(response).setStatus(HttpServletResponse.SC_BAD_REQUEST);
+        verify(accessControls, never()).checkAccess(anyString(), anyString(), anyString());
+    }
 }

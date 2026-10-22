@@ -81,6 +81,10 @@ public class AccessControlValve extends ValveBase {
 
         String user = null;
         String path = req.getRequestURI();
+        if (path != null && path.contains(";")) {
+            resp.setStatus(HttpServletResponse.SC_BAD_REQUEST);
+            return false;
+        }
         String host = req.getRemoteHost();
         boolean notAdminHeader = false;
         

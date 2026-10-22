@@ -109,6 +109,12 @@ class AccessControlValveHealthCheckTests {
         verify(response).setStatus(HttpServletResponse.SC_UNAUTHORIZED);
     }
 
+    @Test
+    void matrixParametersOnTheProbePathAreDenied() {
+        assertFalse(accessAllowedFor("/rest/health;probe=true"));
+        verify(response).setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+    }
+
     /**
      * The Hub mounts its controllers under {@code /rest}; the bare paths belong to the
      * Transformation Service, which installs its own valve and reaches none of this code.

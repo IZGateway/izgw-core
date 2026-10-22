@@ -187,7 +187,7 @@ public class AccessControlValve extends ValveBase {
      * @return true if the path is a health check endpoint
      */
     private boolean isHealthCheck(String path) {
-		return HEALTH_CHECK_PATHS.contains(path);
+		return path != null && !path.contains(";") && HEALTH_CHECK_PATHS.contains(path);
 	}
 
 	/**

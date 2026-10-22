@@ -81,7 +81,7 @@ public class ServerSslBundleReloader {
 	 * registry. No-ops when {@code server.ssl.bundle} is not configured -- legacy, non-bundle SSL
 	 * configuration has no reload path, by design.
 	 */
-	public void reloadIfChanged() {
+	public synchronized void reloadIfChanged() {
 		String bundleName = bundleName();
 		if (bundleName == null) {
 			return;

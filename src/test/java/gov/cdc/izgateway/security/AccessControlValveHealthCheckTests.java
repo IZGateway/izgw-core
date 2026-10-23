@@ -112,7 +112,7 @@ class AccessControlValveHealthCheckTests {
     @Test
     void matrixParametersOnTheProbePathAreDenied() {
         assertFalse(accessAllowedFor("/rest/health;probe=true"));
-        verify(response).setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+        verify(response).setStatus(HttpServletResponse.SC_BAD_REQUEST);
     }
 
     /**

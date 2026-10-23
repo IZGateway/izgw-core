@@ -21,4 +21,19 @@ public abstract class IzgPrincipal implements java.security.Principal {
     Set<String> roles = new TreeSet<>();
 
     public abstract String getSerialNumberHex();
+
+    /**
+     * Whether this principal represents a caller that successfully authenticated.
+     * <p>
+     * Used to decide how much detail a response may carry. The default is {@code true}
+     * so that every principal produced by a real authentication mechanism is treated as
+     * authenticated; a principal type that stands in for an anonymous caller must
+     * override this and return {@code false}.
+     *
+     * @return true if the caller authenticated
+     * @see UnauthenticatedPrincipal
+     */
+    public boolean isAuthenticated() {
+        return true;
+    }
 }

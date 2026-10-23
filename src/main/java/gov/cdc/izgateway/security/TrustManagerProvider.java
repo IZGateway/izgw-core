@@ -74,8 +74,10 @@ public class TrustManagerProvider {
         applyTrustStore(StringUtils.hasText(sslBundleName) ? loadFromBundle() : loadFromLegacyProperties(),
                 StringUtils.hasText(sslBundleName) ? "SSL bundle " + sslBundleName : trustStorePath);
         if (StringUtils.hasText(sslBundleName)) {
-            sslBundles.addBundleUpdateHandler(sslBundleName,
-                    updatedBundle -> applyTrustStore(updatedBundle.getStores().getTrustStore(), "SSL bundle " + sslBundleName));
+            sslBundles.addBundleUpdateHandler(sslBundleName, updatedBundle -> {
+                applyTrustStore(updatedBundle.getStores().getTrustStore(), "SSL bundle " + sslBundleName);
+                log.info("Reloaded trust manager from SSL bundle {} after keystore/truststore change", sslBundleName);
+            });
         }
     }
 

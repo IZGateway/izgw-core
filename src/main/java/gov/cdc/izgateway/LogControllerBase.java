@@ -9,7 +9,6 @@ import gov.cdc.izgateway.soap.fault.SecurityFault;
 import gov.cdc.izgateway.utils.ListConverter;
 import jakarta.servlet.http.HttpServletRequest;
 import org.apache.commons.lang3.StringUtils;
-import org.springframework.beans.factory.InitializingBean;
 
 import java.util.Collections;
 import java.util.List;
@@ -24,22 +23,16 @@ import java.util.List;
 // applies to the SOAP Stack.  Once we apply it to the full HTTP stack, we will have to provide
 // SECURE mechanism for clearing the blacklisted state of the testing user.  It cannot be said
 // to have been applied to the full stack until this loophole is resolved.
-public class LogControllerBase implements InitializingBean {
-
-	private MemoryAppender logData = null;
+public class LogControllerBase {
 
 	protected LogControllerBase() {
-	}
-
-	@Override
-	public void afterPropertiesSet() {
-		logData = MemoryAppender.getInstance("memory");
 	}
 
 	// TODO: Presently, blacklisted users are allowed to access the logs request, b/c blacklisting only
 	// applies to the SOAP Stack.  Once we apply it to the full HTTP stack, we will have to provide
 	// SECURE mechanism to clearing the state.
 	protected List<LogEvent> getLogs(String search) {
+		MemoryAppender logData = MemoryAppender.getInstance("memory");
 
 		List<ILoggingEvent> events;
 		if (logData == null) {
@@ -49,7 +42,7 @@ public class LogControllerBase implements InitializingBean {
 		} else {
 			events = logData.search(search);
 		}
-		
+
 		return new ListConverter<>(events, LogEvent::new);
 	}
 
@@ -66,9 +59,10 @@ public class LogControllerBase implements InitializingBean {
                             RequestContext.getRoles().toString(), null);
         }
 
+		MemoryAppender logData = MemoryAppender.getInstance("memory");
 		if (logData != null) {
 			logData.reset();
 		}
 	}
-	
+
 }

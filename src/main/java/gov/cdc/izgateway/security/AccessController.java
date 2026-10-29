@@ -25,10 +25,11 @@ import jakarta.annotation.security.RolesAllowed;
 
 /**
  * REST controller for managing access control settings, endpoints, groups, routes, and users.
- * 
- * Endpoints are protected and require ADMIN role. Provides operations to report on and modify access controls,
- * including denylist management and group membership queries.
- * 
+ *
+ * Endpoints are protected and require ADMIN role by default. Provides operations to report on and modify access controls,
+ * including denylist management and group membership queries. The denylist and ADS file type endpoints also allow
+ * the OPERATIONS role, as those are routine operational tasks.
+ *
  * @author Audacious Inquiry
  */
 @RestController
@@ -126,6 +127,7 @@ public class AccessController {
 	 * @return a set of deny listed users
 	 */
 	@Operation(summary="Report on users in deny list", description="Return the list of deny listed users")
+	@RolesAllowed({Roles.ADMIN, Roles.OPERATIONS})
 	@GetMapping("/access/denylist") 
 	public Set<String> getDeniedUsers() {
 		return service.getDenyList();
@@ -140,6 +142,7 @@ public class AccessController {
 	 * @return the updated access control object
 	 */
 	@Operation(summary="Add a user to deny list", description="Add the specified user to the deny list")
+	@RolesAllowed({Roles.ADMIN, Roles.OPERATIONS})
 	@PostMapping("/access/denylist")
 	public Object addUserToDenyList(@RequestParam String user, @RequestParam(required=false) String reason) {
 		return service.addUserToDenyList(user, reason);
@@ -154,6 +157,7 @@ public class AccessController {
 	 * @return the updated access control object
 	 */
 	@Operation(summary="Delete a user from the deny list", description="Delete the specified user from the deny list")
+	@RolesAllowed({Roles.ADMIN, Roles.OPERATIONS})
 	@DeleteMapping("/access/denylist")
 	public Object removeUserFromDenyList(@RequestParam String user) {
 		return service.removeUserFromDenyList(user);
@@ -165,6 +169,7 @@ public class AccessController {
 	 * @return The set of file types that can be uploaded
 	 */
 	@Operation(summary="Report on file types", description="Return the list file types that can be uploaded for ADS")
+	@RolesAllowed({Roles.ADMIN, Roles.OPERATIONS})
 	@GetMapping("/access/filetypes")
 	public Set<String> getAdsFileTypes() {
 		return service.getEventTypes();

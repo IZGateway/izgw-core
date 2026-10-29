@@ -31,6 +31,11 @@ import org.springframework.core.io.ResourceLoader;
  * keystore/truststore file by polling its modification time (not Spring Boot's inotify-based
  * {@code reload-on-update}, which does not work on the AWS EFS volume this application's
  * keystore actually lives on) and push a rebuilt bundle via {@link SslBundleRegistry#updateBundle}.
+ * <p>
+ * Keystore/truststore locations below are bare paths (no {@code file:} prefix), matching what
+ * production actually configures via {@code SSL_SHARE}. A bare path resolves differently than a
+ * {@code file:}-qualified one through a webapp-context {@link ResourceLoader}, so using
+ * {@code file:} here would not exercise that resolution path.
  */
 @ExtendWith(MockitoExtension.class)
 class ServerSslBundleReloaderTests {
@@ -74,7 +79,7 @@ class ServerSslBundleReloaderTests {
 	void noOpsWhenFileHasNotChangedSincePriming(@TempDir File dir) throws Exception {
 		File keystoreFile = new File(dir, "awsdev_keystore.bcfks");
 		Files.writeString(keystoreFile.toPath(), "initial");
-		String path = "file:" + keystoreFile.getAbsolutePath();
+		String path = keystoreFile.getAbsolutePath();
 		stubBundleProperties(path, path);
 
 		ServerSslBundleReloader reloader = newReloader();
@@ -88,7 +93,7 @@ class ServerSslBundleReloaderTests {
 	void reloadsAndPreservesKeyOptionsProtocolWhenFileChanges(@TempDir File dir) throws Exception {
 		File keystoreFile = new File(dir, "awsdev_keystore.bcfks");
 		Files.writeString(keystoreFile.toPath(), "initial");
-		String path = "file:" + keystoreFile.getAbsolutePath();
+		String path = keystoreFile.getAbsolutePath();
 		stubBundleProperties(path, path);
 
 		SslBundleKey key = SslBundleKey.of("key-password", "dev.izgateway.org");
@@ -115,7 +120,7 @@ class ServerSslBundleReloaderTests {
 	void doesNotPropagateExceptionWhenBundleLookupFails(@TempDir File dir) throws Exception {
 		File keystoreFile = new File(dir, "awsdev_keystore.bcfks");
 		Files.writeString(keystoreFile.toPath(), "initial");
-		String path = "file:" + keystoreFile.getAbsolutePath();
+		String path = keystoreFile.getAbsolutePath();
 		stubBundleProperties(path, path);
 		when(sslBundles.getBundle(BUNDLE_NAME)).thenThrow(new RuntimeException("boom"));
 
@@ -132,7 +137,7 @@ class ServerSslBundleReloaderTests {
 	void doesNotPropagateServiceConfigurationErrorWhenBundleUpdateFails(@TempDir File dir) throws Exception {
 		File keystoreFile = new File(dir, "awsdev_keystore.bcfks");
 		Files.writeString(keystoreFile.toPath(), "initial");
-		String path = "file:" + keystoreFile.getAbsolutePath();
+		String path = keystoreFile.getAbsolutePath();
 		stubBundleProperties(path, path);
 
 		SslBundle current = SslBundle.of(null, SslBundleKey.of("key-password", "dev.izgateway.org"),

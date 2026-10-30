@@ -4,6 +4,7 @@ import java.io.File;
 import java.util.ServiceConfigurationError;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.io.ApplicationResourceLoader;
 import org.springframework.boot.ssl.SslBundle;
 import org.springframework.boot.ssl.SslBundleRegistry;
 import org.springframework.boot.ssl.SslBundles;
@@ -63,7 +64,9 @@ public class ServerSslBundleReloader {
 		this.sslBundleRegistry = sslBundleRegistry;
 		this.sslBundles = sslBundles;
 		this.environment = environment;
-		this.resourceLoader = resourceLoader;
+		// Wraps the webapp-context loader so bare paths (no "file:" prefix, what production
+		// uses) resolve the same way Spring Boot's own bundle registrar resolves them.
+		this.resourceLoader = ApplicationResourceLoader.get(resourceLoader, true);
 	}
 
 	/**

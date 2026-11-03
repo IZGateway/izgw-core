@@ -538,8 +538,10 @@ public class TransactionData {
     	if (name == null) {
     		return false;
     	}
+    	// String.split() returns a zero-length array when the input consists only of
+    	// delimiter characters (e.g. "^" or "^^^"), so this must be guarded before indexing.
     	String[] nameParts = name.toUpperCase().split("\\^");
-    	String familyName = nameParts[0];
+    	String familyName = nameParts.length > 0 ? nameParts[0] : "";
     	String givenName = nameParts.length > 1 ? nameParts[1] : "";
     	
     	if (familyName.isEmpty() && givenName.isEmpty()) {

@@ -31,7 +31,7 @@ import java.util.Date;
 	"requestVolume", "successVolume" }
 )
 @Data 
-public class Health {
+public class Health implements IHealth {
 	@JsonProperty 
 	@Schema(description="True if the server is healthy")
 	private boolean healthy = false;
@@ -159,6 +159,20 @@ public class Health {
      */
     public Health copy() {
         return new Health(this);
+    }
+
+    /**
+     * Return the view of this health report that may be shown to a caller that has not
+     * authenticated.
+     * <p>
+     * Everything other than the liveness answer and its timestamp is withheld. See
+     * {@link PublicHealth} for what that leaves, and for why this is a separate type rather
+     * than a blanked-out {@code Health}.
+     *
+     * @return the public view of this health report
+     */
+    public PublicHealth publicView() {
+        return new PublicHealth(healthy, statusAt);
     }
     
     /**

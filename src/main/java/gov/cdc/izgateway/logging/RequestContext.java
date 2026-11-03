@@ -54,6 +54,20 @@ public class RequestContext {
     public static IzgPrincipal getPrincipal() {
         return principalDataVar.get();
     }
+
+    /**
+     * Whether the caller on this thread authenticated.
+     * <p>
+     * A missing principal counts as unauthenticated, so callers can use this as a
+     * single positive test rather than repeating a null check alongside a type check.
+     *
+     * @return true only if a principal is present and reports itself authenticated
+     */
+    public static boolean isAuthenticated() {
+        IzgPrincipal p = principalDataVar.get();
+        return p != null && p.isAuthenticated();
+    }
+
 	public static SourceInfo getSourceInfo() {
 		return sourceInfoVar.get();
 	}

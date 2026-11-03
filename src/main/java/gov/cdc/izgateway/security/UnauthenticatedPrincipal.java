@@ -19,6 +19,17 @@ public class UnauthenticatedPrincipal extends IzgPrincipal {
         this.roles = new HashSet<>();
     }
 
+    /**
+     * {@inheritDoc}
+     * <p>
+     * Always false: this principal stands in for a caller that presented no usable
+     * credential, or whose credential failed authentication.
+     */
+    @Override
+    public boolean isAuthenticated() {
+        return false;
+    }
+
     @Override
     public String getSerialNumberHex() {
         return String.format("%040x", new BigInteger(1, serialNumber.getBytes(StandardCharsets.UTF_8)));

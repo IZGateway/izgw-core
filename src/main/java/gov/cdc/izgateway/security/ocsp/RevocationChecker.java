@@ -30,6 +30,7 @@ import org.bouncycastle.cert.ocsp.SingleResp;
 import org.bouncycastle.operator.DigestCalculator;
 import org.bouncycastle.operator.OperatorCreationException;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Component;
 
 import gov.cdc.izgateway.logging.markers.Markers2;
@@ -38,8 +39,20 @@ import gov.cdc.izgateway.service.ICertificateStatusService;
 import gov.cdc.izgateway.utils.X500Utils;
 import lombok.extern.slf4j.Slf4j;
 
+/**
+ * {@code @Lazy(false)} is required, not cosmetic: {@link #getInstance()} is a plain
+ * static accessor with no Spring context behind it, so under this application's global
+ * {@code spring.main.lazy-initialization: true} nothing would otherwise force this bean's
+ * constructor (which populates the static {@code instance} field) to run before the first
+ * TLS handshake needs it -- {@link RevocationTrustManager}/{@code CertificatePrincipalProviderImpl}
+ * both treat a {@code null} checker as "skip OCSP," silently, with no error. This used to be
+ * incidentally guaranteed by an unrelated bean (izgw-hub's now-removed
+ * {@code reloadConnectorCustomizer(@Autowired RevocationChecker checker)}) that never actually
+ * used the injected parameter for anything else -- IGDD-3582.
+ */
 @Slf4j
 @Component
+@Lazy(false)
 public class RevocationChecker {
 	private static final long GOODCERT_RECHECK_HOURS = 24;
 	private static final Map<String, String> BASE_OCSP_REQ_HEADERS = new LinkedHashMap<>();

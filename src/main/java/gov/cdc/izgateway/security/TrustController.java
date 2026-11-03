@@ -36,17 +36,23 @@ import jakarta.annotation.security.RolesAllowed;
 public class TrustController {
 	private final ClientTlsConfiguration tlsConfig;
 	private final ClientTlsSupport tlsSupport;
-	
+	private final ServerSslBundleReloader serverSslBundleReloader;
+
 	/**
 	 * Construct a new trust controller
 	 * @param registry	The access control registry
 	 * @param tlsSupport	TLS configuration
+	 * @param serverSslBundleReloader	Reloader for the embedded HTTPS listener's SSL bundle
+	 * (IGDD-3582), invoked directly by {@code reload=true} rather than waiting for its own
+	 * scheduled poll.
 	 */
 	@Autowired
-	public TrustController(AccessControlRegistry registry, ClientTlsSupport tlsSupport) {
+	public TrustController(AccessControlRegistry registry, ClientTlsSupport tlsSupport,
+			ServerSslBundleReloader serverSslBundleReloader) {
 		registry.register(this);
 		this.tlsSupport = tlsSupport;
 		this.tlsConfig = tlsSupport.getConfig();
+		this.serverSslBundleReloader = serverSslBundleReloader;
 	}
 
 	@SuppressWarnings({ "serial" })
@@ -81,6 +87,10 @@ public class TrustController {
 			if (reload) {
 				// Force an immediate reload
 				tlsSupport.updateTrust();
+				// Also force the embedded HTTPS listener's own SSL bundle to reload now, rather
+				// than waiting for its own scheduled poll -- the touch() calls above already
+				// bumped the same underlying file(s) this reloader watches (IGDD-3582).
+				serverSslBundleReloader.reloadIfChanged();
 				success = p.test(tlsConfig);
 			} else {
 				// For test, wait just a little longer than than the polling interval to address timing issues.

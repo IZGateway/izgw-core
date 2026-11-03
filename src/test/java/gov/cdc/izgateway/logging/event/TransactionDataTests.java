@@ -25,7 +25,7 @@ import gov.cdc.izgateway.logging.LoggingValveBase;
  * A GET on a SOAP endpoint is a WSDL/schema retrieval, not a transaction, so it must
  * produce a distinct message and be logged at DEBUG rather than INFO.
  */
-class TransactionDataTest {
+class TransactionDataTests {
 
     private static AppProperties previousInstance;
 
@@ -85,6 +85,25 @@ class TransactionDataTest {
         // No MDC method set (e.g. non-HTTP context) must behave like the pre-existing default.
         TransactionData t = wsdlSource();
         assertTrue(t.getMessage().startsWith("Transaction "));
+    }
+
+    @Test
+    void matchesTestDoesNotThrowOnDelimiterOnlyQpdName() {
+        // QPD-4 (fields[4]) made up only of component separators (as sent by systems that
+        // populate an empty XPN as "^^^^^^" rather than "") must not throw AIOOBE:
+        // String.split() returns a zero-length array for delimiter-only input (verified:
+        // "^^^^^^".split("\\^").length == 0), unlike a truly empty string, which yields [""].
+        String message = "MSH|^~\\&|APP|FAC|APP|FAC|20260101000000||QBP^Q11|1|P|2.5.1\r"
+                + "QPD|Z34|1|2|^^^^^^|trailing\r";
+        assertTrue(wsdlSource().matchesTest(message));
+    }
+
+    @Test
+    void matchesTestDoesNotThrowOnDelimiterOnlyPidName() {
+        // PID-5 (fields[5]) made up only of component separators, same AIOOBE guard as above.
+        String message = "MSH|^~\\&|APP|FAC|APP|FAC|20260101000000||RSP^K11|1|P|2.5.1\r"
+                + "PID|1|2|3|4|^^^^^^|trailing\r";
+        assertTrue(wsdlSource().matchesTest(message));
     }
 
     @Test

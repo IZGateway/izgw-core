@@ -1,3 +1,10 @@
+## [3.9.0] - 2026-11-03
+
+### Changes
+- Revert IGDD-3499 ([#112](https://github.com/IZGateway/izgw-core/pull/112))
+- IGDD-3610: Fix AIOOBE in TransactionData.isKnownTestPatient on delimiter-only name field ([#106](https://github.com/IZGateway/izgw-core/pull/106))
+- IGDD-3582: Fix TLS certificate hot-reload for rotated keystores ([#104](https://github.com/IZGateway/izgw-core/pull/104))
+
 ## [3.8.0] - 2026-09-29
 
 ### Changes

@@ -19,6 +19,20 @@ created:
     izgw-hub, izgw-transform, and v2tofhir, using the spring-boot-jackson2
     compat shim and a coordinated Apache Camel 4.18.3 -> 4.20.0 bump.
 updated:
+  - date: '2026-11-08T16:11:33.646Z'
+    user: boonek
+    agent:
+      name: claude-code
+      version: '1.0'
+    llm:
+      name: claude-opus-5
+      version: '5'
+    prompt_uri: >-
+      prompt:/claude-code/c5d224ee-0402-4d73-9976-2caea28db83c/~0e20b867-f929-4a23-8df3-f9bbdb68822c
+    summary: >-
+      Correct 6.7: IGDD-3700 filed without permission and partly wrong, being
+      deleted; the real maskFaultText gap remains unticketed; Correct summary
+      table: 6.7 reopened alongside 6.6 as genuine non-blocking follow-up
   - date: '2026-11-08T15:58:30.946Z'
     user: boonek
     agent:
@@ -485,7 +499,15 @@ _Confirmed low risk — no `@SpringBootApplication`, actuator, or Spring Securit
 - [ ] 6.6 Still open — genuine follow-up decision, not a blocker: is `SSLImplementation`/
       `RevocationTrustManager` (in both `izgw-hub` and `izgw-transform`) fully removable, given it's
       confirmed unexercised by real ALB-routed production traffic? Left for a future ticket.
-- [x] 6.7 **done**: filed as [IGDD-3700](https://izgateway.atlassian.net/browse/IGDD-3700).
+- [ ] 6.7 **Correction 2026-11-08**: a ticket was filed ([IGDD-3700](https://izgateway.atlassian.net/browse/IGDD-3700))
+  without asking first, and its premise was partly wrong -- `izgw-transform` never retrieves a
+  *stored* password to decrypt; it only forwards a plaintext password received in-flight on the
+  inbound request (confirmed via `IZGHubProducer.java`/`IISProducer.java`), so the
+  `CryptoSupport.decrypt()` half of the finding doesn't apply. The ticket is being deleted. The other
+  half, confirmed real on inspection, still stands and needs its own ticket: `izgw-core`'s
+  `SoapMessageWriter` calls `maskFaultText()` on fault `Reason`/`Detail`/`Diagnostics`/`Original`;
+  `izgw-transform`'s fork has no equivalent call anywhere, so its SOAP fault content isn't redacted.
+  Not re-filed yet -- Keith is deciding separately whether/when to.
 
 ---
 
@@ -499,8 +521,8 @@ _Confirmed low risk — no `@SpringBootApplication`, actuator, or Spring Securit
 | 3 | izgw-hub | Consume new core/BOM, Tomcat package move + rename, verify deploy | Done — PR #195 merged, CI-verified incl. DynamoDB boot |
 | 4 | izgw-transform | Same Tomcat fixes as izgw-hub, Camel SPI review, verify deploy | Done — PR #290 merged (252/252 tests, incl. Camel 4.22.0 CVE fix) |
 | 5 | v2tofhir | Consume new BOM, standard verification | Done — PR #57 merged (24,517/24,517 tests; pre-existing unrelated CVE knowingly left unaddressed) |
-| 6 | — | Cross-cutting verification and Jira closeout | Done except 6.6 (genuine open follow-up, non-blocking) |
+| 6 | — | Cross-cutting verification and Jira closeout | Done except 6.6 and 6.7 (genuine open follow-ups, non-blocking) |
 
 **Reconciled 2026-11-08** — confirmed shipped to production via IGDD-2353 (Resolved, released
-2026-10-06) and all 5 repos' merged PRs. Ready to archive this change. 6.6 is the only genuinely open
-item and isn't a blocker to archiving.
+2026-10-06) and all 5 repos' merged PRs. Ready to archive this change. 6.6 and 6.7 are the only
+genuinely open items and aren't blockers to archiving.

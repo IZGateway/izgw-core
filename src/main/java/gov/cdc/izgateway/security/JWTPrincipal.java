@@ -4,7 +4,7 @@ import gov.cdc.izgateway.security.principal.GroupToRoleMapper;
 import gov.cdc.izgateway.security.principal.ScopeToRoleMapper;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
-import org.springframework.lang.Nullable;
+import jakarta.annotation.Nullable;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.stereotype.Component;
 

@@ -2,6 +2,8 @@ package gov.cdc.izgateway.logging.info;
 
 import java.net.InetAddress;
 import java.net.MalformedURLException;
+import java.net.URI;
+import java.net.URISyntaxException;
 import java.net.URL;
 import java.net.UnknownHostException;
 
@@ -69,8 +71,8 @@ public class HostInfo {
     			setIpAddress(LOCALHOST_IP4);
     			return;
     		}
-    		setHostAndIpAddressFromUrl(new URL(url));
-    	} catch (MalformedURLException ex) {
+    		setHostAndIpAddressFromUrl(new URI(url).toURL());
+    	} catch (MalformedURLException | URISyntaxException | IllegalArgumentException ex) {
             log.error(Markers2.append(ex), "Malformed URL: {}", url, ex);
 			setAddressUnknown();
     	}

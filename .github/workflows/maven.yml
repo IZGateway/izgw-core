@@ -186,18 +186,10 @@ jobs:
         name: build-failure
         path: .
 
-    - name: Get current date for cache key
-      id: date
-      run: echo "date=$(date +'%Y-%m-%d')" >> $GITHUB_OUTPUT
-
-    - name: Cache Dependency-Check NVD data
-      uses: actions/cache@v6
-      with:
-        path: ~/dependency-check-data
-        key: dependency-check-nvd-${{ runner.os }}-${{ steps.date.outputs.date }}
-        restore-keys: |
-          dependency-check-nvd-${{ runner.os }}-
-
+    # This scan does not use an NVD API key, and it has no NVD cache step. The action runs the
+    # scanner with --noupdate. The scanner uses the NVD database that is inside the Docker image of
+    # the action. The owners of the action build this image every night with a new database. Thus
+    # the runner does not download NVD data, and it does not need a key.
     - name: Dependency Check
       env:
         # Per https://github.com/marketplace/actions/dependency-check, fix JAVA_HOME location for action
@@ -214,7 +206,6 @@ jobs:
           --disableOssIndex
           --failOnCVSS 7
           --suppression ./dependency-suppression.xml
-          --nvdApiKey ${{ secrets.NVDAPIKEY }}
           --disableNuspec
           --disableNugetconf
           --disableAssembly

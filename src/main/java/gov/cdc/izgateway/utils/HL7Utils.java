@@ -233,7 +233,7 @@ public class HL7Utils {
 	 * This function ensures that HL7 message content potentially containing PHI is removed from the message.
 	 * Sadly, some systems report detailed message content in fault responses.
 	 *  
-	 * MSH|^~\\&|WebIZ.1.0.9035.29972|PW0000|AS0000|AS0000|20241116123011.989+0900||RSP^K11^RSP_K11|PW000020241116301198|P|2.5.1|||NE|NE|||||Z33^CDCPHINVS\r
+	 * MSH|^~\\&amp;|WebIZ.1.0.9035.29972|PW0000|AS0000|AS0000|20241116123011.989+0900||RSP^K11^RSP_K11|PW000020241116301198|P|2.5.1|||NE|NE|||||Z33^CDCPHINVS\r
 	 * MSA|AE|AS000020241115301090\rERR||MSH^1^6^1^1|999^ApplicationError^HL70357|E|4^Invalid value^HL70533^WEBIZ-AUTH-625^Facility is inactive or suspended^L||,  
 	 * Next Diagnostic: |Facility is inactive or suspended.,  Next Message: One or more errors/warnings occured that may effect query results.\r
 	 * QAK|755718|AE|Z34^Request Immunization History^CDCPHINVS\r

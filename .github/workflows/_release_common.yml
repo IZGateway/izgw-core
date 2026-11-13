@@ -384,6 +384,9 @@ jobs:
           echo "- Deploy artifacts to GitHub Packages"
           mvn -B clean test package site deploy -DskipDependencyCheck=true
 
+      # This scan does not use an NVD API key. The action runs the scanner with --noupdate. The
+      # scanner uses the NVD database that is inside the Docker image of the action. The owners of
+      # the action build this image every night with a new database.
       - name: Run OWASP Dependency Check
         env:
           # Per https://github.com/marketplace/actions/dependency-check, fix JAVA_HOME location for action
@@ -398,7 +401,6 @@ jobs:
             --disableOssIndex
             --failOnCVSS 7
             --suppression ./dependency-suppression.xml
-            --nvdApiKey ${{ secrets.NVDAPIKEY }}
             --disableNuspec    
             --disableNugetconf  
             --disableAssembly      

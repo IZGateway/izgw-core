@@ -382,7 +382,13 @@ jobs:
           echo "- Build artifacts"
           echo "- Generate Site"
           echo "- Deploy artifacts to GitHub Packages"
-          mvn -B clean test package site deploy -DskipDependencyCheck=true
+          mvn -B clean test package deploy -DskipDependencyCheck=true
+          # The site is built in a separate Maven run on purpose (IGDD-2974). When tests and "site"
+          # run in the same Maven run, "site" forks the build lifecycle and Maven prints
+          # "[WARNING] Overwriting artifact's file ... to target/classes" several times.
+          # Do not use "clean" here. The site reads the test results that the first run wrote,
+          # so the tests do not run again.
+          mvn -B site -DskipTests -DskipDependencyCheck=true
 
       # This scan does not use an NVD API key. The action runs the scanner with --noupdate. The
       # scanner uses the NVD database that is inside the Docker image of the action. The owners of

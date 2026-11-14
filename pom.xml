@@ -64,6 +64,7 @@
 			-Xmx2048m
 			--add-opens=java.base/java.lang.reflect=ALL-UNNAMED
 			--add-opens=java.base/java.net=ALL-UNNAMED
+			-javaagent:${org.mockito:mockito-core:jar}
 		</surefire.argLine>
 		<maven.build.timestamp.format>yyyyMMddHHmm</maven.build.timestamp.format>
 		<project.build.finalName>${project.artifactId}-${project.version}-${timestamp}</project.build.finalName>
@@ -381,6 +382,17 @@
 			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>
 				<artifactId>maven-dependency-plugin</artifactId>
+				<executions>
+					<execution>
+						<!-- Exposes ${org.mockito:mockito-core:jar} so Mockito can be attached as a
+							 -javaagent at JVM start (see surefire.argLine). This avoids the JDK 21 warning
+							 "A Java agent has been loaded dynamically". -->
+						<id>mockito-agent-path</id>
+						<goals>
+							<goal>properties</goal>
+						</goals>
+					</execution>
+				</executions>
 			</plugin>
 			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>
@@ -511,6 +523,19 @@
 							<report>licenses</report>
 							<report>scm</report>
 							<report>summary</report>
+						</reports>
+					</reportSet>
+				</reportSets>
+			</plugin>
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-jxr-plugin</artifactId>
+				<version>3.6.0</version>
+				<reportSets>
+					<reportSet>
+						<reports>
+							<report>jxr</report>
+							<report>test-jxr</report>
 						</reports>
 					</reportSet>
 				</reportSets>

@@ -174,13 +174,15 @@ jobs:
         ELASTIC_API_KEY: ${{ secrets.ELASTIC_API_KEY }}
 
       run: |
-        env && mvn -B -U clean install deploy -Dbuildno=${{github.run_number}} \
+        env && mvn -B -U clean deploy -Dbuildno=${{github.run_number}} \
             -DdoRevisionCheck=${{env.DO_REVISION_CHECK}} \
             -DskipDependencyCheck=true \
             -Dimage.tag=$IMAGE_BRANCH_TAG
-        # The site is built in a separate Maven run on purpose (IGDD-2974). When tests and "site"
-        # run in the same Maven run, "site" forks the build lifecycle and Maven prints
-        # "[WARNING] Overwriting artifact's file ... to target/classes" several times.
+        # Two things avoid "[WARNING] Overwriting artifact's file ... to target/classes" (IGDD-2974):
+        # 1. The command above lists only "deploy". "deploy" already runs "install". When both
+        #    "install" and "deploy" are listed, Maven runs the build lifecycle twice.
+        # 2. The site is built in a separate Maven run on purpose. When tests and "site" run in
+        #    the same Maven run, "site" forks the build lifecycle and Maven prints the warning.
         # Do not use "clean" here. The site reads the test results that the first run wrote,
         # so the tests do not run again.
         mvn -B site -DskipTests -Dbuildno=${{github.run_number}} \

@@ -382,10 +382,13 @@ jobs:
           echo "- Build artifacts"
           echo "- Generate Site"
           echo "- Deploy artifacts to GitHub Packages"
-          mvn -B clean test package deploy -DskipDependencyCheck=true
-          # The site is built in a separate Maven run on purpose (IGDD-2974). When tests and "site"
-          # run in the same Maven run, "site" forks the build lifecycle and Maven prints
-          # "[WARNING] Overwriting artifact's file ... to target/classes" several times.
+          mvn -B clean deploy -DskipDependencyCheck=true
+          # Two things avoid "[WARNING] Overwriting artifact's file ... to target/classes" (IGDD-2974):
+          # 1. The command above lists only "deploy". "deploy" already runs test, package and
+          #    install. When several of these phases are listed, Maven runs the build lifecycle
+          #    more than once.
+          # 2. The site is built in a separate Maven run on purpose. When tests and "site" run in
+          #    the same Maven run, "site" forks the build lifecycle and Maven prints the warning.
           # Do not use "clean" here. The site reads the test results that the first run wrote,
           # so the tests do not run again.
           mvn -B site -DskipTests -DskipDependencyCheck=true

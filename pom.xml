@@ -6,7 +6,7 @@
 	<parent>
         <groupId>gov.cdc.izgw</groupId>
         <artifactId>izgw-bom</artifactId>
-        <version>1.18.0</version>
+        <version>1.19.0-SNAPSHOT</version>
         <relativePath/>
 	</parent>
 	<artifactId>izgw-core</artifactId>
@@ -17,6 +17,7 @@
 	<packaging>jar</packaging>
 	<name>IZ Gateway Core</name>
 	<description>IZ Gateway Core contains the core code for the IZ Gateway Hub and Transformation services</description>
+	<url>https://github.com/IZGateway/izgw-core</url>
 	<repositories>
 	   <repository>
             <id>central</id>
@@ -63,6 +64,7 @@
 			-Xmx2048m
 			--add-opens=java.base/java.lang.reflect=ALL-UNNAMED
 			--add-opens=java.base/java.net=ALL-UNNAMED
+			-javaagent:${org.mockito:mockito-core:jar}
 		</surefire.argLine>
 		<maven.build.timestamp.format>yyyyMMddHHmm</maven.build.timestamp.format>
 		<project.build.finalName>${project.artifactId}-${project.version}-${timestamp}</project.build.finalName>
@@ -380,6 +382,17 @@
 			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>
 				<artifactId>maven-dependency-plugin</artifactId>
+				<executions>
+					<execution>
+						<!-- Exposes ${org.mockito:mockito-core:jar} so Mockito can be attached as a
+							 -javaagent at JVM start (see surefire.argLine). This avoids the JDK 21 warning
+							 "A Java agent has been loaded dynamically". -->
+						<id>mockito-agent-path</id>
+						<goals>
+							<goal>properties</goal>
+						</goals>
+					</execution>
+				</executions>
 			</plugin>
 			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>
@@ -505,11 +518,33 @@
 							<report>index</report>
 							<report>dependencies</report>
 							<report>dependency-info</report>
+							<!-- Known warning (IGDD-2974): this report lists every version that the imported
+								 BOMs manage, including libraries that izgw-core does not use. Spring Boot
+								 imports the Apache Pulsar BOM (pulsar-bom 4.2.x). That BOM lists the
+								 tiered-storage-* modules, but Pulsar did not publish them to Maven Central
+								 after 4.0.14 (HTTP 404). Maven then prints
+								 "Unable to create Maven project for org.apache.pulsar:tiered-storage-*:jar".
+								 We do not use Pulsar. The warning is harmless and cannot be fixed in this
+								 repository. To remove it, remove this report from the list, or pin those
+								 artifacts to 4.0.14 in the izgw-bom dependencyManagement. -->
 							<report>dependency-management</report>
 							<report>distribution-management</report>
 							<report>licenses</report>
 							<report>scm</report>
 							<report>summary</report>
+						</reports>
+					</reportSet>
+				</reportSets>
+			</plugin>
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-jxr-plugin</artifactId>
+				<version>3.6.0</version>
+				<reportSets>
+					<reportSet>
+						<reports>
+							<report>jxr</report>
+							<report>test-jxr</report>
 						</reports>
 					</reportSet>
 				</reportSets>

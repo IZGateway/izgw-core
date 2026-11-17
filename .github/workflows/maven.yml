@@ -174,7 +174,18 @@ jobs:
         ELASTIC_API_KEY: ${{ secrets.ELASTIC_API_KEY }}
 
       run: |
-        env && mvn -B -U clean package install site deploy -Dbuildno=${{github.run_number}} \
+        env && mvn -B -U clean deploy -Dbuildno=${{github.run_number}} \
+            -DdoRevisionCheck=${{env.DO_REVISION_CHECK}} \
+            -DskipDependencyCheck=true \
+            -Dimage.tag=$IMAGE_BRANCH_TAG
+        # Two things avoid "[WARNING] Overwriting artifact's file ... to target/classes" (IGDD-2974):
+        # 1. The command above lists only "deploy". "deploy" already runs "install". When both
+        #    "install" and "deploy" are listed, Maven runs the build lifecycle twice.
+        # 2. The site is built in a separate Maven run on purpose. When tests and "site" run in
+        #    the same Maven run, "site" forks the build lifecycle and Maven prints the warning.
+        # Do not use "clean" here. The site reads the test results that the first run wrote,
+        # so the tests do not run again.
+        mvn -B site -DskipTests -Dbuildno=${{github.run_number}} \
             -DdoRevisionCheck=${{env.DO_REVISION_CHECK}} \
             -DskipDependencyCheck=true \
             -Dimage.tag=$IMAGE_BRANCH_TAG
@@ -186,18 +197,10 @@ jobs:
         name: build-failure
         path: .
 
-    - name: Get current date for cache key
-      id: date
-      run: echo "date=$(date +'%Y-%m-%d')" >> $GITHUB_OUTPUT
-
-    - name: Cache Dependency-Check NVD data
-      uses: actions/cache@v6
-      with:
-        path: ~/dependency-check-data
-        key: dependency-check-nvd-${{ runner.os }}-${{ steps.date.outputs.date }}
-        restore-keys: |
-          dependency-check-nvd-${{ runner.os }}-
-
+    # This scan does not use an NVD API key, and it has no NVD cache step. The action runs the
+    # scanner with --noupdate. The scanner uses the NVD database that is inside the Docker image of
+    # the action. The owners of the action build this image every night with a new database. Thus
+    # the runner does not download NVD data, and it does not need a key.
     - name: Dependency Check
       env:
         # Per https://github.com/marketplace/actions/dependency-check, fix JAVA_HOME location for action
@@ -214,7 +217,6 @@ jobs:
           --disableOssIndex
           --failOnCVSS 7
           --suppression ./dependency-suppression.xml
-          --nvdApiKey ${{ secrets.NVDAPIKEY }}
           --disableNuspec
           --disableNugetconf
           --disableAssembly

@@ -16,7 +16,7 @@ public interface FaultSupport {
     /** Diagnostics for the fault */
     public static final String DIAGNOSTICS = "Diagnostics";
     public static final String EVENTID = "EventID";
-    /** The summary of the fault, used in logging to classify errors. This should be a short (< 20 characters)
+    /** The summary of the fault, used in logging to classify errors. This should be a short (&lt; 20 characters)
      * descriptive summary of the fault.  Each fault should support just a few summary values and they
      * should be determined by the constructor rather than user provided string values.
      *

@@ -382,8 +382,20 @@ jobs:
           echo "- Build artifacts"
           echo "- Generate Site"
           echo "- Deploy artifacts to GitHub Packages"
-          mvn -B clean test package site deploy -DskipDependencyCheck=true
+          mvn -B clean deploy -DskipDependencyCheck=true
+          # Two things avoid "[WARNING] Overwriting artifact's file ... to target/classes" (IGDD-2974):
+          # 1. The command above lists only "deploy". "deploy" already runs test, package and
+          #    install. When several of these phases are listed, Maven runs the build lifecycle
+          #    more than once.
+          # 2. The site is built in a separate Maven run on purpose. When tests and "site" run in
+          #    the same Maven run, "site" forks the build lifecycle and Maven prints the warning.
+          # Do not use "clean" here. The site reads the test results that the first run wrote,
+          # so the tests do not run again.
+          mvn -B site -DskipTests -DskipDependencyCheck=true
 
+      # This scan does not use an NVD API key. The action runs the scanner with --noupdate. The
+      # scanner uses the NVD database that is inside the Docker image of the action. The owners of
+      # the action build this image every night with a new database.
       - name: Run OWASP Dependency Check
         env:
           # Per https://github.com/marketplace/actions/dependency-check, fix JAVA_HOME location for action
@@ -398,7 +410,6 @@ jobs:
             --disableOssIndex
             --failOnCVSS 7
             --suppression ./dependency-suppression.xml
-            --nvdApiKey ${{ secrets.NVDAPIKEY }}
             --disableNuspec    
             --disableNugetconf  
             --disableAssembly      

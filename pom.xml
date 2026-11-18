@@ -59,6 +59,21 @@
 		<java.version>21</java.version>
 		<!-- JaCoCo configuration -->
 		<jacoco.version>0.8.13</jacoco.version>
+
+		<!-- Versions owned by this project (not managed by izgw-bom). Kept as properties so the
+		     Security Updates workflow (versions:update-properties) can apply patch releases.
+		     httpclient4.version is not named httpclient.version on purpose: izgw-bom already uses
+		     httpclient.version for httpclient5, and a property here would override it. -->
+		<commons-fileupload.version>1.6.0</commons-fileupload.version>
+		<commons-collections4.version>4.4</commons-collections4.version>
+		<httpclient4.version>4.5.14</httpclient4.version>
+		<maven-site-plugin.version>3.21.0</maven-site-plugin.version>
+		<maven-deploy-plugin.version>3.1.4</maven-deploy-plugin.version>
+		<dependency-check-maven.version>12.1.1</dependency-check-maven.version>
+		<maven-javadoc-plugin.version>3.12.0</maven-javadoc-plugin.version>
+		<maven-project-info-reports-plugin.version>3.6.1</maven-project-info-reports-plugin.version>
+		<maven-jxr-plugin.version>3.6.0</maven-jxr-plugin.version>
+		<maven-surefire-report-plugin.version>3.5.3</maven-surefire-report-plugin.version>
 		<jacoco.jar>${user.home}/.m2/repository/org/jacoco/org.jacoco.agent/${jacoco.version}/org.jacoco.agent-${jacoco.version}.jar</jacoco.jar>
 		<surefire.argLine>
 			-Xmx2048m
@@ -123,7 +138,7 @@
 		<dependency>
 			<groupId>commons-fileupload</groupId>
 			<artifactId>commons-fileupload</artifactId>
-			<version>1.6.0</version>
+			<version>${commons-fileupload.version}</version>
 		</dependency>
 		<dependency>
 			<groupId>commons-io</groupId>
@@ -144,7 +159,7 @@
 		<dependency>
 			<groupId>org.apache.commons</groupId>
 			<artifactId>commons-collections4</artifactId>
-			<version>4.4</version>
+			<version>${commons-collections4.version}</version>
 		</dependency>
 		<dependency>
 			<groupId>org.apache.commons</groupId>
@@ -157,7 +172,7 @@
 		<dependency>
 			<groupId>org.apache.httpcomponents</groupId>
 			<artifactId>httpclient</artifactId>
-			<version>4.5.14</version>
+			<version>${httpclient4.version}</version>
 			<exclusions>
 				<exclusion>
 					<groupId>commons-logging</groupId>
@@ -326,6 +341,21 @@
 	<build>
 		<pluginManagement>
 			<plugins>
+				<!-- Used by .github/workflows/security-updates.yml. izgw-bom configures this plugin
+				     with allowMinorUpdates=true; POM configuration wins over -D flags, so it is
+				     overridden here to apply patch releases only. -->
+				<plugin>
+					<groupId>org.codehaus.mojo</groupId>
+					<artifactId>versions-maven-plugin</artifactId>
+					<configuration>
+						<allowMajorUpdates>false</allowMajorUpdates>
+						<allowMinorUpdates>false</allowMinorUpdates>
+						<allowIncrementalUpdates>true</allowIncrementalUpdates>
+						<allowSnapshots>false</allowSnapshots>
+						<generateBackupPoms>false</generateBackupPoms>
+						<rulesUri>${project.baseUri}versions-rules.xml</rulesUri>
+					</configuration>
+				</plugin>
 				<plugin>
 					<artifactId>maven-compiler-plugin</artifactId>
 					<version>3.13.0</version>
@@ -340,7 +370,7 @@
 				<plugin>
 					<groupId>org.apache.maven.plugins</groupId>
 					<artifactId>maven-site-plugin</artifactId>
-					<version>3.21.0</version>
+					<version>${maven-site-plugin.version}</version>
 				</plugin>
 				<plugin>
 					<groupId>org.jacoco</groupId>
@@ -449,7 +479,7 @@
 				<artifactId>dependency-check-maven</artifactId>
 				<!-- 9.0 line uses NVD API and requires a key, which has flakey response 
 					right now -->
-				<version>12.1.1</version>
+				<version>${dependency-check-maven.version}</version>
 				<configuration>
 					<!--nvdApiKey>${env.NVDAPIKEY}</nvdApiKey -->
 					<formats>
@@ -477,7 +507,7 @@
 			</plugin>
 			<plugin>
 				<artifactId>maven-deploy-plugin</artifactId>
-				<version>3.1.4</version>
+				<version>${maven-deploy-plugin.version}</version>
 				<configuration>
 					<altDeploymentRepository>github-core::https://maven.pkg.github.com/IZGateway/izgw-core</altDeploymentRepository>
 				</configuration>
@@ -502,7 +532,7 @@
 			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>
 				<artifactId>maven-javadoc-plugin</artifactId>
-				<version>3.12.0</version>
+				<version>${maven-javadoc-plugin.version}</version>
 				<configuration>
 					<failOnError>false</failOnError>
 					<additionalJOption>-Xdoclint:none</additionalJOption>
@@ -511,7 +541,7 @@
 			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>
 				<artifactId>maven-project-info-reports-plugin</artifactId>
-				<version>3.6.1</version>
+				<version>${maven-project-info-reports-plugin.version}</version>
 				<reportSets>
 					<reportSet>
 						<reports>
@@ -539,7 +569,7 @@
 			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>
 				<artifactId>maven-jxr-plugin</artifactId>
-				<version>3.6.0</version>
+				<version>${maven-jxr-plugin.version}</version>
 				<reportSets>
 					<reportSet>
 						<reports>
@@ -552,12 +582,12 @@
 			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>
 				<artifactId>maven-surefire-report-plugin</artifactId>
-				<version>3.5.3</version>
+				<version>${maven-surefire-report-plugin.version}</version>
 			</plugin>
 			<plugin>
 				<groupId>org.owasp</groupId>
 				<artifactId>dependency-check-maven</artifactId>
-				<version>12.1.1</version>
+				<version>${dependency-check-maven.version}</version>
 				<configuration>
 					<!--nvdApiKey>${env.NVDAPIKEY}</nvdApiKey-->
 					<formats>

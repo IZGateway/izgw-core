@@ -183,6 +183,10 @@
 			<artifactId>bctls-fips</artifactId>
 		</dependency>
 		<dependency>
+			<groupId>org.codehaus.janino</groupId>
+			<artifactId>janino</artifactId>
+		</dependency>
+		<dependency>
 			<groupId>org.hibernate.orm</groupId>
 			<artifactId>hibernate-core</artifactId>
 		</dependency>

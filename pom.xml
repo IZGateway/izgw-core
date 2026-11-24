@@ -61,7 +61,9 @@
 		<jacoco.version>0.8.13</jacoco.version>
 
 		<!-- Versions owned by this project (not managed by izgw-bom). Kept as properties so the
-		     Security Updates workflow (versions:update-properties) can apply patch releases.
+		     Security Updates workflow (versions:update-properties) can update them. Which updates
+		     are allowed (patch and minor, never major) comes from the versions-maven-plugin
+		     configuration inherited from izgw-bom.
 		     httpclient4.version is not named httpclient.version on purpose: izgw-bom already uses
 		     httpclient.version for httpclient5, and a property here would override it. -->
 		<commons-fileupload.version>1.6.0</commons-fileupload.version>
@@ -337,21 +339,6 @@
 	<build>
 		<pluginManagement>
 			<plugins>
-				<!-- Used by .github/workflows/security-updates.yml. izgw-bom configures this plugin
-				     with allowMinorUpdates=true; POM configuration wins over -D flags, so it is
-				     overridden here to apply patch releases only. -->
-				<plugin>
-					<groupId>org.codehaus.mojo</groupId>
-					<artifactId>versions-maven-plugin</artifactId>
-					<configuration>
-						<allowMajorUpdates>false</allowMajorUpdates>
-						<allowMinorUpdates>false</allowMinorUpdates>
-						<allowIncrementalUpdates>true</allowIncrementalUpdates>
-						<allowSnapshots>false</allowSnapshots>
-						<generateBackupPoms>false</generateBackupPoms>
-						<rulesUri>${project.baseUri}versions-rules.xml</rulesUri>
-					</configuration>
-				</plugin>
 				<plugin>
 					<artifactId>maven-compiler-plugin</artifactId>
 					<version>3.13.0</version>

@@ -1,0 +1,44 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="" lang="">
+<head><meta http-equiv="content-type" content="text/html; charset=UTF-8" />
+<title>EndpointStatusRepository xref</title>
+<link type="text/css" rel="stylesheet" href="../../../../stylesheet.css" />
+</head>
+<body>
+<div id="overview"><a href="../../../../../apidocs/gov/cdc/izgateway/repository/EndpointStatusRepository.html">View Javadoc</a></div><pre>
+<a class="jxr_linenumber" name="L1" href="#L1">1</a>   <strong class="jxr_keyword">package</strong> gov.cdc.izgateway.repository;
+<a class="jxr_linenumber" name="L2" href="#L2">2</a>   <strong class="jxr_keyword">import</strong> java.util.List;
+<a class="jxr_linenumber" name="L3" href="#L3">3</a>   
+<a class="jxr_linenumber" name="L4" href="#L4">4</a>   <strong class="jxr_keyword">import</strong> org.springframework.stereotype.Component;
+<a class="jxr_linenumber" name="L5" href="#L5">5</a>   
+<a class="jxr_linenumber" name="L6" href="#L6">6</a>   <strong class="jxr_keyword">import</strong> gov.cdc.izgateway.model.IDestination;
+<a class="jxr_linenumber" name="L7" href="#L7">7</a>   <strong class="jxr_keyword">import</strong> gov.cdc.izgateway.model.IEndpointStatus;
+<a class="jxr_linenumber" name="L8" href="#L8">8</a>   
+<a class="jxr_linenumber" name="L9" href="#L9">9</a>   <em class="jxr_comment">// Technically, this is a repository, but Spring wraps a repository with a proxy that provides</em>
+<a class="jxr_linenumber" name="L10" href="#L10">10</a>  <em class="jxr_comment">// some capabilities we don't have any interest in that make it harder to debug the code.</em>
+<a class="jxr_linenumber" name="L11" href="#L11">11</a>  @Component
+<a class="jxr_linenumber" name="L12" href="#L12">12</a>  <strong class="jxr_keyword">public</strong> <strong class="jxr_keyword">interface</strong> EndpointStatusRepository&lt;T <strong class="jxr_keyword">extends</strong> IEndpointStatus&gt; {
+<a class="jxr_linenumber" name="L13" href="#L13">13</a>  	<strong class="jxr_keyword">public</strong> <strong class="jxr_keyword">static</strong> <strong class="jxr_keyword">final</strong> String[] INCLUDE_ALL = <strong class="jxr_keyword">new</strong> String[0];
+<a class="jxr_linenumber" name="L14" href="#L14">14</a>  	
+<a class="jxr_linenumber" name="L15" href="#L15">15</a>  	List&lt;T&gt; findAll();
+<a class="jxr_linenumber" name="L16" href="#L16">16</a>  	T findById(String id);
+<a class="jxr_linenumber" name="L17" href="#L17">17</a>  	T saveAndFlush(<a name="IEndpointStatus" href="../../../../gov/cdc/izgateway/model/IEndpointStatus.html#IEndpointStatus">IEndpointStatus</a> status);
+<a class="jxr_linenumber" name="L18" href="#L18">18</a>  	<strong class="jxr_keyword">boolean</strong> removeById(String id);
+<a class="jxr_linenumber" name="L19" href="#L19">19</a>  
+<a class="jxr_linenumber" name="L20" href="#L20">20</a>  	List&lt;T&gt; find(<strong class="jxr_keyword">int</strong> maxQuarterHours, String[] include);
+<a class="jxr_linenumber" name="L21" href="#L21">21</a>  	<strong class="jxr_keyword">boolean</strong> refresh();
+<a class="jxr_linenumber" name="L22" href="#L22">22</a>  	<strong class="jxr_keyword">void</strong> resetCircuitBreakers();
+<a class="jxr_linenumber" name="L23" href="#L23">23</a>  	<em class="jxr_javadoccomment">/**</em>
+<a class="jxr_linenumber" name="L24" href="#L24">24</a>  <em class="jxr_javadoccomment">	 * Reset the circuit breaker for a single endpoint by destination ID.</em>
+<a class="jxr_linenumber" name="L25" href="#L25">25</a>  <em class="jxr_javadoccomment">	 * @param id the destination ID whose circuit breaker should be reset</em>
+<a class="jxr_linenumber" name="L26" href="#L26">26</a>  <em class="jxr_javadoccomment">	 * @return the updated status, or {@code null} if no entry was found for the given ID</em>
+<a class="jxr_linenumber" name="L27" href="#L27">27</a>  <em class="jxr_javadoccomment">	 */</em>
+<a class="jxr_linenumber" name="L28" href="#L28">28</a>  	T resetCircuitBreakerById(String id);
+<a class="jxr_linenumber" name="L29" href="#L29">29</a>  	T newEndpointStatus();
+<a class="jxr_linenumber" name="L30" href="#L30">30</a>  	T newEndpointStatus(<a name="IDestination" href="../../../../gov/cdc/izgateway/model/IDestination.html#IDestination">IDestination</a> dest);
+<a class="jxr_linenumber" name="L31" href="#L31">31</a>  }
+</pre>
+<hr/>
+<div id="footer">© 2026</div>
+</body>
+</html>

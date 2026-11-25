@@ -1,3 +1,9 @@
+## [3.10.0] - 2026-11-25
+
+### Changes
+- chore: Remove janino dependency. ([#118](https://github.com/IZGateway/izgw-core/pull/118))
+- Reapply IGDD-3499 changes  ([#113](https://github.com/IZGateway/izgw-core/pull/113))
+
 ## [3.9.0] - 2026-11-03
 
 ### Changes

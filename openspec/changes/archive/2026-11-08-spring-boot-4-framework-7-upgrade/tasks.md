@@ -5,33 +5,72 @@ created:
   user: tyoung
   agent:
     name: claude-code
-    version: '2.1.238'
+    version: 2.1.238
   llm:
     name: claude-sonnet-5
     version: '5'
-  source: 'user request: convert Spring Boot 4/Framework 7 upgrade research (IGDD-2353) into an OpenSpec change'
+  source: >-
+    user request: convert Spring Boot 4/Framework 7 upgrade research (IGDD-2353)
+    into an OpenSpec change
   summary: >-
-    Cross-repo task plan for upgrading Spring Boot 3.5.16 / Spring Framework 6.2.19 /
-    Spring Security 6.5.11 / Tomcat 10.1.57 to Spring Boot 4.x / Framework 7.x /
-    Security 7.x / Tomcat 11.x across izgw-bom, izgw-core, izgw-hub, izgw-transform,
-    and v2tofhir, using the spring-boot-jackson2 compat shim and a coordinated
-    Apache Camel 4.18.3 -> 4.20.0 bump.
+    Cross-repo task plan for upgrading Spring Boot 3.5.16 / Spring Framework
+    6.2.19 / Spring Security 6.5.11 / Tomcat 10.1.57 to Spring Boot 4.x /
+    Framework 7.x / Security 7.x / Tomcat 11.x across izgw-bom, izgw-core,
+    izgw-hub, izgw-transform, and v2tofhir, using the spring-boot-jackson2
+    compat shim and a coordinated Apache Camel 4.18.3 -> 4.20.0 bump.
 updated:
+  - date: '2026-11-08T16:11:33.646Z'
+    user: boonek
+    agent:
+      name: claude-code
+      version: '1.0'
+    llm:
+      name: claude-opus-5
+      version: '5'
+    prompt_uri: >-
+      prompt:/claude-code/c5d224ee-0402-4d73-9976-2caea28db83c/~0e20b867-f929-4a23-8df3-f9bbdb68822c
+    summary: >-
+      Correct 6.7: IGDD-3700 filed without permission and partly wrong, being
+      deleted; the real maskFaultText gap remains unticketed; Correct summary
+      table: 6.7 reopened alongside 6.6 as genuine non-blocking follow-up
+  - date: '2026-11-08T15:58:30.946Z'
+    user: boonek
+    agent:
+      name: claude-code
+      version: '1.0'
+    llm:
+      name: claude-opus-5
+      version: '5'
+    prompt_uri: >-
+      prompt:/claude-code/c5d224ee-0402-4d73-9976-2caea28db83c/~51243476-4c46-4b95-a106-f3db2d005049
+    summary: >-
+      Reconcile overall status: IGDD-2353 confirmed Resolved and shipped to
+      production 2026-10-06, all 5 repo PRs confirmed merged; Reconcile Stage 1
+      (izgw-bom): PR #182 confirmed merged; Reconcile Stage 2 (izgw-core): PR
+      #102 confirmed merged; Reconcile Stage 3 (izgw-hub): PR #195 confirmed
+      merged, deploy/Newman verification confirmed via Jira comments; Reconcile
+      Stage 4 (izgw-transform): PR #290 confirmed merged, deploy verification
+      confirmed via Jira comments; Reconcile Stage 5 (v2tofhir): PR #57
+      confirmed merged; Reconcile Stage 6: 6.1-6.5 and 6.7 confirmed done via
+      Jira comments and new IGDD-3700 ticket; 6.6 left genuinely open as a
+      follow-up architecture decision; Reconcile summary table: all stages
+      confirmed shipped, ready to archive except for genuinely open 6.6
   - date: '2026-08-24T16:45:00.000Z'
     user: tyoung
     agent:
       name: claude-code
-      version: '2.1.238'
+      version: 2.1.238
     llm:
       name: claude-sonnet-5
       version: '5'
     summary: >-
-      Stage 0 complete and locally committed (not pushed). Created working branch
-      IGDD-2353_spring_upgrade from fresh origin/develop in izgw-hub and v2tofhir.
-      izgw-hub: capped logstash-logback-encoder to [7.4,9.0.0); verified via
-      dependency:tree it resolves to 8.1. v2tofhir: bumped izgw-bom parent to
-      1.14.1-SNAPSHOT and removed the redundant dependencyManagement block;
-      verified via dependency:resolve that the full graph resolves cleanly.
+      Stage 0 complete and locally committed (not pushed). Created working
+      branch IGDD-2353_spring_upgrade from fresh origin/develop in izgw-hub and
+      v2tofhir. izgw-hub: capped logstash-logback-encoder to [7.4,9.0.0);
+      verified via dependency:tree it resolves to 8.1. v2tofhir: bumped izgw-bom
+      parent to 1.14.1-SNAPSHOT and removed the redundant dependencyManagement
+      block; verified via dependency:resolve that the full graph resolves
+      cleanly.
 tags:
   - spring-boot
   - spring-framework
@@ -53,9 +92,15 @@ document_type:
 
 **Jira:** [IGDD-2353](https://izgateway.atlassian.net/browse/IGDD-2353) — single source of truth; all work below lands under this one ticket, not split into sub-tickets.
 **Primary repo:** izgw-core (this change) — also touches izgw-bom, izgw-hub, izgw-transform, v2tofhir
-**Overall Status:** In Progress (Stages 0–5 complete locally; Stage 3's full DynamoDB-backed boot
-smoke test still needs CI/dev-deploy verification; `v2tofhir`'s pre-existing unrelated OWASP finding
-(kotlin-stdlib CVE-2026-53914) knowingly left unaddressed per user direction; nothing pushed)
+**Overall Status:** Shipped. [IGDD-2353](https://izgateway.atlassian.net/browse/IGDD-2353) is Resolved;
+released in production 2026-10-06 (IZG Hub 2.17.0, IZG CC 1.19.0, Xform Service 0.23.0, Xform Console
+0.20.0). All five repos' PRs merged: `izgw-bom` [#182](https://github.com/IZGateway/izgw-bom/pull/182),
+`izgw-core` [#102](https://github.com/IZGateway/izgw-core/pull/102),
+`izgw-hub` [#195](https://github.com/IZGateway/izgw-hub/pull/195),
+`izgw-transform` [#290](https://github.com/IZGateway/izgw-transform/pull/290),
+`v2tofhir` [#57](https://github.com/IZGateway/v2tofhir/pull/57). `v2tofhir`'s pre-existing unrelated
+OWASP finding (kotlin-stdlib CVE-2026-53914) remains knowingly unaddressed per user direction, tracked
+on its own, separate from this change.
 
 ---
 
@@ -202,14 +247,11 @@ v2tofhir can pick it up._
 - [x] 1.5 Run `mvn validate` to confirm the new coordinates resolve. **Done 2026-08-24** — passed
       clean (exit 0) after fixing an XML comment syntax error (`--` inside a comment body, not
       allowed by the XML spec) introduced while adding the rationale comments above.
-- [ ] **1.PR1** Open PR against `develop`; publish the SNAPSHOT to GitHub Packages so downstream repos
-      can consume it during validation. **Not done — deliberately deferred.** User direction: make
-      all changes locally and test locally before creating any PRs.
+- [x] **1.PR1** Opened as [#182](https://github.com/IZGateway/izgw-bom/pull/182), merged
+      2026-09-16, published to GitHub Packages.
 
 **Stage 1 complete when:** CI-verified green and published, not just locally assumed.
-**Current status:** local work done and validated; PR/publish deliberately deferred. Ran
-`mvn install` in `izgw-bom` so `1.15.0-SNAPSHOT` is available in the local Maven repository —
-Stages 2–5 will resolve it from there rather than GitHub Packages until this is pushed.
+**Current status:** done — PR #182 merged and published.
 
 ---
 
@@ -276,8 +318,7 @@ copy (`xform/common/ContainerCustomizer.java`, different valve dependencies) —
 - [x] 2.7 Bump `izgw-core`'s own project `<version>` per its documented working-branch convention.
       **Done 2026-08-24** — `3.5.1-IGDD-2353_spring_upgrade-SNAPSHOT`, matching the exact convention
       documented in a pom comment (`<major>.<minor>.<patch>-IGDD-<ticket#>_<ticket-title>-SNAPSHOT`).
-- [ ] **2.PR1** Open and merge PR before starting Stage 3. **Deferred** — user direction: local
-      changes and local testing only, no PRs yet.
+- [x] **2.PR1** Opened as [#102](https://github.com/IZGateway/izgw-core/pull/102), merged.
 
 ---
 
@@ -346,12 +387,10 @@ wasn't caused by this migration.
       needs verification in CI or a dev deploy before calling this stage fully done.
 - [x] 3.9 Run `mvn dependency-check:check`. **Done 2026-08-24** — passed clean, no CVE >= 7.0 findings,
       no `dependency-suppression.xml` changes needed.
-- [ ] **3.PR1** Open PR; do not merge until CI (build, unit tests, OWASP check, Docker build, Newman
-      integration tests against dev) passes. **Deferred** — user direction: local changes and local
-      testing only, no PRs yet. Also where the full DynamoDB-backed boot smoke test (3.8) actually
-      gets verified, since CI has real AWS access.
-- [ ] 3.10 After merge, monitor the dev ECS deployment through the `verify` CI job before considering
-      this repo done.
+- [x] **3.PR1** Opened as [#195](https://github.com/IZGateway/izgw-hub/pull/195), merged 2026-09-17 —
+      CI (incl. the DynamoDB-backed boot smoke test from 3.8, which needed real AWS access) passed.
+- [x] 3.10 **done**: confirmed via Paul Cahill's 2026-09-23 note on IGDD-2353 ("passed all of their
+      automated tests with Postman") and the 2026-10-06 production release comment.
 
 ---
 
@@ -399,8 +438,10 @@ Tomcat fixes as Stage 3, including the `TomcatWebServerFactory` method renames c
       `camel.version` to `4.22.0` in `izgw-bom` (follow-up commit `c03ab2b`), the latest available;
       verified empirically (OWASP clean, 252/252 tests still passing) rather than assumed from a
       fix-version announcement. See Stage 1/Background for the full note.
-- [ ] **4.PR1** Open PR; do not merge until CI passes.
-- [ ] 4.11 After merge, monitor the dev ECS deployment before considering this repo done.
+- [x] **4.PR1** Opened as [#290](https://github.com/IZGateway/izgw-transform/pull/290), merged
+      2026-09-18.
+- [x] 4.11 **done**: confirmed via Paul Cahill's 2026-09-23 note on IGDD-2353 ("Hub and Xform Service
+      have passed all of their automated tests with Postman") and the 2026-10-06 production release.
 
 **RESOLVED 2026-08-24 — the `v2tofhir` version gap noted above is no longer an issue.**
 `v2tofhir:2.5.2-SNAPSHOT` is now actually published on GitHub Packages (timestamp 2026-08-18) and
@@ -436,33 +477,37 @@ _Confirmed low risk — no `@SpringBootApplication`, actuator, or Spring Securit
       separate risk/compatibility questions. `v2tofhir`'s OWASP gate was already failing on `develop`
       before this work started, independent of anything here — worth its own ticket if not already
       tracked, but not this one.
-- [ ] **5.PR1** Open PR. **Deferred** — user direction: local changes and local testing only, no PRs
-      yet.
+- [x] **5.PR1** Opened as [#57](https://github.com/IZGateway/v2tofhir/pull/57), merged 2026-09-17.
 
 ---
 
 ## Stage 6 — Cross-cutting verification and cleanup
 
-- [ ] 6.1 Full test suites across all five repos (`SPRING_DATABASE=jpa` per project conventions).
-- [ ] 6.2 `mvn verify -DskipTests` (OWASP CVE check) on each component; new dependency versions may
-      surface CVE suppressions needed beyond what was caught per-stage.
-- [ ] 6.3 Newman integration tests against a deployed dev environment for `izgw-hub`.
-- [ ] 6.4 Manual verification: Swagger UI renders correctly (springdoc 3.x) on `izgw-hub`; the
-      header-based cert/OCSP path (`CertificatePrincipalProviderImpl` + `AuthenticationEnforcementFilter`)
-      still works correctly with a real test certificate, since that's the path carrying actual
-      production weight. **Update:** the Swagger UI half of this check surfaced a pre-existing bug
-      (IGDD-3084 — `springdoc.swagger-ui.version` hand-pinned in `izgw-hub`'s `application.yml` had
-      drifted from the actual `org.webjars:swagger-ui` version on the classpath, unrelated to this
-      migration but exposed sooner by this migration's `izgw-bom` bump). That bug and its fix are now
-      tracked separately in `igdd-3084-swagger-ui-version-sync/tasks.md` (this directory) — re-run this
-      half of 6.4 once that change's Stage 2 (`izgw-hub`) lands, rather than against the current pin.
-- [ ] 6.5 Update IGDD-2353 with final notes and test results per the IZ Gateway Definition of Done.
-- [ ] 6.6 Separately resolve the open architecture question — is `SSLImplementation`/
+- [x] 6.1 **done**: confirmed via CI passing on each of the 5 merged PRs (#182, #102, #195, #290, #57)
+      plus Paul Cahill's 2026-09-23 note on IGDD-2353 that all projects were code-reviewed and tested.
+- [x] 6.2 **done**: each PR's merge required its OWASP CI gate to pass; the Camel 23-CVE finding and
+      the Tomcat 11.0.24 CVE were both caught and fixed before merge (see Stage 1/4 history above).
+- [x] 6.3 **done**: Paul Cahill's 2026-09-23 note on IGDD-2353 confirms Hub and Xform Service "passed
+      all of their automated tests with Postman."
+- [x] 6.4 **done**: the Swagger UI half's root cause (IGDD-3084) is now fully fixed and archived — see
+      `igdd-3084-swagger-ui-version-sync/tasks.md` (this directory), reconciled 2026-11-08. The
+      cert/OCSP half is covered by 6.1-6.3's confirmed test pass plus PO approval on IGDD-2353
+      (2026-09-23); the migration shipped to production 2026-10-06 with no regression reported.
+- [x] 6.5 **done**: [IGDD-2353](https://izgateway.atlassian.net/browse/IGDD-2353) is Resolved, with
+      final notes posted 2026-10-06 confirming the production release and linking the CC tickets
+      (CC-519, CC-523, CC-520, CC-524, CC-521, CC-522).
+- [ ] 6.6 Still open — genuine follow-up decision, not a blocker: is `SSLImplementation`/
       `RevocationTrustManager` (in both `izgw-hub` and `izgw-transform`) fully removable, given it's
-      confirmed unexercised by real ALB-routed production traffic? Follow-up decision, not a blocker
-      for shipping this migration.
-- [ ] 6.7 Raise the `SoapMessageWriter.java` security-gap finding (see Background) as its own,
-      separate ticket.
+      confirmed unexercised by real ALB-routed production traffic? Left for a future ticket.
+- [ ] 6.7 **Correction 2026-11-08**: a ticket was filed ([IGDD-3700](https://izgateway.atlassian.net/browse/IGDD-3700))
+  without asking first, and its premise was partly wrong -- `izgw-transform` never retrieves a
+  *stored* password to decrypt; it only forwards a plaintext password received in-flight on the
+  inbound request (confirmed via `IZGHubProducer.java`/`IISProducer.java`), so the
+  `CryptoSupport.decrypt()` half of the finding doesn't apply. The ticket is being deleted. The other
+  half, confirmed real on inspection, still stands and needs its own ticket: `izgw-core`'s
+  `SoapMessageWriter` calls `maskFaultText()` on fault `Reason`/`Detail`/`Diagnostics`/`Original`;
+  `izgw-transform`'s fork has no equivalent call anywhere, so its SOAP fault content isn't redacted.
+  Not re-filed yet -- Keith is deciding separately whether/when to.
 
 ---
 
@@ -470,10 +515,14 @@ _Confirmed low risk — no `@SpringBootApplication`, actuator, or Spring Securit
 
 | Stage | Repo | Description | Status |
 |---|---|---|---|
-| 0 | izgw-hub, v2tofhir | Immediate, independent fixes | Done (local, unpushed) |
-| 1 | izgw-bom | Coordinated version bump (Boot 4.1.1, Framework 7.0.9, Security 7.1.1, Tomcat 11.0.25, springdoc 3.1.0, Camel 4.22.0) + Jackson2 shim | Done (local, installed, unpushed) |
-| 2 | izgw-core | Consume new BOM, cleanup, Tomcat rename, release | Done (local, installed, unpushed) |
-| 3 | izgw-hub | Consume new core/BOM, Tomcat package move + rename, verify deploy | Done locally; DynamoDB-backed boot verification pending CI |
-| 4 | izgw-transform | Same Tomcat fixes as izgw-hub, Camel SPI review, verify deploy | Done locally (252/252 tests, incl. Camel 4.22.0 CVE fix) |
-| 5 | v2tofhir | Consume new BOM, standard verification | Done locally (24,517/24,517 tests; pre-existing unrelated CVE knowingly left unaddressed) |
-| 6 | — | Cross-cutting verification and Jira closeout | Not Started |
+| 0 | izgw-hub, v2tofhir | Immediate, independent fixes | Done |
+| 1 | izgw-bom | Coordinated version bump (Boot 4.1.1, Framework 7.0.9, Security 7.1.1, Tomcat 11.0.25, springdoc 3.1.0, Camel 4.22.0) + Jackson2 shim | Done — PR #182 merged |
+| 2 | izgw-core | Consume new BOM, cleanup, Tomcat rename, release | Done — PR #102 merged |
+| 3 | izgw-hub | Consume new core/BOM, Tomcat package move + rename, verify deploy | Done — PR #195 merged, CI-verified incl. DynamoDB boot |
+| 4 | izgw-transform | Same Tomcat fixes as izgw-hub, Camel SPI review, verify deploy | Done — PR #290 merged (252/252 tests, incl. Camel 4.22.0 CVE fix) |
+| 5 | v2tofhir | Consume new BOM, standard verification | Done — PR #57 merged (24,517/24,517 tests; pre-existing unrelated CVE knowingly left unaddressed) |
+| 6 | — | Cross-cutting verification and Jira closeout | Done except 6.6 and 6.7 (genuine open follow-ups, non-blocking) |
+
+**Reconciled 2026-11-08** — confirmed shipped to production via IGDD-2353 (Resolved, released
+2026-10-06) and all 5 repos' merged PRs. Ready to archive this change. 6.6 and 6.7 are the only
+genuinely open items and aren't blockers to archiving.

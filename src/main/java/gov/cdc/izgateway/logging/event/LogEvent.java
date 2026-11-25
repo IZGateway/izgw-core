@@ -164,9 +164,10 @@ public class LogEvent {
 					}
 					map.put(o.getFieldName(), value);
 				}
-				if (marker.hasReferences()) {
-					getMarkers(l, map);
-				}
+				// LogstashMarker is Iterable<Marker> over its child markers. Iterating a marker
+				// with no children does nothing, so no check is needed. (Marker.hasReferences()
+				// and hasChildren() are deprecated in SLF4J 2.x with no replacement.)
+				getMarkers(l, map);
 			}
 		}
 		return map;

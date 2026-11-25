@@ -94,10 +94,13 @@ public enum MockMessage {
 
 	TC_21H(HttpStatus.METHOD_NOT_ALLOWED),
 
-	TC_21I(HttpStatus.PAYLOAD_TOO_LARGE),
+	TC_21I(HttpStatus.CONTENT_TOO_LARGE),
 
 	TC_21J(HttpStatus.UNSUPPORTED_MEDIA_TYPE),
 
+	// HttpStatus.I_AM_A_TEAPOT (418) is deprecated in Spring with no replacement constant.
+	// The test case is kept because it exercises handling of an unexpected HTTP status.
+	@SuppressWarnings("deprecation")
 	TC_21K(HttpStatus.I_AM_A_TEAPOT),
 
 	TC_21L(HttpStatus.INTERNAL_SERVER_ERROR),

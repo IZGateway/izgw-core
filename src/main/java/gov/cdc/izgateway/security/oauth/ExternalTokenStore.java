@@ -19,6 +19,7 @@ import org.springframework.http.MediaType;
 
 import java.io.*;
 import java.net.MalformedURLException;
+import java.net.URISyntaxException;
 import java.net.URL;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
@@ -110,7 +111,11 @@ public class ExternalTokenStore extends SimpleTokenStore {
         			URLEncoder.encode(password, StandardCharsets.UTF_8)
         	);
         }
-        return new URL(url, endpoint);
+        try {
+            return url.toURI().resolve(endpoint).toURL();
+        } catch (URISyntaxException | IllegalArgumentException e) {
+            throw new MalformedURLException(e.getMessage());
+        }
     	
     }
     

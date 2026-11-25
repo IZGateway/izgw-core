@@ -485,9 +485,9 @@ public class MessageSender {
 				return new URI(destUri).toURL();
 			}
 			if (Strings.CS.startsWith(destUri, "/")) {
-				return new URL(serverConfig.getProtocol(), "localhost", serverConfig.getPort(), destUri);
+				return new URI(serverConfig.getProtocol(), null, "localhost", serverConfig.getPort(), null, null, null).resolve(destUri).toURL();
 			}
-		} catch (MalformedURLException | URISyntaxException e) {
+		} catch (MalformedURLException | URISyntaxException | IllegalArgumentException e) {
 			throw DestinationConnectionFault.configurationError(dest,
 					errorMsg + " is not configured correctly", e);
 		}
@@ -499,8 +499,8 @@ public class MessageSender {
 		String destUri = dest.getDestUri();
 		if (Strings.CS.startsWith(destUri, "/")) {
 			try {
-				return new URL(serverConfig.getBaseUrl(), destUri);
-			} catch (MalformedURLException e) {
+				return serverConfig.getBaseUrl().toURI().resolve(destUri).toURL();
+			} catch (MalformedURLException | URISyntaxException | IllegalArgumentException e) {
 				throw DestinationConnectionFault.configurationError(dest,
 						"Destination " + dest.getDestId() + " is not configured correctly", e);
 			}

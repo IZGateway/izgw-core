@@ -1,6 +1,9 @@
 package gov.cdc.izgateway.security.ocsp;
 
 import java.io.IOException;
+import java.net.MalformedURLException;
+import java.net.URI;
+import java.net.URISyntaxException;
 import java.net.URL;
 import java.security.cert.X509Certificate;
 import java.util.stream.Stream;
@@ -50,9 +53,17 @@ public class ResponderUrlHelper {
 				.orElse(null);
 
 		return ((ocspResponderUrlName != null)
-				? new URL(
+				? toUrl(
 						DERIA5String.getInstance(((DERTaggedObject) ocspResponderUrlName.toASN1Primitive()).getObject())
 								.getString())
 				: null);
+	}
+
+	private static URL toUrl(String location) throws MalformedURLException {
+		try {
+			return new URI(location).toURL();
+		} catch (URISyntaxException | IllegalArgumentException e) {
+			throw new MalformedURLException(e.getMessage());
+		}
 	}
 }
